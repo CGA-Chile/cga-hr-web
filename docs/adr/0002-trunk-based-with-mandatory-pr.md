@@ -1,7 +1,7 @@
 # 0002 — Trunk-based development with mandatory pull requests
 
 Date: 2026-08-14
-Status: Accepted
+Status: Superseded by 0005
 
 ## Context
 

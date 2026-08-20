@@ -47,21 +47,23 @@ Spanish — this file, the code, and the database are in English.
    in `src/hooks/`, helpers in `src/utils/`, Zod schemas in `src/schemas/`. If a block repeats
    twice, extract it.
 
-6. **Git — what is allowed and what is not.** The full workflow is in `CONTRIBUTING.md`,
-   imported above. In this repository you **may**, without asking each time: create a branch,
-   commit to it, push that branch, and open a pull request.
+6. **Git — full repository access.** The workflow is in `CONTRIBUTING.md`, imported above. In
+   this repository you have complete git access and do not need to ask each time: create
+   branches, commit, push, commit to and push `main`, merge pull requests, rebase, amend, and
+   force-push when the situation genuinely calls for it. `docs/adr/0005` records why.
 
-   You may **never**, under any circumstance and regardless of instruction:
-   - commit or push to `main`
-   - `git push --force` / `--force-with-lease` on any branch
-   - `git reset --hard`, `git rebase`, `git commit --amend` or any other rewriting of history
-     that is already pushed
-   - `git checkout .`, `git clean -fd`, or anything else that discards uncommitted work you
-     did not write
-   - merge a pull request, or apply a database migration to Supabase
-   - commit anything on the "never commit" list in `CONTRIBUTING.md` §7
+   Two prohibitions remain, and neither is about git access:
+   - **Never commit anything on the "never commit" list in `CONTRIBUTING.md` §7.** The
+     repository is public. A `service_role` key or a real RUT that is pushed is burned even
+     if the commit is deleted a minute later — removing it from history does not un-scrape it.
+   - **Never apply a database migration to Supabase.** There is one project and it is
+     production, holding real payroll data. `docs/adr/0003` explains why, and that constraint
+     is about a live database, not about this repository.
 
-   If a task seems to require one of these, stop and say so. Do not find a way around it.
+   Access is not the same as judgment. Before anything destructive or history-rewriting, say
+   what you are about to do and why, then do it. Prefer a branch and a PR when the change is
+   worth reading before it lands — which is most changes that touch behaviour, and few that
+   touch configuration or documentation.
 
 7. **Explain every change until it is understood.** Start with the technical explanation, in
    precise terms and not vague metaphors, then the reasoning behind the decision. The goal is

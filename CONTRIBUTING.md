@@ -21,9 +21,13 @@ calculation merges without a test that covers it.
 6. Squash merge. Branch is deleted automatically.
 ```
 
-Nobody commits to `main`. Not for a typo, not for a one-line fix, not "just this once".
-The branch protection ruleset enforces it, but the rule exists whether or not a machine is
-checking.
+This is the default path for anything that changes behaviour, and the reason is review, not
+ceremony: a pull request is where a change gets read before it can pay someone the wrong
+amount.
+
+It is a working agreement, not a mechanical prohibition. Scaffolding, configuration and
+documentation may go straight to `main` when a pull request would produce no review value.
+Whoever takes that shortcut owns the consequence of taking it. See `docs/adr/0005`.
 
 ## 2. Branches
 
@@ -228,17 +232,19 @@ the old file stays, marked `Superseded`. The value is the trail, not the current
 
 ## 10. Working with Claude Code
 
-Claude Code is a contributor here and follows the same rules. `CLAUDE.md` states what it may
-and may not do with git; the short version:
+Claude Code is a contributor here and follows the same working agreement. `CLAUDE.md` rule 6
+states what it may do with git; the short version:
 
-**It may:** create branches, commit, push its own branch, open PRs.
+**It may:** everything git can do — branch, commit, push, commit to and push `main`, merge
+pull requests, rebase, amend, force-push.
 
-**It may not:** commit to `main`, force-push, `git reset --hard`, rewrite shared history,
-merge its own PR, or commit anything from the "never commit" list above.
+**It may not:** commit anything from the "never commit" list in §7, or apply a migration to
+Supabase (§6, `docs/adr/0003`). Neither of those is a git restriction: one is about a public
+repository, the other about a production database.
 
-A `PreToolUse` hook in `.claude/hooks/git-guard.sh` blocks the destructive commands
-mechanically. The hook is a backstop for accidents — it is not the reason the rules exist,
-and it should never be the only thing standing between a mistake and `main`.
+There is no `PreToolUse` hook enforcing any of this. It was removed with the restrictions it
+enforced — a guard that blocks nothing is dead code that reads like a safety net. What
+remains is the agreement in §1 and the judgment clause in `CLAUDE.md` rule 6.
 
 **You still review the PR.** An agent that opens a well-formatted PR with a clean commit
 history and a filled-in template is not thereby correct. The review step is the point where

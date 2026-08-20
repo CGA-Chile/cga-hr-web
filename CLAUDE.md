@@ -93,10 +93,15 @@ The database and the code use these terms. The UI uses the Spanish column.
 | `bonus scheme` | esquema de bono | `POSITION_RATE` or `EQUAL_SHARE`. Derived, never set by hand. |
 | `POSITION_RATE` | Tarifa por puesto | Fixed amount per position. Default scheme. |
 | `EQUAL_SHARE` | Reparto igualitario | Everyone on the line earns the same, capped. Triggered by inline packing. |
-| `daily cap` | tope diario | The maximum the `EQUAL_SHARE` formula will distribute in one day. **It is an input to that formula only — it is not enforced over `POSITION_RATE`.** See below. |
+| `daily cap` | tope diario | The ceiling on what one day may **settle**, and an input to the `EQUAL_SHARE` formula. It is not a ceiling on what the calculation returns. See below. |
+| `scheme trigger` | disparador de esquema | A position whose presence forces `EQUAL_SHARE`. Carried as data in `positions`, never recognised by code. |
 | `Period` | Cierre / Período | The settlement window HR reports. Roughly the 25th to the 24th, not a calendar month. |
 | `settlement` | liquidación | Stamping a bonus day as paid in a given period. |
 | `carry-over` | arrastre | A bonus day from a closed period, entered late, paid in the next one. |
+| `anomaly` | anomalía | Derived state suggesting a mistake — a duplicated rate position, an over-cap total. Recomputed, never recorded, never acknowledged. |
+| `review item` | ítem de revisión | Recorded event: a settled day was changed, or a new day landed inside a closed period. Acknowledged, not corrected. |
+| `close gate` | compuerta de cierre | The check that stops a period closing while a day it would settle still carries a correctable anomaly. |
+| `validated excess` | exceso validado | An admin's recorded approval to settle one day above the cap, when the excess cannot be corrected. |
 
 Do not invent alternative translations. If a term is missing here, ask before naming it.
 
@@ -130,7 +135,7 @@ network, no dates read from the system clock. Input is the day's assignments plu
 in force; output is the amount per employee.
 
 This is the one module that cannot be wrong — it decides what people get paid. Every rule in
-`docs/DOMAIN.md` has a test, including the twelve mandatory cases. A change to these rules
+`docs/DOMAIN.md` has a test, including the fourteen mandatory cases. A change to these rules
 without a test that fails without the change does not get merged.
 
 Amounts are integers in Chilean pesos. No floats, no decimals, no currency library. Division
@@ -141,12 +146,18 @@ and `bonus_position_rates`, versioned by effective date. Each day is calculated 
 settings in force on that date, so closed periods do not change when rates do. Tests build
 their own fixture settings; they never import production values.
 
-**The daily cap does not apply to `POSITION_RATE`.** It appears only inside the `EQUAL_SHARE`
-formula. Under `POSITION_RATE` the day's total is the plain sum of the rates of the positions
-that were actually filled, and if a data-entry error makes that sum exceed the cap, the
-calculation returns the real sum. It is not clamped, and the write is not blocked. The daily
-summary marks the day visually so the user sees it; correcting it is the user's job. Rule 5
-in "UI patterns" explains why.
+**The daily cap constrains what is settled, not what is calculated.** Inside the calculation it
+appears only in the `EQUAL_SHARE` formula. Under `POSITION_RATE` the day's total is the plain sum
+of the rates of the positions actually filled, and if a data-entry error makes that sum exceed
+the cap, the calculation returns the real sum. It is not clamped and the write is not blocked —
+the daily summary marks the day so the user sees it. Rule 5 in "UI patterns" explains why.
+
+The cap is enforced later, by a person: a period cannot close while a day it would settle still
+has a correctable anomaly. That is the close gate, and it is the only place the app refuses to
+proceed. The one excess that survives it is a carry-over onto a day whose amounts are already
+frozen, which cannot be corrected and instead requires the admin's recorded validation.
+`docs/adr/0006` and `docs/adr/0008` carry the reasoning; `src/domain/bonus/` stays out of it and
+keeps returning the plain sum.
 
 ---
 
@@ -221,6 +232,10 @@ human, not from an agent session. `CONTRIBUTING.md` §6.
 
 Read `docs/DOMAIN.md`. It holds the domain rules, the data model and the decisions already
 made, and it is versioned — it is what a fresh clone gets.
+
+Read `CONTEXT.md` too. It is the glossary for the terms that carry the rules — the ones where
+the wrong word produces the wrong amount, like the difference between an anomaly and a review
+item. The table above covers the base entities; `CONTEXT.md` covers the rest.
 
 `BRIEF-app-bonos-carda.md` is the internal product document. It has the real bonus amounts and
 real names, so it is gitignored and exists only on the maintainer's machine. When it is

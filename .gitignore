@@ -1,0 +1,52 @@
+# --- Sensitive: this repository is public. See CONTRIBUTING.md §7 ---
+
+# Internal product document: real bonus amounts, real names
+BRIEF-app-bonos-carda.md
+
+# Environment. Only .env.example is versioned.
+.env
+.env.*
+!.env.example
+
+# Seed data with real employees, RUT and production rates
+seed/*.local.*
+seed/*.private.*
+
+# Machine-local agent configuration
+.claude/settings.local.json
+
+# --- Dependencies and build output ---
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# --- Supabase ---
+supabase/.branches/
+supabase/.temp/
+
+# --- Tooling ---
+coverage/
+.turbo/
+.vercel/
+.eslintcache
+
+# --- OS and editors ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# --- Scratch ---
+_to_delete/
+tmp/

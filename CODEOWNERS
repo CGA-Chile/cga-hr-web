@@ -1,0 +1,13 @@
+# Single maintainer today. This file is documentary rather than enforcing:
+# the branch ruleset requires zero approvals, because GitHub does not allow
+# approving your own pull request (see docs/adr/0002).
+#
+# When a second developer joins, raise required approvals to 1 and this file
+# starts doing real work.
+
+* @Panchoapc
+
+# The calculation module decides what people get paid. Even with one maintainer,
+# listing it separately makes the intent explicit for whoever comes next.
+/src/domain/bonus/ @Panchoapc
+/supabase/migrations/ @Panchoapc

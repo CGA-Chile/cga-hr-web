@@ -1,0 +1,7 @@
+# Normalise line endings. CI runs on Linux and the maintainer works on Windows;
+# without this, autocrlf decides per machine and diffs show phantom whole-file changes.
+* text=auto eol=lf
+
+# Generated: exclude from diffs and from language statistics.
+src/types/database.ts linguist-generated=true
+package-lock.json     linguist-generated=true

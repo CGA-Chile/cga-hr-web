@@ -129,14 +129,18 @@ real.
 
 **Read this section before touching the schema.** There is one Supabase project and it is
 production. A bad migration does not break a test environment — it touches real payroll
-data. See `docs/adr/0003-single-supabase-project.md` for why this is the current setup and
-what would change it.
+data. See `docs/adr/0009-the-agent-applies-migrations.md` for the current rules, and
+`docs/adr/0003-single-supabase-project.md`, which it supersedes, for why the setup is one
+project and what would change it.
 
 Rules, in order of importance:
 
-1. **Migrations are never applied by CI or by an agent.** A human applies them, by hand,
-   after the PR is merged, with a backup taken first. CI only checks that the code compiles
-   against the committed types.
+1. **A backup is taken before every migration, and CI never applies one.** Whoever applies it —
+   maintainer or agent — takes the backup first, applies after the pull request is merged, and
+   says what they are about to apply before doing it. CI only checks that the code compiles
+   against the committed types; it is unattended and has no judgment, which is the line that
+   matters. `docs/adr/0009` records why the rule is about attention rather than about who types
+   the command.
 2. **Additive first.** Add a column, backfill it, ship the code that uses it. Only in a
    later, separate PR remove what it replaced. Never add-and-remove in one step.
 3. **`DROP TABLE` and `DROP COLUMN` go in their own PR**, alone, with the reason in the
@@ -238,9 +242,12 @@ states what it may do with git; the short version:
 **It may:** everything git can do — branch, commit, push, commit to and push `main`, merge
 pull requests, rebase, amend, force-push.
 
-**It may not:** commit anything from the "never commit" list in §7, or apply a migration to
-Supabase (§6, `docs/adr/0003`). Neither of those is a git restriction: one is about a public
-repository, the other about a production database.
+**It may not:** commit anything from the "never commit" list in §7. That is not a git
+restriction — it is about a public repository, where a pushed key stays burned after the commit
+is deleted.
+
+**Migrations it may apply**, under §6: backup first, announcement first, never from CI.
+`docs/adr/0009`.
 
 There is no `PreToolUse` hook enforcing any of this. It was removed with the restrictions it
 enforced — a guard that blocks nothing is dead code that reads like a safety net. What

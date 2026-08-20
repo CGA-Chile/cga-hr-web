@@ -1,7 +1,7 @@
 # 0003 — A single Supabase project, which is production
 
 Date: 2026-08-14
-Status: Accepted
+Status: Superseded by [0009](0009-the-agent-applies-migrations.md)
 
 ## Context
 

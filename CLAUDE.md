@@ -52,13 +52,14 @@ Spanish — this file, the code, and the database are in English.
    branches, commit, push, commit to and push `main`, merge pull requests, rebase, amend, and
    force-push when the situation genuinely calls for it. `docs/adr/0005` records why.
 
-   Two prohibitions remain, and neither is about git access:
+   One prohibition remains, and it is not about git access:
    - **Never commit anything on the "never commit" list in `CONTRIBUTING.md` §7.** The
      repository is public. A `service_role` key or a real RUT that is pushed is burned even
      if the commit is deleted a minute later — removing it from history does not un-scrape it.
-   - **Never apply a database migration to Supabase.** There is one project and it is
-     production, holding real payroll data. `docs/adr/0003` explains why, and that constraint
-     is about a live database, not about this repository.
+
+   **Migrations you may apply**, with a backup taken first and after saying what you are about to
+   apply and why. There is one Supabase project and it is production, so the announcement is not
+   a formality. `docs/adr/0009` explains what changed and what did not.
 
    Access is not the same as judgment. Before anything destructive or history-rewriting, say
    what you are about to do and why, then do it. Prefer a branch and a PR when the change is
@@ -221,10 +222,12 @@ npx supabase start
 npx supabase db reset
 npx supabase migration new <name>
 npx supabase gen types typescript --local > src/types/database.ts
+
+npx supabase db push
 ```
 
-`npx supabase db push` is deliberately absent: migrations are applied to production by a
-human, not from an agent session. `CONTRIBUTING.md` §6.
+`npx supabase db push` applies to the one project, which is production. Take a backup first and
+say what you are about to apply. `CONTRIBUTING.md` §6 and `docs/adr/0009`.
 
 ---
 

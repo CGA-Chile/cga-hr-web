@@ -1,7 +1,7 @@
 # 0004 — The daily cap applies only to EQUAL_SHARE
 
 Date: 2026-08-14
-Status: Accepted
+Status: Accepted — extended by [0006](0006-daily-cap-is-an-invariant-of-settled-amounts.md)
 
 ## Context
 

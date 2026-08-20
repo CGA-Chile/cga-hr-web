@@ -90,12 +90,17 @@ la respeta. Agregar un puesto bonificable en el futuro debe ser una fila, no un 
 
 ### Esquema del día
 
+Que `PACKING_ACM` cambie el esquema **también es dato**, no código. Vive en una segunda columna,
+`positions.triggers_equal_share`, por la misma razón que la anterior: sin ella el módulo tendría
+que reconocer el código `PACKING_ACM` y la regla de arriba sería falsa. Ver `docs/adr/0007`.
+
 ```
-hasInlinePacking = existe al menos una asignación con puesto PACKING_ACM en esa fecha
-scheme = hasInlinePacking ? EQUAL_SHARE : POSITION_RATE
+hasSchemeTrigger = existe al menos una asignación cuyo puesto tiene triggers_equal_share
+scheme = hasSchemeTrigger ? EQUAL_SHARE : POSITION_RATE
 ```
 
-No hay marca manual. El esquema se deriva de los datos.
+No hay marca manual. El esquema se deriva de los datos. Hoy el único puesto con esa bandera es
+`PACKING_ACM`; que sea uno solo es una circunstancia del catálogo, no un supuesto del cálculo.
 
 ### POSITION_RATE — sin packing en línea
 
@@ -134,33 +139,53 @@ esto último existe para no premiar a quien haga el trabajo de dos.
 Truncamiento hacia abajo, al peso, para no pasarse del tope por redondeo. El truncamiento
 puede dejar el total apenas bajo el tope; es correcto y esperado.
 
-### El tope diario **no** se aplica a POSITION_RATE
+### El tope diario limita lo que se **liquida**, no lo que se calcula
 
-Regla explícita, porque es la pregunta que todos hacen:
+Regla explícita, porque es la pregunta que todos hacen. La respuesta tiene dos mitades y
+confundirlas es lo que hacía parecer que los documentos se contradecían.
 
-`dailyCap` es un parámetro **de la fórmula de `EQUAL_SHARE`**. Bajo `POSITION_RATE` el total
-del día es la suma simple de las tarifas de los puestos efectivamente ocupados, sin recorte.
+**Dentro del cálculo,** `dailyCap` es un parámetro **de la fórmula de `EQUAL_SHARE`** y de nada
+más. Bajo `POSITION_RATE` el total del día es la suma simple de las tarifas de los puestos
+efectivamente ocupados, sin recorte.
 
 Con datos correctos eso no puede exceder el tope: las cuatro tarifas suman exactamente el tope
 (4.000 × 3 + 3.000 = 15.000). Solo lo excede si un puesto de línea quedó con **más de un
 ocupante**, que es un error de asignación.
 
-Y cuando eso pasa, **la app no lo bloquea ni lo corrige**: calcula el monto real, lo muestra y
-marca visualmente el día. La responsabilidad de no equivocarse es del usuario; el rol de la app
+Y durante el mes, cuando eso pasa, **la app no lo bloquea ni lo corrige**: calcula el monto real,
+lo muestra y marca el día. La responsabilidad de no equivocarse es del usuario; el rol de la app
 es hacer visible lo que pasó. Un total sobre el tope es exactamente el tipo de error que salta
 solo si se muestra, y que se vuelve invisible si la app lo recorta en silencio.
+
+**Al liquidar, el tope sí manda.** El período no se puede cerrar mientras algún día que ese
+cierre vaya a liquidar tenga una anomalía corregible. Es la **compuerta de cierre**, y es el
+único lugar donde la app se niega a seguir: cerrar es un acto administrativo deliberado, no la
+carga diaria de datos que el patrón 5 de `CLAUDE.md` protege. Ver `docs/adr/0006`.
+
+La única excepción es un exceso que ya no se puede corregir —un arrastre sobre un día cuyos
+montos están congelados— y ese exige la validación registrada del admin. Ver `docs/adr/0008`.
 
 ### Ocupación duplicada de un puesto
 
 El índice único es `(date, employee_id)`: garantiza que **nadie cobre dos bonos el mismo día**,
 pero no impide que dos personas queden asignadas al mismo puesto.
 
-- **No se bloquea.** Es un estado posible del sistema y hay que calcularlo, no rechazarlo.
+- **No se bloquea al escribir.** Es un estado posible del sistema y hay que calcularlo, no
+  rechazarlo. Además es un estado de paso obligatorio: para intercambiar a dos personas entre
+  RIETER y ACM hay que pasar por un momento en que las dos están en el mismo puesto.
 - Bajo `POSITION_RATE`: cada asignación cobra la tarifa de su puesto. Dos personas en RIETER
-  cobran 4.000 cada una. El total del día sube por encima del tope y se marca.
-- Bajo `EQUAL_SHARE`: no tiene efecto especial, solo aumenta `n`.
-- `PACKING_ACM` admite varios ocupantes **legítimamente** y no se marca nunca. La marca aplica
-  solo a los cuatro puestos de tarifa.
+  cobran 4.000 cada una. El total del día sube por encima del tope y se marca:
+  *"Rieter tiene 2 personas — afecta el monto del día."*
+- Bajo `EQUAL_SHARE`: no afecta el monto, solo aumenta `n`. **Se marca igual, más callado:**
+  *"Rieter tiene 2 personas — hoy no afecta el monto."* La razón es que el esquema es derivado:
+  el duplicado inofensivo de hoy se vuelve caro en el instante en que alguien borra la única
+  asignación con `triggers_equal_share` y el día cae de vuelta a `POSITION_RATE`, sin que nadie
+  haya tocado el duplicado.
+- Un puesto con `triggers_equal_share` admite varios ocupantes **legítimamente** y no se marca
+  nunca. La marca aplica solo a los cuatro puestos de tarifa.
+- **La compuerta de cierre la resuelve.** El duplicado se puede arrastrar durante el mes, pero no
+  puede sobrevivir al cierre: el admin reasigna a la persona sobrante a otro puesto o la deja sin
+  asignación. La app nunca elige por él.
 
 ### Casos de prueba obligatorios
 
@@ -185,7 +210,14 @@ la configuración de producción.
 | 14 | 2 personas en RIETER + 1 PACKING_ACM (n=6) | 2.500 c/u · total 15.000, sin marca de tope |
 
 Los casos 13 y 14 son la contraparte de la regla anterior y no pueden faltar: el 13 prueba que
-`POSITION_RATE` no recorta, el 14 que la duplicación es inocua bajo `EQUAL_SHARE`.
+`POSITION_RATE` no recorta, el 14 que la duplicación es inocua **para el monto** bajo
+`EQUAL_SHARE`. Ojo con el 14: "sin marca de tope" es literal y sigue vigente, pero el día sí
+lleva la marca callada de puesto duplicado. Son dos marcas distintas y el caso solo afirma la
+ausencia de una.
+
+Los catorce cubren el módulo de cálculo y nada más. La compuerta de cierre, el arrastre y la
+validación del exceso son reglas de liquidación, no de cálculo: viven fuera de
+`src/domain/bonus/` y se prueban aparte.
 
 ### Reglas transversales
 
@@ -198,6 +230,11 @@ Los casos 13 y 14 son la contraparte de la regla anterior y no pueden faltar: el
 - Una persona con `active = false` que tiene asignaciones dentro del rango consultado **sí
   aparece** en ese rango (caso: desvinculado a mitad de mes). En rangos posteriores a su última
   asignación deja de aparecer.
+- **La fecha del dominio es la de Chile.** `assignments.date` es un `date` sin hora, pero alguien
+  tiene que decidir qué es "hoy" cuando el supervisor abre la app. Se resuelve siempre en
+  `America/Santiago`. Si se resolviera en UTC, entre las 21:00 y la medianoche de Chile el bono
+  quedaría registrado en el día siguiente. Fuera de la capa de presentación no se usa `new Date()`
+  sin zona horaria explícita; el módulo de cálculo, que no lee el reloj, no se ve afectado.
 
 ### `PACKING` vs `PACKING_ACM`
 
@@ -255,13 +292,20 @@ Sin `display_order`: se ordena por nombre.
 ### positions
 
 ```
-code           text unique not null    -- 'RIETER', 'PACKING_ACM', ...
-name           text not null           -- etiqueta visible, en español
-type           text not null           -- 'WORK' | 'ABSENCE'
-bonus_eligible boolean not null default false
-display_order  int not null
-active         boolean not null default true
+code                  text unique not null    -- 'RIETER', 'PACKING_ACM', ...
+name                  text not null           -- etiqueta visible, en español
+type                  text not null           -- 'WORK' | 'ABSENCE'
+bonus_eligible        boolean not null default false
+triggers_equal_share  boolean not null default false
+display_order         int not null
+active                boolean not null default true
+
+check (not triggers_equal_share or bonus_eligible)
 ```
+
+El `check` prohíbe la única combinación sin sentido: un puesto que cambie cómo se paga toda la
+línea sin pagarle nada a quien lo ocupa. Hacer imposible ese estado sale más barato que enseñarle
+al módulo de cálculo a defenderse de él, y deja `n` bien definido.
 
 `display_order` existe por una razón concreta: alfabéticamente `Packing` y `Packing ACM` quedan
 pegados en el selector, que es el error más caro posible. El orden manual permite separarlos y
@@ -338,6 +382,26 @@ alter table periods add constraint periods_no_overlap
   where (deleted_at is null);
 ```
 
+### cap_overrides
+
+Append-only. Registra la validación explícita del admin cuando un día se liquida por encima del
+tope y el exceso **no se puede corregir** — el caso de arrastre de la sección 7. Sin esta tabla,
+"el admin lo validó" es un clic que no deja rastro, y dentro de tres meses nadie puede explicar
+por qué ese día se pagó de más.
+
+```
+period_id        uuid fk periods
+date             date not null
+approved_amount  int not null      -- el total del día que se aprobó pagar
+daily_cap        int not null      -- el tope vigente ese día, congelado
+approved_by      uuid fk auth.users
+approved_at      timestamptz not null default now()
+note             text
+```
+
+`daily_cap` se congela junto al monto por la misma razón que `settled_amount`: una fila leída en
+dos años tiene que ser legible sin reconstruir qué vigencia de `bonus_settings` estaba activa.
+
 ### assignment_history
 
 Append-only, poblada por trigger sobre `assignments` —no desde el código de aplicación, así no
@@ -392,15 +456,55 @@ siguiente. Eso se modela con liquidación diferida:
 Editar una asignación ya liquidada queda restringido al rol `admin` vía RLS, y el cambio
 aparece en una lista de revisión para RRHH.
 
+### La compuerta de cierre
+
+El período no se cierra mientras algún día que ese cierre vaya a liquidar tenga una **anomalía
+corregible**: un puesto de tarifa con más de un ocupante. El admin la resuelve reasignando a la
+persona sobrante o dejándola sin asignación, y recién ahí puede cerrar.
+
+Cubre **todos** los días que el cierre va a liquidar, incluidos los de arrastre de períodos
+anteriores. Son los que se están pagando ahora y es la última oportunidad de corregirlos.
+
+Es el único punto de la app que se niega a seguir, y es deliberado: cerrar es un acto
+administrativo que ocurre una docena de veces al año, no la carga diaria de datos. Cerrar ya
+estaba restringido a `admin`, así que la compuerta cae sobre el único rol que además puede
+arreglar lo que ella reporta. Ver `docs/adr/0006`.
+
+### El exceso que la compuerta no puede arreglar
+
+Un día que cerró bajo `EQUAL_SHARE` repartió el tope completo entre `n` personas y congeló sus
+montos. Si después aparece una asignación tardía de ese mismo día, el arrastre la recoge y se
+calcula con el `n` real —ahora mayor—, pero los montos ya congelados no se reescriben ni se
+reclaman. El total verdadero de ese día queda sobre el tope y **no hay nada que corregir**: todas
+las asignaciones son correctas y la plata ya salió.
+
+En ese caso la app no bloquea, porque no habría cómo destrabarlo. Exige la **validación explícita
+del admin**, que queda registrada en `cap_overrides`.
+
+La razón de fondo no es aritmética: el trabajador hizo el trabajo, y el error de registro fue de
+la empresa. Un error que la app no pudo evitar es lo único que justifica pasarse del tope. Ver
+`docs/adr/0008`.
+
 ### La lista de revisión
 
-No es una tabla nueva. Es una **vista** sobre `assignment_history`: los cambios cuya asignación
-tiene `settled_in_period_id` no nulo y cuyo `changed_at` es posterior al `closed_at` de ese
-período.
+No es una tabla nueva. Es una **vista**, y cubre dos casos:
+
+1. Los cambios en `assignment_history` cuya asignación tiene `settled_in_period_id` no nulo y
+   cuyo `changed_at` es posterior al `closed_at` de ese período.
+2. Las asignaciones bonificables **nuevas** cuya fecha cae dentro de un período ya cerrado.
+
+El segundo caso no es un cambio a una asignación liquidada sino el insert de una que no lo está,
+así que la definición original lo dejaba fuera — y es justo el que puede voltear un día entero de
+`POSITION_RATE` a `EQUAL_SHARE` después de haberlo pagado.
 
 ```
-Cambios sobre días ya liquidados, no reconocidos aún por RRHH.
+Movimientos sobre días ya liquidados, no reconocidos aún por RRHH.
 ```
+
+**Un ítem de revisión no es una anomalía**, aunque en pantalla se parezcan. La anomalía es estado
+derivado: se recalcula, y corregir la asignación la hace desaparecer. El ítem de revisión es un
+evento ya ocurrido que no se puede deshacer, y por eso se acusa recibo en vez de corregirse. Los
+términos están fijados en `CONTEXT.md`.
 
 Se agrega una columna `acknowledged_at timestamptz null` en `assignment_history` para que RRHH
 pueda marcarlos como revisados y sacarlos de la bandeja. No hay descuentos automáticos ni
@@ -439,13 +543,30 @@ Muestra:
 - Quiénes cobran y cuánto cada uno.
 - El total del día.
 
-Y marca dos situaciones, de forma pasiva y sin impedir nada:
+Y marca estas situaciones, de forma pasiva y sin impedir nada:
 
 - **Total sobre el tope diario.** "Total del día: $19.000 — sobre el tope de $15.000."
-- **Puesto de línea con más de un ocupante.** "Rieter tiene 2 personas asignadas."
+- **Puesto de tarifa con más de un ocupante, bajo `POSITION_RATE`.** "Rieter tiene 2 personas —
+  afecta el monto del día."
+- **Puesto de tarifa con más de un ocupante, bajo `EQUAL_SHARE`.** "Rieter tiene 2 personas — hoy
+  no afecta el monto." Más callado, porque hoy no cuesta plata; se marca igual porque mañana
+  puede costarla, en cuanto alguien borre la asignación que dispara el esquema.
 
-Ambas son casi siempre errores de tipeo, y ambas se corrigen cambiando la asignación. La app no
+Todas son casi siempre errores de tipeo, y todas se corrigen cambiando la asignación. La app no
 adivina cuál de las dos personas sobra.
+
+### 8.2.1 La lista de días con avisos
+
+El resumen solo marca el día que estás mirando. Si el supervisor se equivoca un martes y nadie
+vuelve a abrir ese martes, el error sobrevive intacto hasta el cierre — tres semanas después.
+
+Por eso hay una **lista de días con avisos**, alcanzable desde la vista del día: fecha, motivo y
+un enlace para ir a corregir. No notifica, no interrumpe y no bloquea; solo acorta la distancia
+entre el error y la persona que lo puede arreglar. Un día sale de la lista cuando deja de tener
+la anomalía, no cuando alguien la marca como vista — acusar recibo de un error que sigue ahí es
+una forma de esconderlo.
+
+La compuerta de cierre (sección 7) es la red de seguridad de esta lista, no su reemplazo.
 
 ### 8.3 Reporte del cierre
 
@@ -463,9 +584,15 @@ completo y bandeja de revisión.
 
 ## 9. Autenticación
 
-- **Nombre de usuario + PIN numérico.** Nada de correo como identificador visible. El usuario
-  es el primer nombre en minúscula. Internamente se mapea a un correo sintético
-  `usuario@cga.local` para trabajar con Supabase Auth.
+- **Nombre de usuario + PIN numérico de 6 dígitos.** Nada de correo como identificador visible.
+  El usuario es el primer nombre en minúscula. Internamente se mapea a un correo sintético
+  `usuario@cga.local` para trabajar con Supabase Auth. Son 6 y no 4 porque Supabase trata el PIN
+  como contraseña y su mínimo por defecto es 6 caracteres; bajarlo sería tocar la configuración
+  del proyecto para ahorrar dos dígitos.
+- **Sin bloqueo por intentos fallidos.** Son cuatro usuarios en una planta y un supervisor
+  bloqueado a las 6 de la mañana no tiene a quién pedirle el desbloqueo: el remedio sale más caro
+  que la enfermedad. El rate limiting que Supabase ya trae alcanza para el riesgo real, que es
+  bajo con usuarios sintéticos `@cga.local` que no existen fuera de la planta.
 - **Sin OTP.** Requiere mail o señal disponible justo al entrar, que es lo que no se puede
   asumir en planta.
 - Sesión persistente larga con refresh automático. En el uso diario nadie debería tener que
@@ -520,16 +647,18 @@ solo un archivo de ejemplo con datos ficticios para que cualquiera pueda levanta
 
 ---
 
-## 12. Decisiones abiertas
+## 12. Decisiones que estaban abiertas
 
-Cosas que este documento **no** resuelve y que hay que decidir antes de implementarlas. Están
-acá en vez de resueltas por defecto porque una suposición razonable en un cálculo de sueldos es
-peor que una pregunta.
+Las cinco se cerraron el 2026-08-20. Se dejan acá con su resolución en vez de borrarlas: el valor
+está en el rastro, y la pregunta explica por qué la respuesta es la que es.
 
-| # | Pregunta |
-|---|---|
-| 1 | ¿La marca de "puesto de línea con más de un ocupante" aplica también a días bajo `EQUAL_SHARE`, donde es inocua para el monto? El caso 14 asume que no. |
-| 2 | ¿Qué pasa si se cierra un período y después se corrige una asignación **hacia abajo** (la persona no debía cobrar)? Hoy no hay descuento automático y queda en la bandeja de revisión, pero no está definido qué hace RRHH con eso. |
-| 3 | ¿El PIN tiene largo fijo? ¿Hay bloqueo tras N intentos fallidos? Supabase Auth trata el PIN como password; conviene definir el largo mínimo antes de crear los usuarios. |
-| 4 | ¿La bandeja de revisión notifica a alguien, o se consulta a demanda? |
-| 5 | ¿Se purgan las operaciones de `applied_operations`? Se propone 90 días; falta confirmarlo. |
+| # | Pregunta | Resolución |
+|---|---|---|
+| 1 | ¿La marca de puesto duplicado aplica también bajo `EQUAL_SHARE`, donde es inocua para el monto? | **Sí, pero más callada.** El esquema es derivado: el duplicado inofensivo de hoy se vuelve caro si alguien borra la asignación que dispara `EQUAL_SHARE`. Sección 5. |
+| 2 | ¿Qué pasa si se corrige una asignación **hacia abajo** después de cerrar? | **La app no hace nada automático** y no es su decisión. Queda como ítem de revisión y una persona resuelve. No hay descuento ni recálculo; `settled_amount` no se reescribe nunca. |
+| 3 | ¿Largo del PIN? ¿Bloqueo por intentos? | **6 dígitos, sin bloqueo.** Sección 9. |
+| 4 | ¿La bandeja de revisión notifica, o se consulta a demanda? | **A demanda.** Mismo criterio que la lista de días con avisos: nada interrumpe, todo está a un clic. Con cuatro usuarios que se ven la cara todos los días, una notificación es ruido. |
+| 5 | ¿Se purga `applied_operations`? | **No.** Cuatro usuarios generan del orden de miles de filas al año en una tabla de dos columnas útiles; Postgres no la va a sentir. Construir un job programado para eso es trabajo que no compra nada, y si algún día molesta el umbral se elige con datos reales. |
+
+Lo que salió de esta sesión y era demasiado grande para una fila está en `docs/adr/0006`, `0007`
+y `0008`. El vocabulario que se fijó está en `CONTEXT.md`.

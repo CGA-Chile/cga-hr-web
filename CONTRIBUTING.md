@@ -70,7 +70,7 @@ Scope is optional and names the area: `bonus`, `assignments`, `auth`, `db`, `ui`
 ```
 feat(bonus): derive scheme from inline packing presence
 fix(db): make assignments unique index partial on deleted_at
-test(bonus): cover the twelve mandatory calculation cases
+test(bonus): cover the fourteen mandatory calculation cases
 ```
 
 **One logical change per commit.** A commit that adds a feature and reformats forty files

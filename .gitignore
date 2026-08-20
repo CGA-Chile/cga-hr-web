@@ -15,6 +15,10 @@ seed/*.private.*
 # Machine-local agent configuration
 .claude/settings.local.json
 
+# Machine-local GitHub CLI config, pinning this folder to a personal account.
+# Holds no token — gh reads those from the OS keyring — but it names an account.
+.gh/
+
 # --- Dependencies and build output ---
 node_modules/
 .next/

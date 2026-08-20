@@ -244,3 +244,25 @@ When it is not, `docs/DOMAIN.md` is complete enough to work from.
 
 When something is covered by neither, **ask instead of inventing** — this app computes wages,
 and a plausible-looking guess is worse than a question.
+
+---
+
+## Agent skills
+
+Configuration the engineering skills read. Edit these files directly to change how the skills
+behave; they are configuration, not documentation of it.
+
+### Issue tracker
+
+Issues live in GitHub Issues on `CGA-Chile/cga-hr-web`, driven through the `gh` CLI.
+See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles, each label string equal to its name. All five exist in the repository.
+See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` and `docs/adr/` at the repo root, plus `docs/DOMAIN.md` for the rules
+themselves. See `docs/agents/domain.md`.

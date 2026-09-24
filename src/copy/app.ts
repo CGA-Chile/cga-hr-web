@@ -1,0 +1,4 @@
+export const appCopy = {
+  title: "Bono línea de cardas",
+  description: "Asignación diaria de puestos y cálculo del bono de la línea de cardas.",
+} as const;

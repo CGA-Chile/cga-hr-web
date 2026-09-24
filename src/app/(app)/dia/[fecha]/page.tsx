@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation";
+import { DailySummary } from "@/sections/bonus/DailySummary";
+import { loadDailyBonuses } from "@/sections/bonus/dailyBonuses";
 import { CellDrawer } from "@/sections/day/CellDrawer";
 import { DayView } from "@/sections/day/DayView";
 import { EmployeeDrawer } from "@/sections/day/EmployeeDrawer";
 import { groupPositionsForPicker } from "@/sections/day/positionGroups";
 import {
+  fullName,
   loadCellHistory,
   loadDayRows,
   loadEmployeeMonth,
@@ -32,15 +35,17 @@ export default async function DayPage({ params, searchParams }: DayPageProps) {
   const cellEmployeeId = single(query.celda);
 
   const supabase = await createSupabaseServerClient();
-  const [positions, rows, modifiedEmployeeIds, employeeMonth, cellHistory] = await Promise.all([
+  const [positions, rows, modifiedEmployeeIds, dailyBonuses, employeeMonth, cellHistory] = await Promise.all([
     loadPositions(supabase),
     loadDayRows(supabase, fecha),
     loadModifiedEmployeeIds(supabase, fecha),
+    loadDailyBonuses(supabase, fecha, fecha),
     employeeId ? loadEmployeeMonth(supabase, employeeId, fecha) : null,
     cellEmployeeId ? loadCellHistory(supabase, fecha, cellEmployeeId) : null,
   ]);
   const positionsById = new Map(positions.map((position) => [position.id, position]));
   const cellRow = rows.find((row) => row.employee.id === cellEmployeeId);
+  const namesById = new Map(rows.map((row) => [row.employee.id, fullName(row.employee)]));
 
   return (
     <>
@@ -52,6 +57,13 @@ export default async function DayPage({ params, searchParams }: DayPageProps) {
         positionsById={positionsById}
         positionGroups={groupPositionsForPicker(positions)}
         modifiedEmployeeIds={modifiedEmployeeIds}
+        summary={
+          <DailySummary
+            dailyBonus={dailyBonuses[0] ?? null}
+            positions={positions}
+            employeeName={(id) => namesById.get(id) ?? ""}
+          />
+        }
       />
       {employeeMonth && (
         <EmployeeDrawer

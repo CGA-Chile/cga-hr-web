@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculateDailyBonus } from "./calculateDailyBonus";
-import { settingsInForceOn } from "./settingsInForce";
+import { findSettingsInForce, settingsInForceOn } from "./settingsInForce";
 import type { BonusPosition, BonusSettingsVersion } from "./types";
 
 const RIETER: BonusPosition = { id: "rieter", bonusEligible: true, triggersEqualShare: false };
@@ -56,6 +56,11 @@ describe("each date is calculated with the settings in force on that date", () =
 
   it("a date before any version has no parameters to be paid with, and is refused", () => {
     expect(() => totalOn("2025-12-31")).toThrow(/found 0/);
+  });
+
+  it("finding the version for a date no version covers returns nothing, for callers that show it", () => {
+    expect(findSettingsInForce("2025-12-31", VERSIONS)).toBeNull();
+    expect(findSettingsInForce("2026-09-10", VERSIONS)).toBe(AFTER_CHANGE);
   });
 
   it("overlapping versions are refused rather than one being picked", () => {

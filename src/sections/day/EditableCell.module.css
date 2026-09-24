@@ -20,7 +20,6 @@
 }
 
 .status[data-status="SETTLED"],
-.status[data-status="ONE_POSITION_PER_DAY"],
-.status[data-status="UNAVAILABLE"] {
+.status[data-status="ONE_POSITION_PER_DAY"] {
   color: var(--color-warning);
 }

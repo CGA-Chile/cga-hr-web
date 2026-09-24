@@ -27,10 +27,10 @@ export const dayCopy = {
   writeStatus: {
     IDLE: "",
     SAVING: "Guardando…",
+    QUEUED: "Guardado en este dispositivo. Se enviará al volver la señal.",
     SAVED: "Guardado",
     SETTLED: "Este día ya se pagó. Solo un administrador puede cambiarlo.",
     ONE_POSITION_PER_DAY: "Esta persona ya tiene un puesto este día. Cada persona tiene un solo puesto por día.",
-    UNAVAILABLE: "No se pudo guardar. Revisa la señal y vuelve a intentarlo.",
   },
   modified: "Modificado",
   historyLink: "Historial",

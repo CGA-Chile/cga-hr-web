@@ -1,0 +1,12 @@
+.status {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.status[data-tone="offline"] {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius);
+  background: var(--color-warning-surface);
+  color: var(--color-warning);
+  font-weight: 600;
+}

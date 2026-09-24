@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { dayCopy } from "@/copy/day";
-import { useAssignmentWriter } from "@/hooks/useAssignmentWriter";
+import { isFailure, useAssignmentWriter } from "@/hooks/useAssignmentWriter";
 import type { PositionGroup } from "./positionGroups";
 import styles from "./EditableCell.module.css";
 
@@ -15,20 +15,25 @@ type EditableCellProps = {
   groups: readonly PositionGroup[];
 };
 
-/** A pick from the catalogue, never free text. Choosing saves; nothing asks for confirmation. */
+/**
+ * A pick from the catalogue, never free text. Choosing saves; nothing asks for confirmation.
+ * Shows what was just picked, else what is still queued on this device, else what is stored;
+ * after a refusal it goes back to what is stored, so it never shows something that was not saved.
+ */
 export function EditableCell({ date, employeeId, employeeName, positionId, note, groups }: EditableCellProps) {
-  const [selected, setSelected] = useState(positionId ?? "");
-  const { status, write } = useAssignmentWriter(date, employeeId);
+  const [picked, setPicked] = useState<string | null>(null);
+  const { status, write, pendingCell } = useAssignmentWriter(date, employeeId);
+  const stored = positionId ?? "";
+  const shown = isFailure(status) ? stored : (picked ?? (pendingCell ? (pendingCell.positionId ?? "") : stored));
 
   return (
     <div className={styles.cell}>
       <select
         aria-label={dayCopy.positionFor(employeeName)}
-        value={selected}
-        onChange={async (event) => {
-          setSelected(event.target.value);
-          const landed = await write({ positionId: event.target.value || null, note });
-          if (!landed) setSelected(positionId ?? "");
+        value={shown}
+        onChange={(event) => {
+          setPicked(event.target.value);
+          void write({ positionId: event.target.value || null, note });
         }}
         className={styles.select}
       >

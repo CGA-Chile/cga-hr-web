@@ -1,46 +1,35 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { createSupabaseBrowserClient } from "@/utils/supabase/client";
+import { useState } from "react";
+import { usePendingWrites, type Outcome } from "./usePendingWrites";
 
 export type CellState = { positionId: string | null; note: string | null };
-export type WriteFailure = "SETTLED" | "ONE_POSITION_PER_DAY" | "UNAVAILABLE";
-export type WriteStatus = "IDLE" | "SAVING" | "SAVED" | WriteFailure;
+export type WriteStatus = "IDLE" | "SAVING" | "QUEUED" | Outcome;
 
 /**
- * Writes one cell of the day grid through apply_assignment_operation, sending its full new
- * state with a fresh operation id, then re-renders the server data so marks and totals follow.
+ * Writes one cell of the day grid through the pending-writes queue: saved on the device first,
+ * then sent. `pendingCell` is the newest queued state of this cell, so an edit made without
+ * signal is still shown after a reload.
  */
 export function useAssignmentWriter(date: string, employeeId: string) {
-  const router = useRouter();
-  const [status, setStatus] = useState<WriteStatus>("IDLE");
-  const [, startTransition] = useTransition();
+  const { enqueue, pending, outcomes, sending } = usePendingWrites();
+  const [opId, setOpId] = useState<string | null>(null);
 
-  /** Resolves to whether the write landed, so the caller can undo what it showed optimistically. */
-  async function write(cell: CellState): Promise<boolean> {
-    setStatus("SAVING");
-    const { error } = await createSupabaseBrowserClient().rpc("apply_assignment_operation", {
-      p_op_id: crypto.randomUUID(),
-      p_date: date,
-      p_employee_id: employeeId,
-      p_position_id: cell.positionId ?? undefined,
-      p_note: cell.note ?? undefined,
-    });
-    if (error) {
-      setStatus(failureOf(error.code));
-      return false;
-    }
-    setStatus("SAVED");
-    startTransition(() => router.refresh());
-    return true;
+  const queued = pending.filter((operation) => operation.date === date && operation.employeeId === employeeId);
+  const pendingCell: CellState | null = queued.at(-1) ?? null;
+
+  const status: WriteStatus = !opId
+    ? "IDLE"
+    : (outcomes.get(opId) ??
+      (pending.some((operation) => operation.opId === opId) && !sending ? "QUEUED" : "SAVING"));
+
+  async function write(cell: CellState): Promise<void> {
+    setOpId(await enqueue({ date, employeeId, ...cell }));
   }
 
-  return { status, write };
+  return { status, write, pendingCell };
 }
 
-function failureOf(code: string): WriteFailure {
-  if (code === "42501") return "SETTLED";
-  if (code === "23505") return "ONE_POSITION_PER_DAY";
-  return "UNAVAILABLE";
+export function isFailure(status: WriteStatus): boolean {
+  return status === "SETTLED" || status === "ONE_POSITION_PER_DAY";
 }

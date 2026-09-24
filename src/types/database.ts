@@ -548,6 +548,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      close_period: {
+        Args: { p_period_id: string; p_settlements: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

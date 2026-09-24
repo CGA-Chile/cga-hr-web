@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { signOut } from "@/app/(app)/actions";
 import { appCopy } from "@/copy/app";
 import { authCopy } from "@/copy/auth";
@@ -7,7 +8,11 @@ import styles from "./AppHeader.module.css";
 export function AppHeader() {
   return (
     <header className={styles.header}>
-      <span className={styles.title}>{appCopy.title}</span>
+      <nav className={styles.nav}>
+        <span className={styles.title}>{appCopy.title}</span>
+        <Link href="/">{appCopy.navDay}</Link>
+        <Link href="/cierres">{appCopy.navPeriods}</Link>
+      </nav>
       <div className={styles.actions}>
         <SyncStatus />
         <form action={signOut}>

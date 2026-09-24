@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { service } from "./support";
+import { addDays } from "@/utils/chileDate";
+import { appendPeriod, nextPeriodStart, service } from "./support";
 
 // Constraints hold for every role, so these arrange and assert through the service client.
 
@@ -20,33 +21,49 @@ describe("positions", () => {
 
 describe("periods", () => {
   it("rejects a period that overlaps another, even by one day", async () => {
-    const first = await service.from("periods").insert({
-      name: "Primero",
-      start_date: "4000-01-25",
-      end_date: "4000-02-24",
-      status: "OPEN",
-    });
-    expect(first.error).toBeNull();
+    const first = await appendPeriod("OPEN", 31);
 
     const overlapping = await service.from("periods").insert({
       name: "Traslapado",
-      start_date: "4000-02-24",
-      end_date: "4000-03-24",
+      start_date: first.startDate,
+      end_date: addDays(first.endDate, 30),
       status: "OPEN",
     });
 
     expect(overlapping.error?.code).toBe("23P01");
   });
 
+  it("rejects a period that leaves a gap after the previous one", async () => {
+    const start = addDays(await nextPeriodStart(), 1);
+
+    const gapped = await service
+      .from("periods")
+      .insert({ name: "Con hueco", start_date: start, end_date: addDays(start, 30), status: "OPEN" });
+
+    expect(gapped.error?.code).toBe("23514");
+  });
+
+  it("does not let a period's start move once created", async () => {
+    const period = await appendPeriod("OPEN", 31);
+
+    const moved = await service
+      .from("periods")
+      .update({ start_date: addDays(period.startDate, 1) })
+      .eq("id", period.id);
+
+    expect(moved.error?.code).toBe("23514");
+  });
+
   it("the moment of closing is stamped by the database, never taken from the client", async () => {
     const forged = "2000-01-01T00:00:00.000Z";
+    const start = await nextPeriodStart();
 
     const period = await service
       .from("periods")
       .insert({
         name: "Cerrado",
-        start_date: "4200-01-01",
-        end_date: "4200-01-31",
+        start_date: start,
+        end_date: addDays(start, 30),
         status: "CLOSED",
         closed_at: forged,
       })

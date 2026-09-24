@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { inject } from "vitest";
 import type { Database } from "@/types/database";
+import { addDays } from "@/utils/chileDate";
 
 export type AppRole = "admin" | "editor";
 export type Client = SupabaseClient<Database>;
@@ -77,4 +78,33 @@ export async function createPosition(flags: PositionFlags = {}): Promise<string>
 export function uniqueDate(): string {
   const day = Math.floor(Math.random() * 2_500_000);
   return new Date(Date.UTC(3000, 0, 1) + day * 86_400_000).toISOString().slice(0, 10);
+}
+
+export type TestPeriod = { id: string; startDate: string; endDate: string; dateInside: string };
+
+/** Where the next period must start: the day after the latest one ends. Periods form one chain. */
+export async function nextPeriodStart(): Promise<string> {
+  const latest = unwrap(
+    await service
+      .from("periods")
+      .select("end_date")
+      .is("deleted_at", null)
+      .order("end_date", { ascending: false })
+      .limit(1),
+  );
+  return latest[0] ? addDays(latest[0].end_date, 1) : "1000-01-01";
+}
+
+/** Appends a period to the chain, contiguous with the latest one, as the database requires. */
+export async function appendPeriod(status: "OPEN" | "CLOSED" = "CLOSED", days = 365): Promise<TestPeriod> {
+  const startDate = await nextPeriodStart();
+  const endDate = addDays(startDate, days - 1);
+  const period = unwrap(
+    await service
+      .from("periods")
+      .insert({ name: `Test ${startDate}`, start_date: startDate, end_date: endDate, status })
+      .select("id")
+      .single(),
+  );
+  return { id: period.id, startDate, endDate, dateInside: addDays(startDate, Math.floor(days / 2)) };
 }

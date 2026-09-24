@@ -7,8 +7,9 @@ position each day, and it computes the daily carding-line bonus that HR reports 
 Roughly twenty employees, four users, one screen that matters. The interesting part is not the
 scale — it is that a wrong number here means a real person is paid the wrong amount.
 
-> **Status:** setting up. The repository currently holds documentation, decisions and tooling.
-> The Next.js application has not been scaffolded yet.
+> **Status:** feature-complete against the specification in issue #2, verified against a local
+> Supabase stack. Not yet deployed: the Supabase project has not been linked or migrated and the
+> Vercel project has not been created.
 
 ## Why it exists
 

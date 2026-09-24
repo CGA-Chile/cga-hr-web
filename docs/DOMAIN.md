@@ -411,7 +411,19 @@ depende de que alguien se acuerde de registrarlo.
 assignment_id, date, employee_id
 previous_position_id, new_position_id
 changed_by, changed_at
+acknowledged_at, acknowledged_by        -- ver "La lista de revisión", sección 7
 ```
+
+El trigger registra **los tres movimientos**, no solo los cambios de puesto:
+
+- Inserción: `previous_position_id` nulo.
+- Cambio de puesto: ambos presentes.
+- Borrado lógico (`deleted_at` pasa de nulo a no nulo): `new_position_id` nulo.
+
+Una escritura que no cambia el puesto no deja fila: es el no-op silencioso de la sección 10.
+
+"Append-only" tiene una sola excepción, y es acotada: `acknowledged_at` y `acknowledged_by` se
+pueden escribir una vez, y nada más de la fila se puede tocar.
 
 ### applied_operations
 
@@ -497,6 +509,18 @@ El segundo caso no es un cambio a una asignación liquidada sino el insert de un
 así que la definición original lo dejaba fuera — y es justo el que puede voltear un día entero de
 `POSITION_RATE` a `EQUAL_SHARE` después de haberlo pagado.
 
+Como el historial registra inserciones, cambios y borrados lógicos (sección 6), los dos casos se
+leen de la misma tabla y se expresan como una sola regla. Una fila de `assignment_history` es un
+ítem de revisión cuando cumple **una** de estas condiciones:
+
+- su asignación está liquidada y la fila es posterior al `closed_at` del período que la liquidó;
+- su fecha cae dentro de un período cerrado, la fila es posterior al `closed_at` de ese período, y
+  el puesto anterior o el nuevo es bonificable.
+
+La segunda forma cubre también un caso que ninguna de las dos listas originales nombraba: una
+asignación no bonificable de un día cerrado que se cambia **a** un puesto bonificable. No estaba
+liquidada, así que el primer caso no la ve, y no es un insert, así que el segundo tampoco.
+
 ```
 Movimientos sobre días ya liquidados, no reconocidos aún por RRHH.
 ```
@@ -506,9 +530,10 @@ derivado: se recalcula, y corregir la asignación la hace desaparecer. El ítem 
 evento ya ocurrido que no se puede deshacer, y por eso se acusa recibo en vez de corregirse. Los
 términos están fijados en `CONTEXT.md`.
 
-Se agrega una columna `acknowledged_at timestamptz null` en `assignment_history` para que RRHH
-pueda marcarlos como revisados y sacarlos de la bandeja. No hay descuentos automáticos ni
-recálculo: la lista existe para que una persona decida qué hacer.
+Se agregan las columnas `acknowledged_at timestamptz null` y `acknowledged_by uuid null` en
+`assignment_history` para marcarlos como revisados y sacarlos de la bandeja. Pueden hacerlo
+`editor` y `admin`: la bandeja la trabaja RRHH, que tiene rol `editor`. No hay descuentos
+automáticos ni recálculo: la lista existe para que una persona decida qué hacer.
 
 ---
 
@@ -577,8 +602,11 @@ La compuerta de cierre (sección 7) es la red de seguridad de esta lista, no su 
 
 ### 8.4 Administración
 
-Solo `admin`: personas, catálogo de puestos, tarifas (nueva vigencia), períodos, historial
-completo y bandeja de revisión.
+Solo `admin`: personas, catálogo de puestos, tarifas (nueva vigencia), períodos e historial
+completo.
+
+La **bandeja de revisión** no está acá: la trabaja RRHH, que tiene rol `editor`. Es visible para
+todos, como todo lo demás, y `editor` y `admin` pueden acusar recibo de sus ítems.
 
 ---
 

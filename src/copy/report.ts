@@ -1,0 +1,28 @@
+export const reportCopy = {
+  title: "Reporte del cierre",
+  intro: "Lo que se pagó en el cierre, por persona. Los montos son los que quedaron congelados al cerrar.",
+  choosePeriod: "Cierre",
+  show: "Ver",
+  noClosedPeriods: "Todavía no hay cierres cerrados. El reporte aparece cuando se cierra un período.",
+  empty: "Este cierre no pagó bonos.",
+  columns: {
+    person: "Persona",
+    nationalId: "RUT",
+    bonusDays: "Días con bono",
+    periodAmount: "Monto del período",
+    carryOver: "Arrastre",
+    total: "Total",
+  },
+  totals: "Totales",
+  detail: {
+    date: "Fecha",
+    position: "Puesto",
+    scheme: "Esquema",
+    amount: "Monto",
+    carryOverTag: "Arrastre",
+  },
+  schemes: { POSITION_RATE: "Tarifa por puesto", EQUAL_SHARE: "Reparto igualitario" },
+  downloadXlsx: "Descargar Excel",
+  downloadCsv: "Descargar CSV",
+  fileName: (periodName: string) => `bono-carda-${periodName.toLowerCase().replaceAll(" ", "-")}`,
+} as const;

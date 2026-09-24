@@ -1,0 +1,89 @@
+.title {
+  margin: 0 0 var(--space-2);
+  font-size: 1.5rem;
+}
+
+.intro,
+.muted {
+  margin: 0 0 var(--space-6);
+  color: var(--color-text-muted);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabs a {
+  padding: var(--space-2) 0;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.tabs a[aria-current="page"] {
+  border-bottom: 2px solid var(--color-accent);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.headline a {
+  display: inline-block;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.headline a::first-letter {
+  text-transform: uppercase;
+}
+
+.movement {
+  font-size: 1.0625rem;
+}
+
+.meta {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.acknowledge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  color: var(--color-warning);
+  font-size: 0.875rem;
+}
+
+.button {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius);
+  background: var(--color-background);
+  color: var(--color-accent);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}

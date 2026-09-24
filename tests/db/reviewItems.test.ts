@@ -150,4 +150,32 @@ describe("review_items: movements on dates already settled, not yet acknowledged
 
     expect(await reviewItemsFor(late.id)).toEqual([]);
   });
+
+  it("an acknowledged item can still be found, with who acknowledged it", async () => {
+    const period = await closedPeriod();
+    const late = unwrap(
+      await editor
+        .from("assignments")
+        .insert({ date: period.dateInside, employee_id: await createEmployee(), position_id: await createPosition() })
+        .select("id")
+        .single(),
+    );
+    const [item] = await reviewItemsFor(late.id);
+    if (!item?.history_id) throw new Error("Expected the late assignment to be a review item");
+    unwrap(
+      await editor
+        .from("assignment_history")
+        .update({ acknowledged_at: new Date().toISOString() })
+        .eq("id", item.history_id)
+        .select("id"),
+    );
+
+    const found = unwrap(
+      await editor.from("review_history").select("history_id, acknowledged_at, acknowledged_by").eq("assignment_id", late.id),
+    );
+
+    expect(found).toHaveLength(1);
+    expect(found[0].acknowledged_at).not.toBeNull();
+    expect(found[0].acknowledged_by).not.toBeNull();
+  });
 });

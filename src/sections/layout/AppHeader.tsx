@@ -13,6 +13,7 @@ export function AppHeader() {
         <Link href="/">{appCopy.navDay}</Link>
         <Link href="/cierres">{appCopy.navPeriods}</Link>
         <Link href="/reporte">{appCopy.navReport}</Link>
+        <Link href="/revision">{appCopy.navReview}</Link>
       </nav>
       <div className={styles.actions}>
         <SyncStatus />

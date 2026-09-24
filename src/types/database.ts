@@ -611,6 +611,15 @@ export type Database = {
         Args: { p_period_id: string; p_settlements: Json }
         Returns: undefined
       }
+      create_bonus_settings_version: {
+        Args: {
+          p_daily_cap: number
+          p_effective_from: string
+          p_max_amount_per_person: number
+          p_rates: Json
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

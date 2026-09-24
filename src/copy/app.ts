@@ -5,4 +5,5 @@ export const appCopy = {
   navPeriods: "Cierres",
   navReport: "Reporte",
   navReview: "Revisión",
+  navAdmin: "Administración",
 } as const;

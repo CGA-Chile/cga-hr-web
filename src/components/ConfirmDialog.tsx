@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import styles from "./ConfirmDialog.module.css";
 
 type ConfirmDialogProps = {
@@ -25,6 +25,7 @@ export function ConfirmDialog({
   onConfirm,
 }: ConfirmDialogProps) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -38,8 +39,8 @@ export function ConfirmDialog({
           {message}
         </p>
       )}
-      <dialog ref={dialog} className={styles.dialog} aria-labelledby="confirm-title">
-        <h2 id="confirm-title" className={styles.title}>
+      <dialog ref={dialog} className={styles.dialog} aria-labelledby={titleId}>
+        <h2 id={titleId} className={styles.title}>
           {title}
         </h2>
         <p>{body}</p>

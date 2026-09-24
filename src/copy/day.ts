@@ -1,0 +1,17 @@
+export const dayCopy = {
+  today: "Hoy",
+  yesterday: "Ayer",
+  previousDay: "Día anterior",
+  nextDay: "Día siguiente",
+  goToDate: "Ir a fecha",
+  edit: "Editar",
+  readModeNotice: "Modo lectura. Aprieta «Editar» para hacer cambios.",
+  employeeColumn: "Trabajador",
+  positionColumn: "Puesto",
+  noEmployees: "No hay trabajadores para mostrar en esta fecha.",
+  inactive: "Inactivo",
+  close: "Cerrar",
+  nationalId: "RUT",
+  assignmentsOfMonth: (month: string) => `Puestos en ${month}`,
+  noAssignmentsInMonth: "Sin puestos registrados este mes.",
+} as const;

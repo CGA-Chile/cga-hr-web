@@ -1,9 +1,7 @@
-import { appCopy } from "@/copy/app";
+import { redirect } from "next/navigation";
+import { dayPath } from "@/sections/day/paths";
+import { todayInChile } from "@/utils/chileDate";
 
 export default function HomePage() {
-  return (
-    <main className="page">
-      <h1>{appCopy.title}</h1>
-    </main>
-  );
+  redirect(dayPath(todayInChile()));
 }

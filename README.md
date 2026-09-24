@@ -85,8 +85,13 @@ cp .env.example .env.local     # fill in from `npx supabase start` output
 
 npx supabase start             # local PostgreSQL, Auth and Studio
 npx supabase db reset          # apply migrations and seed
+PIN=123456 npm run user:create -- admin admin    # a local user to sign in with
 npm run dev
 ```
+
+There is no sign-up screen. Accounts are created with `npm run user:create -- <username> <admin|editor>`
+and a `PIN` environment variable; running it again for an existing user resets their PIN and role.
+It uses the service role key, so it runs from a trusted machine and never from the app.
 
 Development always runs against the local Supabase instance, never against the remote project.
 

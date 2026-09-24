@@ -1,9 +1,8 @@
 import type { IsoDate } from "@/domain/bonus/types";
 import type { Database } from "@/types/database";
 import { monthRange } from "@/utils/chileDate";
-import type { createSupabaseServerClient } from "@/utils/supabase/server";
+import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
 
-type Supabase = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 type Tables = Database["public"]["Tables"];
 export type Employee = Pick<Tables["employees"]["Row"], "id" | "first_name" | "last_name" | "national_id" | "active">;
 export type Position = Pick<Tables["positions"]["Row"], "id" | "code" | "name" | "bonus_eligible" | "triggers_equal_share" | "type" | "display_order">;
@@ -11,13 +10,7 @@ export type Assignment = Pick<Tables["assignments"]["Row"], "id" | "date" | "emp
 
 export type DayRow = { employee: Employee; assignment: Assignment | null };
 
-function orThrow<T>(result: { data: T | null; error: unknown }): T {
-  if (result.error) throw result.error;
-  if (result.data === null) throw new Error("Query returned no data");
-  return result.data;
-}
-
-export async function loadPositions(supabase: Supabase): Promise<Position[]> {
+export async function loadPositions(supabase: ServerSupabase): Promise<Position[]> {
   return orThrow(
     await supabase
       .from("positions")
@@ -31,7 +24,7 @@ export async function loadPositions(supabase: Supabase): Promise<Position[]> {
  * The grid for one date: every active employee, plus anyone inactive who still has an assignment
  * that day — someone let go mid-month still earned their bonus. Sorted by name.
  */
-export async function loadDayRows(supabase: Supabase, date: IsoDate): Promise<DayRow[]> {
+export async function loadDayRows(supabase: ServerSupabase, date: IsoDate): Promise<DayRow[]> {
   const [employees, assignments] = await Promise.all([
     supabase
       .from("employees")
@@ -52,7 +45,7 @@ export async function loadDayRows(supabase: Supabase, date: IsoDate): Promise<Da
 }
 
 export async function loadEmployeeMonth(
-  supabase: Supabase,
+  supabase: ServerSupabase,
   employeeId: string,
   date: IsoDate,
 ): Promise<{ employee: Employee; assignments: Assignment[] } | null> {
@@ -91,7 +84,7 @@ export type CellMovement = Pick<
 > & { changedBy: string | null };
 
 /** Employees whose cell on this date moved more than once: created, then changed or cleared. */
-export async function loadModifiedEmployeeIds(supabase: Supabase, date: IsoDate): Promise<Set<string>> {
+export async function loadModifiedEmployeeIds(supabase: ServerSupabase, date: IsoDate): Promise<Set<string>> {
   const movements = orThrow(
     await supabase.from("assignment_history").select("employee_id").eq("date", date).is("deleted_at", null),
   );
@@ -104,7 +97,7 @@ export async function loadModifiedEmployeeIds(supabase: Supabase, date: IsoDate)
 
 /** Every movement of one cell, oldest first, with the username of whoever made it. */
 export async function loadCellHistory(
-  supabase: Supabase,
+  supabase: ServerSupabase,
   date: IsoDate,
   employeeId: string,
 ): Promise<CellMovement[]> {

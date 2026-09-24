@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { dayCopy } from "@/copy/day";
 import type { IsoDate } from "@/domain/bonus/types";
 import { DayGrid } from "./DayGrid";
@@ -16,10 +17,11 @@ type DayViewProps = {
   positionsById: ReadonlyMap<string, Position>;
   positionGroups: readonly PositionGroup[];
   modifiedEmployeeIds: ReadonlySet<string>;
+  summary: ReactNode;
 };
 
 /** Opens locked for every role: a misclick here pays someone the wrong amount. */
-export function DayView({ editing, ...grid }: DayViewProps) {
+export function DayView({ editing, summary, ...grid }: DayViewProps) {
   return (
     <main className="page">
       <DayNavigation date={grid.date} today={grid.today} />
@@ -29,6 +31,7 @@ export function DayView({ editing, ...grid }: DayViewProps) {
           {editing ? dayCopy.finishEditing : dayCopy.edit}
         </Link>
       </div>
+      {summary}
       <DayGrid editing={editing} {...grid} />
     </main>
   );

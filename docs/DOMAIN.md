@@ -279,6 +279,10 @@ Se puebla con un trigger sobre `auth.users`, no desde el código de aplicación.
 lee desde el cliente para tomar decisiones de seguridad: la policy de RLS lo consulta en el
 servidor. Ocultar un botón en la UI es cortesía, no control de acceso.
 
+El rol sale de `app_metadata` del usuario de Auth, que solo el `service_role` puede escribir. Un
+usuario sin rol no tiene perfil vigente, y sin perfil vigente todas las policies niegan: ni lee
+ni escribe. El registro público está deshabilitado (`[auth] enable_signup = false`).
+
 ### employees
 
 ```
@@ -371,6 +375,10 @@ closed_by     uuid fk auth.users
 Períodos contiguos, sin huecos ni traslapes. Al crear uno, `start_date` se precarga con
 `end_date` del anterior + 1 día y no es editable; `end_date` sí.
 
+`closed_at` y `closed_by` los estampa la base al pasar a `CLOSED`, igual que `updated_at`: la lista
+de revisión los compara contra el historial, así que tienen que salir del mismo reloj y no pueden
+venir del cliente.
+
 La contigüidad se valida con una **constraint de exclusión** sobre `daterange(start_date,
 end_date, '[]')`, lo que requiere habilitar la extensión `btree_gist` en la primera migración:
 
@@ -439,8 +447,13 @@ applied_by  uuid fk auth.users
 La escritura y la inserción del `op_id` ocurren en la **misma transacción**. Si el `op_id` ya
 existe, la operación es un no-op y devuelve éxito. Un reenvío no produce efecto ni error.
 
-Se puede purgar por antigüedad (por ejemplo, más de 90 días) sin afectar la corrección: una
-operación tan vieja ya no está en la cola de ningún dispositivo.
+No se purga (sección 12, decisión 5).
+
+La única vía de escritura de la cola es la función `apply_assignment_operation(op_id, fecha,
+trabajador, puesto, nota)`, que recibe el **estado completo** de una celda: un puesto, o ninguno
+para vaciarla (borrado lógico). Corre con los permisos de quien llama, así que todas las policies
+de `assignments` aplican. Si el valor no cambia, no reescribe la fila y el historial no registra
+nada.
 
 ---
 
@@ -463,7 +476,8 @@ siguiente. Eso se modela con liquidación diferida:
 - El reporte del cierre separa dos subtotales: **días del período** y **arrastre de períodos
   anteriores**, para que RRHH pueda explicarle a un operario por qué le llegó distinto.
 - `settled_amount` queda congelado. Si después cambian las tarifas o se corrige el día, lo ya
-  pagado no se reescribe.
+  pagado no se reescribe. Lo garantiza un trigger: una vez estampados, `settled_in_period_id` y
+  `settled_amount` no cambian, ni siquiera para el `admin`.
 
 Editar una asignación ya liquidada queda restringido al rol `admin` vía RLS, y el cambio
 aparece en una lista de revisión para RRHH.

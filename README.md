@@ -93,6 +93,7 @@ Development always runs against the local Supabase instance, never against the r
 ```bash
 npm run lint
 npm run test
+npm run test:db              # integration, against the local stack (npx supabase start)
 npx tsc --noEmit
 npm run build
 ```

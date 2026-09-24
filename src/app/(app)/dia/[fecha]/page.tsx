@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { DailySummary } from "@/sections/bonus/DailySummary";
+import { loadAnomalousDates } from "@/sections/bonus/anomalousDates";
 import { loadDailyBonuses } from "@/sections/bonus/dailyBonuses";
 import { CellDrawer } from "@/sections/day/CellDrawer";
 import { DayView } from "@/sections/day/DayView";
@@ -35,11 +36,13 @@ export default async function DayPage({ params, searchParams }: DayPageProps) {
   const cellEmployeeId = single(query.celda);
 
   const supabase = await createSupabaseServerClient();
-  const [positions, rows, modifiedEmployeeIds, dailyBonuses, employeeMonth, cellHistory] = await Promise.all([
+  const [positions, rows, modifiedEmployeeIds, dailyBonuses, anomalousDates, employeeMonth, cellHistory] =
+    await Promise.all([
     loadPositions(supabase),
     loadDayRows(supabase, fecha),
     loadModifiedEmployeeIds(supabase, fecha),
     loadDailyBonuses(supabase, fecha, fecha),
+    loadAnomalousDates(supabase),
     employeeId ? loadEmployeeMonth(supabase, employeeId, fecha) : null,
     cellEmployeeId ? loadCellHistory(supabase, fecha, cellEmployeeId) : null,
   ]);
@@ -57,6 +60,7 @@ export default async function DayPage({ params, searchParams }: DayPageProps) {
         positionsById={positionsById}
         positionGroups={groupPositionsForPicker(positions)}
         modifiedEmployeeIds={modifiedEmployeeIds}
+        anomalousDateCount={anomalousDates.length}
         summary={
           <DailySummary
             dailyBonus={dailyBonuses[0] ?? null}

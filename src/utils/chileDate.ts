@@ -55,3 +55,14 @@ export function formatMonth(date: IsoDate): string {
 function toUtc(date: IsoDate): Date {
   return new Date(`${date}T00:00:00Z`);
 }
+
+/** "24 sept, 10:32", in Chile's time, for a timestamp. */
+export function formatDateTimeInChile(timestamp: string): string {
+  return new Intl.DateTimeFormat("es-CL", {
+    timeZone: CHILE,
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(timestamp));
+}

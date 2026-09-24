@@ -8,14 +8,15 @@ import styles from "./EmployeeDrawer.module.css";
 
 type EmployeeDrawerProps = {
   date: IsoDate;
+  editing: boolean;
   employee: Employee;
   assignments: readonly Assignment[];
   positionsById: ReadonlyMap<string, Position>;
 };
 
-export function EmployeeDrawer({ date, employee, assignments, positionsById }: EmployeeDrawerProps) {
+export function EmployeeDrawer({ date, editing, employee, assignments, positionsById }: EmployeeDrawerProps) {
   return (
-    <Drawer title={fullName(employee)} closeHref={dayPath(date)} closeLabel={dayCopy.close}>
+    <Drawer title={fullName(employee)} closeHref={dayPath(date, { editing })} closeLabel={dayCopy.close}>
       <dl className={styles.facts}>
         <dt>{dayCopy.nationalId}</dt>
         <dd>{employee.national_id ?? "—"}</dd>

@@ -66,3 +66,10 @@ export function formatDateTimeInChile(timestamp: string): string {
     minute: "2-digit",
   }).format(new Date(timestamp));
 }
+
+/** "24-09-2026" */
+export function formatNumericDate(date: IsoDate): string {
+  return new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", day: "2-digit", month: "2-digit", year: "numeric" }).format(
+    toUtc(date),
+  );
+}

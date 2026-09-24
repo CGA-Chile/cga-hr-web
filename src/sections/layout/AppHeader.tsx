@@ -12,6 +12,7 @@ export function AppHeader() {
         <span className={styles.title}>{appCopy.title}</span>
         <Link href="/">{appCopy.navDay}</Link>
         <Link href="/cierres">{appCopy.navPeriods}</Link>
+        <Link href="/reporte">{appCopy.navReport}</Link>
       </nav>
       <div className={styles.actions}>
         <SyncStatus />

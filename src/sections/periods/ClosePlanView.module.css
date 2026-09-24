@@ -91,3 +91,7 @@
 .close {
   margin-top: var(--space-6);
 }
+
+.explanation {
+  margin: var(--space-2) 0;
+}

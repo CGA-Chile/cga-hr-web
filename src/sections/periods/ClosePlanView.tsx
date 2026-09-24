@@ -14,7 +14,7 @@ type ClosePlanViewProps = {
   /** The close control, or the reason there is none. Only shown when the gate is clear. */
   closeControl: ReactNode;
   /** Validation controls for excesses, when the viewer may validate. */
-  excessControl?: (date: string, settledTotal: number, dailyCap: number) => ReactNode;
+  excessControl?: (date: string) => ReactNode;
 };
 
 /**
@@ -79,11 +79,14 @@ export function ClosePlanView({ loaded, positionName, closeControl, excessContro
           <ul className={styles.dates}>
             {plan.excessesRequiringValidation.map((excess) => (
               <li key={excess.date}>
-                <DateHeading date={excess.date} />
+                <DateHeading date={excess.date} linkLabel={periodsCopy.viewDay} />
+                <p className={styles.explanation}>
+                  {periodsCopy.excessExplained(formatPesos(excess.settledTotal), formatPesos(excess.dailyCap))}
+                </p>
                 {excess.validated ? (
                   <p className={styles.hint}>{periodsCopy.excessValidated}</p>
                 ) : (
-                  excessControl?.(excess.date, excess.settledTotal, excess.dailyCap)
+                  excessControl?.(excess.date)
                 )}
               </li>
             ))}
@@ -96,11 +99,11 @@ export function ClosePlanView({ loaded, positionName, closeControl, excessContro
   );
 }
 
-function DateHeading({ date }: { date: string }) {
+function DateHeading({ date, linkLabel = periodsCopy.goFix }: { date: string; linkLabel?: string }) {
   return (
     <div className={styles.dateHeading}>
       <span className={styles.date}>{formatLongDate(date)}</span>
-      <Link href={dayPath(date)}>{periodsCopy.goFix}</Link>
+      <Link href={dayPath(date)}>{linkLabel}</Link>
     </div>
   );
 }

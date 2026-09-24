@@ -32,9 +32,20 @@ export const periodsCopy = {
     `${days(count)} con algo que corregir. Corrige cada uno y vuelve a esta página. La app no elige por ti.`,
   unpriced: "No hay tarifas vigentes para esta fecha.",
   goFix: "Ir a corregir",
+  viewDay: "Ver el día",
 
   excessTitle: "Días sobre el tope que no se pueden corregir",
   excessValidated: "Validado por el administrador.",
+  excessExplained: (total: string, cap: string) =>
+    `Este día ya se pagó y sus montos están congelados. Después se registraron asignaciones tardías; calculado con el número real de personas, el total del día queda en ${total}, sobre el tope de ${cap}. No hay nada que corregir: las asignaciones son correctas y lo ya pagado no se reescribe.`,
+  excessNeedsAdmin: "Para pagarlo, el administrador tiene que validarlo.",
+  reviewAndValidate: "Revisar y validar",
+  validateTitle: "Validar pago sobre el tope",
+  validateWhy:
+    "El error de registro fue de la empresa, no del trabajador: por eso se paga. Tu validación queda registrada con el monto, el tope y tu nombre.",
+  noteLabel: "Nota (opcional)",
+  validate: (total: string) => `Validar pago de ${total}`,
+  notValidatable: "Este día ya no requiere validación. Revisa la página de nuevo.",
 
   ready: "Todo en orden para cerrar.",
   close: "Cerrar período",

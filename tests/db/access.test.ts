@@ -198,3 +198,15 @@ describe("only the four named users can see anything", () => {
     expect(data ?? []).toEqual([]);
   });
 });
+
+describe("validated excess", () => {
+  it("an admin can validate a date again when its amount changed after the first approval", async () => {
+    const period = await createClosedPeriod();
+    const date = uniqueDate();
+    const approve = (amount: number) =>
+      admin.from("cap_overrides").insert({ period_id: period.id, date, approved_amount: amount, daily_cap: 15_000 });
+
+    expect((await approve(17_142)).error).toBeNull();
+    expect((await approve(19_284)).error).toBeNull();
+  });
+});

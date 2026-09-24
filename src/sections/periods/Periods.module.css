@@ -110,3 +110,18 @@
   background: var(--color-warning-surface);
   color: var(--color-warning);
 }
+
+.drawerForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.dateLine {
+  font-weight: 600;
+}
+
+.dateLine::first-letter {
+  text-transform: uppercase;
+}

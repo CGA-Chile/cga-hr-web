@@ -55,6 +55,34 @@ export async function closePeriod(periodId: string): Promise<ActionState> {
   return null;
 }
 
+/**
+ * Records the admin's approval to settle one date above the cap. Only reachable for an excess the
+ * settlement rules classify as not correctable; the plan is recomputed here to make sure it still
+ * is, and the approval records exactly the amount it covers.
+ */
+export async function validateExcess(periodId: string, date: string, formData: FormData): Promise<ActionState> {
+  const supabase = await createSupabaseServerClient();
+  const period = await loadPeriod(supabase, periodId);
+  if (!period) return { message: periodsCopy.unavailable };
+
+  const { plan } = await loadClosePlan(supabase, period);
+  const excess = plan.excessesRequiringValidation.find((candidate) => candidate.date === date && !candidate.validated);
+  if (!excess) return { message: periodsCopy.notValidatable };
+
+  const note = z.string().trim().max(500).safeParse(formData.get("note"));
+  const { error } = await supabase.from("cap_overrides").insert({
+    period_id: periodId,
+    date,
+    approved_amount: excess.settledTotal,
+    daily_cap: excess.dailyCap,
+    note: note.success && note.data ? note.data : null,
+  });
+  if (error) return { message: messageFor(error.code) };
+
+  revalidatePath(`/cierres/${periodId}`);
+  redirect(`/cierres/${periodId}`);
+}
+
 function messageFor(code: string): string {
   if (code === "40001") return periodsCopy.changedMeanwhile;
   if (code === "42501") return periodsCopy.onlyAdminCloses;

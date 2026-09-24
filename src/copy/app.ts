@@ -4,4 +4,5 @@ export const appCopy = {
   navDay: "Día",
   navPeriods: "Cierres",
   navReport: "Reporte",
+  navReview: "Revisión",
 } as const;

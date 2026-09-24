@@ -210,6 +210,13 @@ export type Database = {
             foreignKeyName: "assignments_settled_in_period_id_fkey"
             columns: ["settled_in_period_id"]
             isOneToOne: false
+            referencedRelation: "review_history"
+            referencedColumns: ["period_id"]
+          },
+          {
+            foreignKeyName: "assignments_settled_in_period_id_fkey"
+            columns: ["settled_in_period_id"]
+            isOneToOne: false
             referencedRelation: "review_items"
             referencedColumns: ["period_id"]
           },
@@ -340,6 +347,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "periods"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cap_overrides_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "review_history"
+            referencedColumns: ["period_id"]
           },
           {
             foreignKeyName: "cap_overrides_period_id_fkey"
@@ -493,6 +507,51 @@ export type Database = {
       }
     }
     Views: {
+      review_history: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          assignment_id: string | null
+          changed_at: string | null
+          changed_by: string | null
+          date: string | null
+          employee_id: string | null
+          history_id: string | null
+          new_position_id: string | null
+          period_id: string | null
+          previous_position_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_history_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_history_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_history_new_position_id_fkey"
+            columns: ["new_position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_history_previous_position_id_fkey"
+            columns: ["previous_position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_items: {
         Row: {
           assignment_id: string | null

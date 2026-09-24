@@ -10,9 +10,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:db": "vitest run --config vitest.db.config.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.1",
     "next": "16.3.6",
     "react": "19.2.8",
     "react-dom": "19.2.8"

@@ -46,6 +46,37 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
 
+  database:
+    name: Database integration
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # A throwaway local stack inside the runner, built from the committed migrations.
+      # It never talks to the remote project.
+      - name: Start local Supabase
+        run: >
+          npx supabase start
+          -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Generated types match the migrations
+        run: |
+          npx supabase gen types typescript --local > /tmp/database.ts
+          diff -u src/types/database.ts /tmp/database.ts
+
+      - name: Integration tests
+        run: npm run test:db
+
   # Deliberately absent: any step that applies a migration.
   # Migrations are applied by an attended actor, after a backup, never by CI.
   # See docs/adr/0009-the-agent-applies-migrations.md.

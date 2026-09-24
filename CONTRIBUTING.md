@@ -114,6 +114,8 @@ Every PR runs, and all must pass before merge:
 | Lint | `npm run lint` |
 | Types | `npx tsc --noEmit` |
 | Tests | `npm run test` |
+| Database integration | `npm run test:db`, against a throwaway local stack built from the migrations |
+| Generated types | `src/types/database.ts` matches `supabase gen types` for the committed migrations |
 | Build | `npm run build` |
 
 If CI is red, the fix is the code, not the check. Never disable a rule or skip a test to go

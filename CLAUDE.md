@@ -242,8 +242,10 @@ item. The table above covers the base entities; `CONTEXT.md` covers the rest.
 
 `BRIEF-app-bonos-carda.md` is the internal product document. It has the real bonus amounts and
 real names, so it is gitignored and exists only on the maintainer's machine. When it is
-present, read it too: it is more detailed than `docs/DOMAIN.md` and it wins on any conflict.
-When it is not, `docs/DOMAIN.md` is complete enough to work from.
+present, read it too, but for what it alone holds: it wins on **real amounts and real names**,
+and nothing else. On rules and the data model, `docs/DOMAIN.md` and the ADRs win — the brief
+predates decisions 0006 to 0008 and was never updated to match. `docs/adr/0010` records why.
+When it is not present, `docs/DOMAIN.md` is complete enough to work from.
 
 When something is covered by neither, **ask instead of inventing** — this app computes wages,
 and a plausible-looking guess is worse than a question.

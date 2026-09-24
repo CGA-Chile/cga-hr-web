@@ -67,5 +67,5 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
 
   # Deliberately absent: any step that applies a migration.
-  # Migrations reach production through a human, not through CI.
-  # See docs/adr/0003-single-supabase-project.md.
+  # Migrations are applied by an attended actor, after a backup, never by CI.
+  # See docs/adr/0009-the-agent-applies-migrations.md.

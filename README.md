@@ -52,7 +52,8 @@ versioned by effective date, so a rate change does not retroactively alter a per
 already been paid.
 
 **One Supabase project, which is production** — with a deliberately strict migration process to
-compensate. See [ADR 0003](docs/adr/0003-single-supabase-project.md).
+compensate: a backup before every migration, additive changes first, and never applied from CI.
+See [ADR 0009](docs/adr/0009-the-agent-applies-migrations.md).
 
 ## Repository
 
@@ -62,7 +63,7 @@ CONTRIBUTING.md            Git workflow, PRs, CI, migrations, definition of done
 docs/DOMAIN.md             Business rules, data model, mandatory test cases
 docs/adr/                  Architecture decision records
 .github/workflows/ci.yml   Lint, typecheck, test, build on every PR
-.claude/                   Agent configuration and the git guard hook
+.claude/                   Agent configuration
 ```
 
 This repository is public and the application is real, so the internal product document —
@@ -100,7 +101,9 @@ npm run build
 
 Read [`CONTRIBUTING.md`](CONTRIBUTING.md) first. Short version: branch off `main`, commit in
 [Conventional Commits](https://www.conventionalcommits.org/), open a PR, let CI pass, squash
-merge. Nobody commits to `main` — including the maintainer, and including the agent.
+merge. Documentation and configuration may go straight to `main` when a pull request would add
+no review value; anything that changes behaviour goes through one.
+See [ADR 0005](docs/adr/0005-claude-code-has-full-repository-access.md).
 
 ## Language
 

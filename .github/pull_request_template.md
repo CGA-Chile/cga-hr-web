@@ -34,7 +34,7 @@
 - [ ] RLS policy written for any new table
 - [ ] Unique indexes are partial: `WHERE deleted_at IS NULL`
 - [ ] Change is additive — no `DROP` riding along with other work
-- [ ] I will apply this to production by hand after merge, with a backup taken first
+- [ ] It will be applied to production after merge, announced first, with a backup taken first
 
 ### If this touches a screen
 

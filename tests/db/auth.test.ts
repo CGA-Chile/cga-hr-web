@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { describe, expect, inject, it } from "vitest";
 import type { Database } from "@/types/database";
-import { service, signInAs, unwrap } from "./support";
+import { nextPeriodStart, service, signInAs, unwrap } from "./support";
 
 describe("the role lives in profiles, and only the server can grant it", () => {
   it("creating a user with a role produces its profile, by trigger", async () => {
@@ -37,9 +37,8 @@ describe("the role lives in profiles, and only the server can grant it", () => {
     expect(claimed.error).toBeNull();
     await editor.auth.refreshSession();
 
-    const attempt = await editor
-      .from("periods")
-      .insert({ name: "Intento", start_date: "1950-01-01", end_date: "1950-01-31" });
+    const start = await nextPeriodStart();
+    const attempt = await editor.from("periods").insert({ name: "Intento", start_date: start, end_date: start });
     expect(attempt.error?.code).toBe("42501");
   });
 });

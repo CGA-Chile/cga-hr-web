@@ -1,7 +1,10 @@
 import { beforeAll, describe, expect, it } from "vitest";
+import { addDays } from "@/utils/chileDate";
 import {
+  appendPeriod,
   createEmployee,
   createPosition,
+  nextPeriodStart,
   service,
   signInAs,
   unwrap,
@@ -16,24 +19,7 @@ beforeAll(async () => {
   ({ client: editor } = await signInAs("editor"));
 });
 
-let nextYear = 7000;
-/** A closed period covering a whole year of its own, and a date inside it. */
-async function closedPeriod() {
-  nextYear += 1;
-  const period = unwrap(
-    await service
-      .from("periods")
-      .insert({
-        name: `Cierre ${nextYear}`,
-        start_date: `${nextYear}-01-01`,
-        end_date: `${nextYear}-12-31`,
-        status: "CLOSED",
-      })
-      .select("id")
-      .single(),
-  );
-  return { id: period.id, dateInside: `${nextYear}-06-15` };
-}
+const closedPeriod = () => appendPeriod("CLOSED");
 
 async function reviewItemsFor(assignmentId: string) {
   return unwrap(
@@ -129,26 +115,15 @@ describe("review_items: movements on dates already settled, not yet acknowledged
   });
 
   it("movements from before the period closed are not review items", async () => {
-    nextYear += 1;
-    const year = nextYear;
+    const insideNextPeriod = addDays(await nextPeriodStart(), 10);
     const early = unwrap(
       await editor
         .from("assignments")
-        .insert({ date: `${year}-06-15`, employee_id: await createEmployee(), position_id: await createPosition() })
+        .insert({ date: insideNextPeriod, employee_id: await createEmployee(), position_id: await createPosition() })
         .select("id")
         .single(),
     );
-    unwrap(
-      await service
-        .from("periods")
-        .insert({
-          name: `Cierre ${year}`,
-          start_date: `${year}-01-01`,
-          end_date: `${year}-12-31`,
-          status: "CLOSED",
-        })
-        .select("id"),
-    );
+    await appendPeriod("CLOSED");
 
     expect(await reviewItemsFor(early.id)).toEqual([]);
   });

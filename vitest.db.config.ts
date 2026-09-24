@@ -11,5 +11,7 @@ export default defineConfig({
     globalSetup: ["tests/db/globalSetup.ts"],
     testTimeout: 30_000,
     hookTimeout: 120_000,
+    // Periods form one chain across the whole database, so files cannot append to it at once.
+    fileParallelism: false,
   },
 });

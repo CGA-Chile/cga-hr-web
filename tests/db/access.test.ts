@@ -1,8 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { beforeAll, describe, expect, inject, it } from "vitest";
 import {
+  appendPeriod,
   createEmployee,
   createPosition,
+  nextPeriodStart,
   service,
   signInAs,
   uniqueDate,
@@ -18,22 +20,7 @@ beforeAll(async () => {
   ({ client: editor } = await signInAs("editor"));
 });
 
-let nextPeriodYear = 5000;
-async function createClosedPeriod() {
-  nextPeriodYear += 1;
-  return unwrap(
-    await service
-      .from("periods")
-      .insert({
-        name: `Cierre ${nextPeriodYear}`,
-        start_date: `${nextPeriodYear}-01-01`,
-        end_date: `${nextPeriodYear}-12-31`,
-        status: "CLOSED",
-      })
-      .select("id")
-      .single(),
-  );
-}
+const createClosedPeriod = () => appendPeriod("CLOSED");
 
 async function createSettledAssignment() {
   const period = await createClosedPeriod();
@@ -113,9 +100,8 @@ describe("settled assignments", () => {
 
 describe("administration is admin-only", () => {
   it("an editor cannot create a period", async () => {
-    const result = await editor
-      .from("periods")
-      .insert({ name: "No", start_date: "6000-01-01", end_date: "6000-01-31" });
+    const start = await nextPeriodStart();
+    const result = await editor.from("periods").insert({ name: "No", start_date: start, end_date: start });
 
     expect(result.error?.code).toBe("42501");
   });

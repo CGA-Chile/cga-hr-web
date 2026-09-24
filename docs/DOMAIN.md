@@ -680,11 +680,16 @@ Prensado, Supervisor.
 
 **Puestos de ausencia:** Licencia, Falta.
 
+El catálogo va en una **migración**, no en el seed: `db push` no ejecuta el seed en producción, y
+sin catálogo la app no sirve. No es información sensible.
+
 **Se descartan del catálogo actual:** `bodega` en minúscula (duplicado de `Bodega`) y
 `eliminado` (para eso está `active = false` en la persona).
 
 **Personas y tarifas.** El seed lee un archivo local que **no se versiona** (`seed/*.local.*`,
-ver `.gitignore`). Contiene los nombres, los RUT y los montos reales. El repositorio incluye
+ver `.gitignore`). Se llama, por ejemplo, `seed/10_people.local.sql`: se carga antes que
+`seed/20_example.sql`, y el ejemplo solo inserta en tablas vacías, así que con el archivo local
+presente no hace nada. Contiene los nombres, los RUT y los montos reales. El repositorio incluye
 solo un archivo de ejemplo con datos ficticios para que cualquiera pueda levantar el proyecto.
 
 ---

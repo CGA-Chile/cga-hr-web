@@ -61,15 +61,15 @@ describe("periods", () => {
 describe("bonus_settings", () => {
   it("rejects a version whose effective range overlaps another, open-ended ones included, so one date never has two rate sets", async () => {
     const bounded = await service.from("bonus_settings").insert({
-      effective_from: "4100-01-01",
-      effective_to: "4100-12-31",
+      effective_from: "1901-01-01",
+      effective_to: "1901-12-31",
       daily_cap: 15_000,
       max_amount_per_person: 2_500,
     });
     expect(bounded.error).toBeNull();
 
     const overlapping = await service.from("bonus_settings").insert({
-      effective_from: "4100-06-01",
+      effective_from: "1900-06-01",
       effective_to: null,
       daily_cap: 18_000,
       max_amount_per_person: 3_000,

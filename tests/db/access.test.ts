@@ -122,7 +122,8 @@ describe("administration is admin-only", () => {
 
   it("an editor cannot create a bonus settings version", async () => {
     const result = await editor.from("bonus_settings").insert({
-      effective_from: "6100-01-01",
+      effective_from: "1906-01-01",
+      effective_to: "1906-12-31",
       daily_cap: 1,
       max_amount_per_person: 1,
     });
@@ -134,7 +135,7 @@ describe("administration is admin-only", () => {
     const settings = unwrap(
       await service
         .from("bonus_settings")
-        .insert({ effective_from: "6200-01-01", effective_to: "6200-12-31", daily_cap: 1, max_amount_per_person: 1 })
+        .insert({ effective_from: "1905-01-01", effective_to: "1905-12-31", daily_cap: 1, max_amount_per_person: 1 })
         .select("id")
         .single(),
     );

@@ -11,6 +11,7 @@ English.** `docs/DOMAIN.md` is the versioned source of truth for domain rules an
 Spanish — this file, the code, and the database are in English.
 
 @CONTRIBUTING.md
+@AGENTS.md
 
 ---
 

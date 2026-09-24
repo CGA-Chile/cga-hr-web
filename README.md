@@ -74,7 +74,7 @@ figures. See [ADR 0001](docs/adr/0001-public-repository.md).
 
 ## Getting started
 
-Requires Node 20+, Docker (for the local Supabase stack) and the Supabase CLI.
+Requires Node 24+ (see `.nvmrc`), Docker (for the local Supabase stack). The Supabase CLI is a dev dependency.
 
 ```bash
 git clone https://github.com/CGA-Chile/cga-hr-web.git

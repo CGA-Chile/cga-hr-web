@@ -13,6 +13,23 @@ describe("the role lives in profiles, and only the server can grant it", () => {
     expect(profile.role).toBe("editor");
   });
 
+  it("a profile carries the username the user signs in with, so history can say who changed a cell", async () => {
+    const username = `u${randomUUID().replaceAll("-", "").slice(0, 10)}`;
+    const created = await service.auth.admin.createUser({
+      email: `${username}@cga.local`,
+      password: "135790",
+      email_confirm: true,
+      app_metadata: { role: "editor" },
+    });
+    if (created.error) throw created.error;
+
+    const profile = unwrap(
+      await service.from("profiles").select("username").eq("id", created.data.user.id).single(),
+    );
+
+    expect(profile.username).toBe(username);
+  });
+
   it("a user claiming admin in their own metadata changes nothing", async () => {
     const { client: editor } = await signInAs("editor");
 

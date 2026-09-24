@@ -84,3 +84,44 @@ export function fullName(employee: Pick<Employee, "first_name" | "last_name">): 
 function compareByName(a: Employee, b: Employee): number {
   return fullName(a).localeCompare(fullName(b), "es");
 }
+
+export type CellMovement = Pick<
+  Tables["assignment_history"]["Row"],
+  "id" | "previous_position_id" | "new_position_id" | "changed_at"
+> & { changedBy: string | null };
+
+/** Employees whose cell on this date moved more than once: created, then changed or cleared. */
+export async function loadModifiedEmployeeIds(supabase: Supabase, date: IsoDate): Promise<Set<string>> {
+  const movements = orThrow(
+    await supabase.from("assignment_history").select("employee_id").eq("date", date).is("deleted_at", null),
+  );
+  const counts = new Map<string, number>();
+  for (const { employee_id: employeeId } of movements) {
+    counts.set(employeeId, (counts.get(employeeId) ?? 0) + 1);
+  }
+  return new Set([...counts].filter(([, count]) => count > 1).map(([employeeId]) => employeeId));
+}
+
+/** Every movement of one cell, oldest first, with the username of whoever made it. */
+export async function loadCellHistory(
+  supabase: Supabase,
+  date: IsoDate,
+  employeeId: string,
+): Promise<CellMovement[]> {
+  const [movements, profiles] = await Promise.all([
+    supabase
+      .from("assignment_history")
+      .select("id, previous_position_id, new_position_id, changed_at, changed_by")
+      .eq("date", date)
+      .eq("employee_id", employeeId)
+      .is("deleted_at", null)
+      .order("changed_at"),
+    supabase.from("profiles").select("id, username"),
+  ]);
+  const usernames = new Map(orThrow(profiles).map((profile) => [profile.id, profile.username]));
+
+  return orThrow(movements).map(({ changed_by: changedBy, ...movement }) => ({
+    ...movement,
+    changedBy: changedBy ? (usernames.get(changedBy) ?? null) : null,
+  }));
+}

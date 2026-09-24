@@ -25,3 +25,11 @@
   text-decoration: none;
   cursor: pointer;
 }
+
+.modeBar[data-editing] {
+  background: var(--color-warning-surface);
+}
+
+.modeBar[data-editing] .notice {
+  color: var(--color-text);
+}

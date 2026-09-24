@@ -30,6 +30,8 @@ const OTHER_WORK = [
   "SUPERVISOR",
 ];
 const ABSENCE = ["LICENCIA", "FALTA"];
+/** The example seed's settings version. Other test files add later versions after it. */
+const EXAMPLE_VERSION_START = "2026-01-01";
 
 let catalogue: CataloguePosition[];
 
@@ -97,7 +99,7 @@ describe("the example seed", () => {
       await service
         .from("bonus_settings")
         .select("id, daily_cap, bonus_position_rates(position_id, amount)")
-        .is("effective_to", null)
+        .eq("effective_from", EXAMPLE_VERSION_START)
         .is("deleted_at", null)
         .single(),
     );

@@ -1,0 +1,133 @@
+.title {
+  margin: 0 0 var(--space-4);
+  font-size: 1.5rem;
+}
+
+.tabs {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabs a {
+  padding: var(--space-2) 0;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.tabs a[aria-current="page"] {
+  border-bottom: 2px solid var(--color-accent);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-4);
+}
+
+.intro,
+.muted {
+  color: var(--color-text-muted);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table thead th {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.link {
+  color: var(--color-accent);
+}
+
+.button {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius);
+  background: var(--color-background);
+  color: var(--color-accent);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.primary {
+  padding: var(--space-3);
+  border: none;
+  border-radius: var(--radius);
+  background: var(--color-accent);
+  color: var(--color-background);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.alert {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--color-warning-surface);
+  color: var(--color-warning);
+}
+
+.version {
+  margin-bottom: var(--space-6);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.version[data-current] {
+  border-color: var(--color-accent);
+}
+
+.versionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+}
+
+.tag {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-size: 0.75rem;
+  font-weight: 400;
+}

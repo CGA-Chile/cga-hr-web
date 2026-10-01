@@ -52,6 +52,7 @@ export function PositionsTable({ positions, editHref }: { positions: readonly Ad
           <th scope="col">{copy.displayOrder}</th>
           <th scope="col">{copy.name}</th>
           <th scope="col">{copy.code}</th>
+          <th scope="col">{copy.abbreviation}</th>
           <th scope="col">{copy.type}</th>
           <th scope="col">{copy.bonusEligible}</th>
           <th scope="col">{copy.triggersEqualShare}</th>
@@ -65,6 +66,7 @@ export function PositionsTable({ positions, editHref }: { positions: readonly Ad
             <td>{position.display_order}</td>
             <td>{position.name}</td>
             <td>{position.code}</td>
+            <td>{position.abbreviation}</td>
             <td>{position.type === "ABSENCE" ? copy.types.ABSENCE : copy.types.WORK}</td>
             <td>{yesNo(position.bonus_eligible)}</td>
             <td>{yesNo(position.triggers_equal_share)}</td>

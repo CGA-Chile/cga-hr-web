@@ -4,6 +4,7 @@ import { service, unwrap } from "./support";
 type CataloguePosition = {
   id: string;
   code: string;
+  abbreviation: string;
   type: string;
   bonus_eligible: boolean;
   triggers_equal_share: boolean;
@@ -39,7 +40,7 @@ beforeAll(async () => {
   catalogue = unwrap(
     await service
       .from("positions")
-      .select("id, code, type, bonus_eligible, triggers_equal_share, display_order")
+      .select("id, code, abbreviation, type, bonus_eligible, triggers_equal_share, display_order")
       .not("code", "like", "TEST_%")
       .is("deleted_at", null)
       .order("display_order"),
@@ -57,6 +58,14 @@ describe("the position catalogue from docs/DOMAIN.md §11", () => {
     expect(catalogue.map((position) => position.code).sort()).toEqual(
       [...LINE, ...OTHER_WORK, ...ABSENCE].sort(),
     );
+  });
+
+  it("gives every position a distinct abbreviation for the period sheet", () => {
+    expect(byCode("RIETER").abbreviation).toBe("RIE");
+    expect(byCode("PACKING_ACM").abbreviation).toBe("PACM");
+    expect(byCode("PACKING").abbreviation).toBe("PCK");
+    const abbreviations = catalogue.map((position) => position.abbreviation);
+    expect(new Set(abbreviations).size).toBe(abbreviations.length);
   });
 
   it("marks the five line positions, and only them, as bonus-eligible", () => {

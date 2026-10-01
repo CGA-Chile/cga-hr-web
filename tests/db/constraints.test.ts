@@ -9,6 +9,7 @@ describe("positions", () => {
     const result = await service.from("positions").insert({
       code: "TRIGGER_WITHOUT_BONUS",
       name: "Trigger without bonus",
+      abbreviation: "TWB",
       type: "WORK",
       bonus_eligible: false,
       triggers_equal_share: true,

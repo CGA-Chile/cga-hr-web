@@ -298,6 +298,7 @@ Sin `display_order`: se ordena por nombre.
 ```
 code                  text unique not null    -- 'RIETER', 'PACKING_ACM', ...
 name                  text not null           -- etiqueta visible, en español
+abbreviation          text not null           -- 'RIE', 'PACM', ...: lo que muestra cada celda de la planilla
 type                  text not null           -- 'WORK' | 'ABSENCE'
 bonus_eligible        boolean not null default false
 triggers_equal_share  boolean not null default false

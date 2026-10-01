@@ -18,6 +18,7 @@ export const positionSchema = z
   .object({
     code: z.string().trim().regex(/^[A-Z0-9_]+$/, adminCopy.positions.invalidCode),
     name: required,
+    abbreviation: z.string().trim().toUpperCase().regex(/^[A-Z0-9.]{1,5}$/, adminCopy.positions.invalidAbbreviation),
     type: z.enum(["WORK", "ABSENCE"]),
     bonusEligible: z.boolean(),
     triggersEqualShare: z.boolean(),

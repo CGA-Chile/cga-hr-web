@@ -438,6 +438,7 @@ export type Database = {
       }
       positions: {
         Row: {
+          abbreviation: string
           active: boolean
           bonus_eligible: boolean
           code: string
@@ -451,6 +452,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          abbreviation: string
           active?: boolean
           bonus_eligible?: boolean
           code: string
@@ -464,6 +466,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          abbreviation?: string
           active?: boolean
           bonus_eligible?: boolean
           code?: string

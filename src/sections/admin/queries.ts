@@ -5,7 +5,7 @@ type Tables = Database["public"]["Tables"];
 export type AdminEmployee = Pick<Tables["employees"]["Row"], "id" | "first_name" | "last_name" | "national_id" | "active">;
 export type AdminPosition = Pick<
   Tables["positions"]["Row"],
-  "id" | "code" | "name" | "type" | "bonus_eligible" | "triggers_equal_share" | "display_order" | "active"
+  "id" | "code" | "name" | "abbreviation" | "type" | "bonus_eligible" | "triggers_equal_share" | "display_order" | "active"
 >;
 export type RateVersion = Pick<
   Tables["bonus_settings"]["Row"],
@@ -25,7 +25,7 @@ export async function loadAdminPositions(supabase: ServerSupabase): Promise<Admi
   return orThrow(
     await supabase
       .from("positions")
-      .select("id, code, name, type, bonus_eligible, triggers_equal_share, display_order, active")
+      .select("id, code, name, abbreviation, type, bonus_eligible, triggers_equal_share, display_order, active")
       .is("deleted_at", null)
       .order("display_order"),
   );

@@ -63,6 +63,7 @@ export async function createPosition(flags: PositionFlags = {}): Promise<string>
       .insert({
         code,
         name: code,
+        abbreviation: code.slice(5, 10),
         type: "WORK",
         bonus_eligible: flags.bonusEligible ?? true,
         triggers_equal_share: flags.triggersEqualShare ?? false,

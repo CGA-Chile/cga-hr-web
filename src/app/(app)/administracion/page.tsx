@@ -143,6 +143,7 @@ function PositionDrawer({ position, doneHref }: { position: AdminPosition | null
         defaults={{
           code: position?.code ?? "",
           name: position?.name ?? "",
+          abbreviation: position?.abbreviation ?? "",
           type: position?.type === "ABSENCE" ? "ABSENCE" : "WORK",
           bonusEligible: position?.bonus_eligible ?? false,
           triggersEqualShare: position?.triggers_equal_share ?? false,

@@ -32,6 +32,9 @@ export function PositionForm({ id, defaults, doneHref }: PositionFormProps) {
       <FormField label={copy.name} error={formState.errors.name?.message}>
         <input {...register("name")} />
       </FormField>
+      <FormField label={copy.abbreviation} hint={copy.abbreviationHint} error={formState.errors.abbreviation?.message}>
+        <input {...register("abbreviation")} autoCapitalize="characters" maxLength={5} />
+      </FormField>
       <FormField label={copy.type}>
         <select {...register("type")}>
           <option value="WORK">{copy.types.WORK}</option>

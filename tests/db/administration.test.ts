@@ -30,7 +30,7 @@ describe("employees and positions are admin-only to write", () => {
 
     const created = await editor
       .from("positions")
-      .insert({ code: "EDITOR_POSITION", name: "No", type: "WORK", display_order: 1 });
+      .insert({ code: "EDITOR_POSITION", name: "No", abbreviation: "NO", type: "WORK", display_order: 1 });
     await editor.from("positions").update({ bonus_eligible: true }).eq("id", positionId);
 
     expect(created.error?.code).toBe("42501");

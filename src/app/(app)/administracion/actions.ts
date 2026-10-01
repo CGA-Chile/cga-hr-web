@@ -59,6 +59,7 @@ export async function savePosition(id: string | null, input: PositionValues): Pr
   const row = {
     code: parsed.data.code,
     name: parsed.data.name,
+    abbreviation: parsed.data.abbreviation,
     type: parsed.data.type,
     bonus_eligible: parsed.data.bonusEligible,
     triggers_equal_share: parsed.data.triggersEqualShare,

@@ -54,3 +54,8 @@ yarn-error.log*
 # --- Scratch ---
 _to_delete/
 tmp/
+
+# Agent skills: the real files live in .agents/skills/ and skills-lock.json pins them.
+# These are machine-local symlinks with absolute paths, recreated by `npx skills`.
+.claude/skills/supabase
+.claude/skills/supabase-postgres-best-practices

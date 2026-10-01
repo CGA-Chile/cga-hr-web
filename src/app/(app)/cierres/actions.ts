@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import * as z from "zod";
 import { periodsCopy } from "@/copy/periods";
 import { loadClosePlan } from "@/sections/periods/closePlan";
-import { loadPeriod, loadPeriods, nextPeriodStart, periodNameFor } from "@/sections/periods/queries";
+import { loadPeriod, loadPeriods, nextPeriodStart, periodNameFor, proposedEnd } from "@/sections/periods/queries";
+import { addDays } from "@/utils/chileDate";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
 
 export type ActionState = { message: string } | null;
@@ -38,7 +39,8 @@ export async function createPeriod(_previous: ActionState, formData: FormData): 
 
 /**
  * Closes a period. The plan is recomputed here, on the server, from the data as it is now; the
- * database then refuses the close if anything moved between this plan and the stamp.
+ * database then refuses the close if anything moved between this plan and the stamp. The same
+ * call opens the next period, ending on the usual 24th until HR enters the accountant's date.
  */
 export async function closePeriod(periodId: string): Promise<ActionState> {
   const supabase = await createSupabaseServerClient();
@@ -48,7 +50,13 @@ export async function closePeriod(periodId: string): Promise<ActionState> {
   const { canClose, settlements } = await loadClosePlan(supabase, period);
   if (!canClose) return { message: periodsCopy.gateBlocks };
 
-  const { error } = await supabase.rpc("close_period", { p_period_id: periodId, p_settlements: settlements });
+  const nextEnd = proposedEnd(addDays(period.end_date, 1));
+  const { error } = await supabase.rpc("close_period", {
+    p_period_id: periodId,
+    p_settlements: settlements,
+    p_next_name: periodNameFor(nextEnd),
+    p_next_end: nextEnd,
+  });
   if (error) return { message: messageFor(error.code) };
 
   revalidatePath(`/cierres/${periodId}`);

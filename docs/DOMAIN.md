@@ -64,7 +64,7 @@ reales están en el documento interno y en el seed; acá se describen por rol.
 |---|---|---|
 | Supervisor de producción | `editor` | Registra la asignación diaria. Uso principal. |
 | Supervisor de respaldo | `editor` | Registra la asignación diaria cuando el titular no está. |
-| RRHH | `editor` | Consulta, corrige y exporta el reporte del cierre. |
+| RRHH | `editor` | Consulta, corrige y exporta el reporte del cierre. Ingresa la fecha de término del período abierto. |
 | Administrador | `admin` | Todo lo anterior + personas, puestos, tarifas y cierres. |
 
 **Restricción de diseño:** varios usuarios tienen alfabetización digital limitada. Interfaz
@@ -373,7 +373,8 @@ closed_by     uuid fk auth.users
 ```
 
 Períodos contiguos, sin huecos ni traslapes. Al crear uno, `start_date` se precarga con
-`end_date` del anterior + 1 día y no es editable; `end_date` sí.
+`end_date` del anterior + 1 día y no es editable; `end_date` sí, mientras el período esté abierto
+y ningún otro lo siga. Ver sección 7.
 
 `closed_at` y `closed_by` los estampa la base al pasar a `CLOSED`, igual que `updated_at`: la lista
 de revisión los compara contra el historial, así que tienen que salir del mismo reloj y no pueden
@@ -460,9 +461,20 @@ nada.
 ## 7. Cierres y pagos pendientes
 
 El período de bonos **no es el mes calendario**: corre aproximadamente del 25 de un mes al 24
-del siguiente, y RRHH define la fecha exacta cada mes. En la práctica el 99% de los cierres son
-el mes en curso, así que la interfaz debe proponer eso por defecto y dejar el rango libre como
-excepción, no al revés.
+del siguiente. La fecha exacta la fija el contador externo (BBS) y RRHH la ingresa en la app. En
+la práctica el 99% de los cierres son el mes en curso, así que la interfaz debe proponer eso por
+defecto y dejar el rango libre como excepción, no al revés.
+
+- **Hay un solo período abierto a la vez.** Al cerrar un período, la misma operación crea el
+  siguiente: empieza el día después del término del que se cerró y termina, por defecto, el 24
+  que corresponda.
+- **La fecha de término se puede cambiar hasta que el período se cierre**, hacia adelante o hacia
+  atrás, incluso a una fecha que ya pasó. Lo pueden hacer RRHH y el administrador. Mientras el
+  período está abierto nada está pagado, así que mover la fecha no cambia ningún monto liquidado.
+- **El inicio nunca cambia**: es el día siguiente al término del período anterior. Por eso solo se
+  puede mover el término del último período abierto; mover uno que ya tiene sucesor abriría un
+  hueco o un traslape.
+- Cerrar sigue siendo exclusivo del administrador. Ver `docs/adr/0011`.
 
 **No se bloquea la edición de días ya cerrados.** La regla del negocio es que a nadie se le
 niega un pago porque a la empresa se le olvidó registrarlo; lo que no se pagó un mes se paga al

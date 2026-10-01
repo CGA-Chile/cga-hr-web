@@ -608,7 +608,12 @@ export type Database = {
         Returns: undefined
       }
       close_period: {
-        Args: { p_period_id: string; p_settlements: Json }
+        Args: {
+          p_next_end: string
+          p_next_name: string
+          p_period_id: string
+          p_settlements: Json
+        }
         Returns: undefined
       }
       create_bonus_settings_version: {
@@ -619,6 +624,10 @@ export type Database = {
           p_rates: Json
         }
         Returns: string
+      }
+      set_period_end: {
+        Args: { p_end_date: string; p_period_id: string }
+        Returns: undefined
       }
     }
     Enums: {

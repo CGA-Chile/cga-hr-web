@@ -8,6 +8,7 @@ import {
   signInAs,
   unwrap,
   type Client,
+  type TestPeriod,
 } from "./support";
 
 let admin: Client;
@@ -50,6 +51,11 @@ async function assignmentState(id: string) {
   );
 }
 
+/** The period close_period creates after this one: thirty days, named for the test. */
+function nextAfter(period: TestPeriod) {
+  return { p_next_name: `Next ${period.endDate}`, p_next_end: addDays(period.endDate, 30) };
+}
+
 async function periodStatus(id: string) {
   return unwrap(await service.from("periods").select("status, closed_by").eq("id", id).single());
 }
@@ -63,6 +69,7 @@ describe("close_period", () => {
     const notEligible = await assign(period.dateInside, await createPosition({ bonusEligible: false }));
 
     const closed = await admin.rpc("close_period", {
+      ...nextAfter(period),
       p_period_id: period.id,
       p_settlements: await everythingToSettle(period.endDate),
     });
@@ -80,12 +87,12 @@ describe("close_period", () => {
     await assign(addDays(period.dateInside, 1), await createPosition());
     const incomplete = (await everythingToSettle(period.endDate)).slice(1);
 
-    const closed = await admin.rpc("close_period", { p_period_id: period.id, p_settlements: incomplete });
+    const closed = await admin.rpc("close_period", { ...nextAfter(period), p_period_id: period.id, p_settlements: incomplete });
 
     expect(closed.error?.code).toBe("40001");
     expect((await assignmentState(kept.id)).settled_in_period_id).toBeNull();
     expect((await periodStatus(period.id)).status).toBe("OPEN");
-    await admin.rpc("close_period", { p_period_id: period.id, p_settlements: await everythingToSettle(period.endDate) });
+    await admin.rpc("close_period", { ...nextAfter(period), p_period_id: period.id, p_settlements: await everythingToSettle(period.endDate) });
   });
 
   it("refuses a settlement list prepared before an assignment changed position", async () => {
@@ -96,29 +103,132 @@ describe("close_period", () => {
       await service.from("assignments").update({ position_id: await createPosition() }).eq("id", moved.id).select("id"),
     );
 
-    const closed = await admin.rpc("close_period", { p_period_id: period.id, p_settlements: prepared });
+    const closed = await admin.rpc("close_period", { ...nextAfter(period), p_period_id: period.id, p_settlements: prepared });
 
     expect(closed.error?.code).toBe("40001");
-    await admin.rpc("close_period", { p_period_id: period.id, p_settlements: await everythingToSettle(period.endDate) });
+    await admin.rpc("close_period", { ...nextAfter(period), p_period_id: period.id, p_settlements: await everythingToSettle(period.endDate) });
   });
 
   it("is admin-only", async () => {
     const period = await appendPeriod("OPEN", 31);
 
     const closed = await editor.rpc("close_period", {
+      ...nextAfter(period),
       p_period_id: period.id,
       p_settlements: await everythingToSettle(period.endDate),
     });
 
     expect(closed.error?.code).toBe("42501");
-    await admin.rpc("close_period", { p_period_id: period.id, p_settlements: await everythingToSettle(period.endDate) });
+    await admin.rpc("close_period", { ...nextAfter(period), p_period_id: period.id, p_settlements: await everythingToSettle(period.endDate) });
   });
 
   it("does not close a period twice", async () => {
     const period = await appendPeriod("CLOSED", 31);
 
-    const closed = await admin.rpc("close_period", { p_period_id: period.id, p_settlements: [] });
+    const closed = await admin.rpc("close_period", { ...nextAfter(period), p_period_id: period.id, p_settlements: [] });
 
     expect(closed.error).not.toBeNull();
+  });
+});
+
+describe("the next period", () => {
+  it("is created at close, open, starting the day after", async () => {
+    const period = await appendPeriod("OPEN", 31);
+
+    const closed = await admin.rpc("close_period", {
+      ...nextAfter(period),
+      p_period_id: period.id,
+      p_settlements: await everythingToSettle(period.endDate),
+    });
+
+    expect(closed.error).toBeNull();
+    const next = unwrap(
+      await service
+        .from("periods")
+        .select("name, start_date, end_date, status")
+        .eq("start_date", addDays(period.endDate, 1))
+        .is("deleted_at", null)
+        .single(),
+    );
+    expect(next).toEqual({
+      name: `Next ${period.endDate}`,
+      start_date: addDays(period.endDate, 1),
+      end_date: addDays(period.endDate, 30),
+      status: "OPEN",
+    });
+  });
+
+  it("is not created when a later period already exists", async () => {
+    const period = await appendPeriod("OPEN", 31);
+    const later = await appendPeriod("OPEN", 31);
+
+    const closed = await admin.rpc("close_period", {
+      ...nextAfter(period),
+      p_period_id: period.id,
+      p_settlements: await everythingToSettle(period.endDate),
+    });
+
+    expect(closed.error).toBeNull();
+    const atNextStart = unwrap(
+      await service.from("periods").select("id").eq("start_date", addDays(period.endDate, 1)).is("deleted_at", null),
+    );
+    expect(atNextStart.map((row) => row.id)).toEqual([later.id]);
+  });
+});
+
+describe("set_period_end", () => {
+  it("lets an editor move the end of the latest open period, earlier or later", async () => {
+    const period = await appendPeriod("OPEN", 31);
+
+    const later = await editor.rpc("set_period_end", { p_period_id: period.id, p_end_date: addDays(period.endDate, 4) });
+    expect(later.error).toBeNull();
+    const earlier = await editor.rpc("set_period_end", { p_period_id: period.id, p_end_date: addDays(period.endDate, -3) });
+    expect(earlier.error).toBeNull();
+
+    const row = unwrap(await service.from("periods").select("start_date, end_date").eq("id", period.id).single());
+    expect(row).toEqual({ start_date: period.startDate, end_date: addDays(period.endDate, -3) });
+  });
+
+  it("refuses a closed period", async () => {
+    const period = await appendPeriod("CLOSED", 31);
+
+    const moved = await editor.rpc("set_period_end", { p_period_id: period.id, p_end_date: addDays(period.endDate, 1) });
+
+    expect(moved.error?.code).toBe("23514");
+  });
+
+  it("refuses an open period that another period follows, so no gap or overlap appears", async () => {
+    const period = await appendPeriod("OPEN", 31);
+    await appendPeriod("OPEN", 31);
+
+    const moved = await editor.rpc("set_period_end", { p_period_id: period.id, p_end_date: addDays(period.endDate, -1) });
+
+    expect(moved.error?.code).toBe("23514");
+  });
+
+  it("refuses an end before the start", async () => {
+    const period = await appendPeriod("OPEN", 31);
+
+    const moved = await editor.rpc("set_period_end", { p_period_id: period.id, p_end_date: addDays(period.startDate, -1) });
+
+    expect(moved.error?.code).toBe("23514");
+  });
+
+  it("refuses a signed-in user with no role", async () => {
+    const period = await appendPeriod("OPEN", 31);
+    const { client: stranger } = await signInAs(null);
+
+    const moved = await stranger.rpc("set_period_end", { p_period_id: period.id, p_end_date: addDays(period.endDate, 1) });
+
+    expect(moved.error?.code).toBe("42501");
+  });
+
+  it("leaves direct updates admin-only: an editor still cannot rename or move a period by hand", async () => {
+    const period = await appendPeriod("OPEN", 31);
+
+    await editor.from("periods").update({ name: "Renombrado", end_date: addDays(period.endDate, 1) }).eq("id", period.id);
+
+    const row = unwrap(await service.from("periods").select("name, end_date").eq("id", period.id).single());
+    expect(row).toEqual({ name: `Test ${period.startDate}`, end_date: period.endDate });
   });
 });

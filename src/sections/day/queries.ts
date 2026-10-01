@@ -5,8 +5,11 @@ import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
 
 type Tables = Database["public"]["Tables"];
 export type Employee = Pick<Tables["employees"]["Row"], "id" | "first_name" | "last_name" | "national_id" | "active">;
-export type Position = Pick<Tables["positions"]["Row"], "id" | "code" | "name" | "bonus_eligible" | "triggers_equal_share" | "type" | "display_order">;
+export type Position = Pick<Tables["positions"]["Row"], "id" | "code" | "name" | "abbreviation" | "bonus_eligible" | "triggers_equal_share" | "type" | "display_order">;
 export type Assignment = Pick<Tables["assignments"]["Row"], "id" | "date" | "employee_id" | "position_id" | "note" | "settled_in_period_id">;
+
+const EMPLOYEE_COLUMNS = "id, first_name, last_name, national_id, active";
+const ASSIGNMENT_COLUMNS = "id, date, employee_id, position_id, note, settled_in_period_id";
 
 export type DayRow = { employee: Employee; assignment: Assignment | null };
 
@@ -14,7 +17,7 @@ export async function loadPositions(supabase: ServerSupabase): Promise<Position[
   return orThrow(
     await supabase
       .from("positions")
-      .select("id, code, name, bonus_eligible, triggers_equal_share, type, display_order")
+      .select("id, code, name, abbreviation, bonus_eligible, triggers_equal_share, type, display_order")
       .is("deleted_at", null)
       .order("display_order"),
   );
@@ -28,11 +31,11 @@ export async function loadDayRows(supabase: ServerSupabase, date: IsoDate): Prom
   const [employees, assignments] = await Promise.all([
     supabase
       .from("employees")
-      .select("id, first_name, last_name, national_id, active")
+      .select(EMPLOYEE_COLUMNS)
       .is("deleted_at", null),
     supabase
       .from("assignments")
-      .select("id, date, employee_id, position_id, note, settled_in_period_id")
+      .select(ASSIGNMENT_COLUMNS)
       .eq("date", date)
       .is("deleted_at", null),
   ]);
@@ -53,12 +56,12 @@ export async function loadEmployeeMonth(
   const [employee, assignments] = await Promise.all([
     supabase
       .from("employees")
-      .select("id, first_name, last_name, national_id, active")
+      .select(EMPLOYEE_COLUMNS)
       .eq("id", employeeId)
       .maybeSingle(),
     supabase
       .from("assignments")
-      .select("id, date, employee_id, position_id, note, settled_in_period_id")
+      .select(ASSIGNMENT_COLUMNS)
       .eq("employee_id", employeeId)
       .gte("date", first)
       .lte("date", last)
@@ -68,6 +71,24 @@ export async function loadEmployeeMonth(
   if (employee.error) throw employee.error;
   if (!employee.data) return null;
   return { employee: employee.data, assignments: orThrow(assignments) };
+}
+
+/** Every employee, active or not, and every live assignment between two dates, both included. */
+export async function loadRangeRows(
+  supabase: ServerSupabase,
+  from: IsoDate,
+  to: IsoDate,
+): Promise<{ employees: Employee[]; assignments: Assignment[] }> {
+  const [employees, assignments] = await Promise.all([
+    supabase.from("employees").select(EMPLOYEE_COLUMNS).is("deleted_at", null),
+    supabase
+      .from("assignments")
+      .select(ASSIGNMENT_COLUMNS)
+      .gte("date", from)
+      .lte("date", to)
+      .is("deleted_at", null),
+  ]);
+  return { employees: orThrow(employees), assignments: orThrow(assignments) };
 }
 
 export function fullName(employee: Pick<Employee, "first_name" | "last_name">): string {

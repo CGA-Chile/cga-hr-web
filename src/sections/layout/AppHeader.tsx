@@ -11,7 +11,8 @@ export function AppHeader({ isAdmin }: { isAdmin: boolean }) {
     <header className={styles.header}>
       <nav className={styles.nav}>
         <span className={styles.title}>{appCopy.title}</span>
-        <Link href="/">{appCopy.navDay}</Link>
+        <Link href="/planilla">{appCopy.navSheet}</Link>
+        <Link href="/dia">{appCopy.navDay}</Link>
         <Link href="/cierres">{appCopy.navPeriods}</Link>
         <Link href="/reporte">{appCopy.navReport}</Link>
         <Link href="/revision">{appCopy.navReview}</Link>

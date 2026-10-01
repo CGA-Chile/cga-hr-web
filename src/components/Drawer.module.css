@@ -45,3 +45,26 @@
   overflow-y: auto;
   padding: var(--space-6);
 }
+
+/* On a phone the panel rises from the bottom, leaving the sheet visible above it. */
+@media (max-width: 40rem) {
+  .layer {
+    align-items: flex-end;
+  }
+
+  .panel {
+    width: 100%;
+    height: auto;
+    max-height: 85vh;
+    border-radius: 0.875rem 0.875rem 0 0;
+    box-shadow: 0 -2px 12px rgb(0 0 0 / 0.12);
+  }
+
+  .header {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .body {
+    padding: var(--space-4);
+  }
+}

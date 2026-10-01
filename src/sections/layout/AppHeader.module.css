@@ -43,3 +43,13 @@
 .nav a:hover {
   text-decoration: underline;
 }
+
+/* On a phone the links stay on one line and scroll sideways instead of stacking. */
+@media (max-width: 40rem) {
+  .nav {
+    flex-wrap: nowrap;
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}

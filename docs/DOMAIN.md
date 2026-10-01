@@ -569,6 +569,30 @@ automáticos ni recálculo: la lista existe para que una persona decida qué hac
 Diseño **web first**, adaptable a celular. El uso principal es desde el computador; el celular
 tiene que funcionar bien, pero no manda el diseño.
 
+### 8.0 Planilla del período
+
+Es la pantalla de inicio: la vista general de la planilla que reemplaza, para que la transición
+sea reconocible.
+
+- **Estructura.** Una fila por persona y una columna por día del período. Cada celda muestra la
+  **abreviatura** del puesto (`positions.abbreviation`). Abajo va el bono de la línea por día, y a
+  la derecha el bono de cada persona en el período.
+- **Colores.** Línea de cardas, Packing ACM, otros puestos y ausencias se distinguen por color. Un
+  puesto repetido se pinta fuerte, y el día con aviso lleva una marca en el encabezado.
+- **Panel lateral.** Tocar un día abre su resumen, el mismo de la sección 8.2. Tocar una celda abre
+  el puesto, el bono de ese día, la nota y el historial. En modo edición, los puestos se eligen ahí
+  con botones agrupados, nunca escribiendo en la celda.
+- **Copiar columna.** En modo edición, el resumen del día ofrece copiar los puestos del último día
+  anterior que tenga registros. Solo llena celdas vacías: lo ya registrado no se toca.
+- **Fecha de cierre.** Desde la planilla, RRHH cambia la fecha de término del período abierto. Ver
+  sección 7.
+- **Celular.** Muestra la misma planilla una semana a la vez, con flechas para pasar de semana, y el
+  panel sube desde abajo. La lógica y la edición son idénticas; solo cambia la presentación.
+- **Días sin período.** Después de que termina el último período y antes de que se cierre, la
+  planilla muestra los días siguientes con el rango que tendrá el período que el cierre va a
+  crear.
+- Abre en modo lectura, igual que la vista del día.
+
 ### 8.1 Vista del día
 
 - Selector de fecha con acceso rápido a hoy y ayer, y navegación libre a cualquier fecha pasada

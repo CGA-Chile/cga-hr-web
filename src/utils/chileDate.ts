@@ -73,3 +73,13 @@ export function formatNumericDate(date: IsoDate): string {
     toUtc(date),
   );
 }
+
+/** "24 de septiembre" */
+export function formatDayMonth(date: IsoDate): string {
+  return new Intl.DateTimeFormat("es-CL", { timeZone: "UTC", day: "numeric", month: "long" }).format(toUtc(date));
+}
+
+/** How many dates from `from` to `to`, both included. */
+export function daysInRange(from: IsoDate, to: IsoDate): number {
+  return Math.round((toUtc(to).getTime() - toUtc(from).getTime()) / DAY_MS) + 1;
+}

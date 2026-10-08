@@ -18,7 +18,7 @@ function employee(id: string, firstName: string, active = true): Employee {
 }
 
 function assignment(date: string, employeeId: string, positionId: string): Assignment {
-  return { id: `${date}-${employeeId}`, date, employee_id: employeeId, position_id: positionId, note: null, settled_in_period_id: null };
+  return { id: `${date}-${employeeId}`, date, employee_id: employeeId, position_id: positionId, note: null, settled_in_period_id: null, late: false };
 }
 
 function bonus(date: string, result: DailyBonusResult): DailyBonus {
@@ -44,15 +44,15 @@ describe("buildSheet", () => {
       bonus("2026-09-01", {
         scheme: "POSITION_RATE",
         perEmployee: [
-          { employeeId: "ana", positionId: "RIE", amount: 400 },
-          { employeeId: "bruno", positionId: "RIE", amount: 400 },
+          { employeeId: "ana", positionId: "RIE", amount: 400, late: false },
+          { employeeId: "bruno", positionId: "RIE", amount: 400, late: false },
         ],
         total: 800,
         anomalies: [{ kind: "DUPLICATE_OCCUPANCY", positionId: "RIE", occupantCount: 2, affectsAmount: true }],
       }),
       bonus("2026-09-02", {
         scheme: "POSITION_RATE",
-        perEmployee: [{ employeeId: "ana", positionId: "ACM", amount: 400 }],
+        perEmployee: [{ employeeId: "ana", positionId: "ACM", amount: 400, late: false }],
         total: 400,
         anomalies: [],
       }),

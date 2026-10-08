@@ -66,6 +66,7 @@ export function SheetView({ ranges, week, params, previousName, anomalousDateCou
         <li data-tone="OTHER">{sheetCopy.legendOther}</li>
         <li data-tone="ABSENCE">{sheetCopy.legendAbsence}</li>
         <li data-tone="DUPLICATED">{sheetCopy.legendDuplicated}</li>
+        <li data-tone="LATE">{sheetCopy.legendLate}</li>
       </ul>
 
       <nav className={styles.weekNav}>

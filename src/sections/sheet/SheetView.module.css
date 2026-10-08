@@ -133,6 +133,18 @@
   background: var(--color-surface);
 }
 
+.legend [data-tone="LATE"]::before {
+  content: "ABC";
+  width: auto;
+  height: auto;
+  border: none;
+  color: var(--color-warning);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
 .legend [data-tone="DUPLICATED"]::before {
   border-color: var(--color-warning);
   background: var(--color-warning);

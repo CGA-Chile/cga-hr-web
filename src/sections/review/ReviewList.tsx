@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { reviewCopy } from "@/copy/review";
+import { describeMovement as describeAssignmentMovement } from "@/sections/day/movementText";
 import { dayPath } from "@/sections/day/paths";
 import { formatDateTimeInChile, formatLongDate } from "@/utils/chileDate";
 import { formatPesos } from "@/utils/money";
@@ -74,8 +75,5 @@ function describeMovement(entry: ReviewEntry, positionName: (id: string | null) 
       `${holiday ? reviewCopy.holiday : reviewCopy.notHoliday}, ${dayRate === null ? reviewCopy.defaultDayRate : formatPesos(dayRate)}`;
     return reviewCopy.movement(state(entry.previous_holiday, entry.previous_day_rate), state(entry.new_holiday, entry.new_day_rate));
   }
-  return reviewCopy.movement(
-    entry.previous_position_id ? positionName(entry.previous_position_id) : reviewCopy.emptyCell,
-    entry.new_position_id ? positionName(entry.new_position_id) : reviewCopy.emptyCell,
-  );
+  return describeAssignmentMovement(entry, (id) => (id ? positionName(id) : reviewCopy.emptyCell));
 }

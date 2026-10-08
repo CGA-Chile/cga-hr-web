@@ -92,6 +92,7 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
                     data-rest={restDay(cell.date)}
                     data-out={outOfWeek(cell.date)}
                     data-selected={isSelected || undefined}
+                    data-late={cell.assignment?.late || undefined}
                   >
                     <Link
                       href={sheetPath({ ...params, date: cell.date, employeeId: row.employee.id, endPanel: false })}
@@ -100,7 +101,9 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
                       aria-label={sheetCopy.cellFor(
                         fullName(row.employee),
                         formatLongDate(cell.date),
-                        position?.name ?? sheetCopy.noPosition,
+                        cell.assignment?.late
+                          ? `${position?.name ?? ""}, ${sheetCopy.lateLabel}`
+                          : (position?.name ?? sheetCopy.noPosition),
                       )}
                     >
                       <SheetCellLabel date={cell.date} employeeId={row.employee.id} stored={position?.abbreviation ?? ""} />

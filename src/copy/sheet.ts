@@ -20,6 +20,7 @@ export const sheetCopy = {
   legendOther: "Otros puestos",
   legendAbsence: "Ausencias",
   legendDuplicated: "Puesto repetido",
+  legendLate: "Atraso (sin bono)",
   hint: "Toca un día para ver su resumen; toca una celda para ver o cambiar el puesto.",
 
   /** Sunday first, as Date.getUTCDay counts. */
@@ -41,6 +42,11 @@ export const sheetCopy = {
   position: "Puesto",
   dayBonus: "Bono ese día",
   noBonus: "Sin bono",
+  lateBonus: "Sin bono: llegó atrasado",
+  markLate: "Marcar atraso",
+  unmarkLate: "Quitar atraso",
+  lateHint: "Con atraso sigue en su puesto, pero ese día no recibe bono ni cuenta para el reparto.",
+  lateLabel: "atrasado",
   readOnlyCell: "Modo lectura. Aprieta «Editar» para cambiar el puesto.",
   clearPosition: "Vaciar",
   previousDay: "← Día anterior",

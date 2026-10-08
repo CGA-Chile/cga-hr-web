@@ -53,7 +53,7 @@ export function DailySummary({ dailyBonus, positions, employeeName }: DailySumma
                 <tr key={entry.employeeId}>
                   <td>{employeeName(entry.employeeId)}</td>
                   <td>{positionName(entry.positionId)}</td>
-                  <td className={styles.amount}>{formatPesos(entry.amount)}</td>
+                  <td className={styles.amount}>{entry.late ? summaryCopy.late : formatPesos(entry.amount)}</td>
                 </tr>
               ))}
             </tbody>

@@ -23,8 +23,9 @@ from (values
 where not exists (select 1 from public.employees);
 
 with example_settings as (
-  insert into public.bonus_settings (effective_from, effective_to, daily_cap, max_amount_per_person)
-  select date '2026-01-01', null, 15000, 2500
+  insert into public.bonus_settings
+    (effective_from, effective_to, daily_cap, max_amount_per_person, saturday_day_rate, sunday_day_rate, holiday_day_rate)
+  select date '2026-01-01', null, 15000, 2500, 10000, 10000, 10000
   where not exists (select 1 from public.bonus_settings)
   returning id
 )

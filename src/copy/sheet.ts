@@ -16,7 +16,7 @@ export const sheetCopy = {
   finishEditing: "Terminar edición",
 
   legendLine: "Línea de cardas",
-  legendTrigger: "Packing ACM (reparto igualitario)",
+  legendTrigger: "Reparto igualitario (Packing ACM, Mantas Rieter)",
   legendOther: "Otros puestos",
   legendAbsence: "Ausencias",
   legendDuplicated: "Puesto repetido",
@@ -66,4 +66,16 @@ export const sheetCopy = {
   endNotMovable: "Este período ya no se puede cambiar: está cerrado o ya hay uno después.",
   endNoPermission: "Tu usuario no puede cambiar la fecha de cierre.",
   unavailable: "No se pudo guardar. Revisa la señal y vuelve a intentarlo.",
+
+  holidayTag: "Feriado",
+  calendarTitle: "Feriado y monto del día",
+  holidayLabel: "Este día es feriado",
+  dayRateLabel: "Monto del día para esta fecha",
+  dayRateHint: (fallback: string) => `Déjalo vacío para usar el monto normal${fallback}.`,
+  dayRateFallback: (amount: string) => ` (${amount})`,
+  saveCalendar: "Guardar",
+  savingCalendar: "Guardando…",
+  calendarWho: "Lo pueden cambiar RRHH y el administrador.",
+  invalidDayRate: "Escribe un monto en pesos, sin puntos, o déjalo vacío.",
+  calendarNoPermission: "Tu usuario no puede marcar feriados ni cambiar el monto del día.",
 } as const;

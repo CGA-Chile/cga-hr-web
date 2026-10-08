@@ -12,18 +12,22 @@ import type {
 type ResolvedAssignment = BonusAssignment & { position: BonusPosition };
 
 /**
- * Computes one date's carding-line bonus. Pure: the caller supplies the date's assignments, the
- * positions with their flags, and the settings in force on that date.
+ * Computes one date's bonus. Pure: the caller supplies the date's assignments, the positions with
+ * their flags, the settings in force on that date, and the date's day rate when it has one.
  *
- * The daily cap appears only in the EQUAL_SHARE formula. A POSITION_RATE total above it is
- * returned as is and reported as an anomaly; enforcing the cap is the close gate's job.
+ * On a day-rate date everyone who worked earns that rate and nothing else applies. Otherwise the
+ * carding line is paid, and the daily cap appears only in the EQUAL_SHARE formula: a
+ * POSITION_RATE total above it is returned as is and reported as an anomaly; enforcing the cap is
+ * the close gate's job.
  */
 export function calculateDailyBonus(input: DailyBonusInput): DailyBonusResult {
-  const eligible = resolvePositions(input)
-    .filter((assignment) => assignment.position.bonusEligible);
+  const resolved = resolvePositions(input);
+  const eligible = resolved.filter((assignment) => assignment.position.bonusEligible);
+  if (input.dayRate !== null) return payDayRate(resolved, eligible, input.dayRate);
+
   const scheme = deriveScheme(eligible);
   const perEmployee = computeAmounts(eligible, scheme, input.settings);
-  const total = perEmployee.reduce((sum, entry) => sum + entry.amount, 0);
+  const total = sumOf(perEmployee);
 
   return {
     scheme,
@@ -34,6 +38,27 @@ export function calculateDailyBonus(input: DailyBonusInput): DailyBonusResult {
       ...findAboveDailyCap(total, input.settings),
     ],
   };
+}
+
+/** The daily cap does not apply: the day rate is a fixed amount per person, not a shared pot. */
+function payDayRate(
+  resolved: readonly ResolvedAssignment[],
+  eligible: readonly ResolvedAssignment[],
+  dayRate: number,
+): DailyBonusResult {
+  const perEmployee = resolved
+    .filter((assignment) => !assignment.position.absence)
+    .map((assignment) => ({ employeeId: assignment.employeeId, positionId: assignment.positionId, amount: dayRate }));
+  return {
+    scheme: "DAY_RATE",
+    perEmployee,
+    total: sumOf(perEmployee),
+    anomalies: findDuplicateOccupancy(eligible, "DAY_RATE"),
+  };
+}
+
+function sumOf(entries: readonly EmployeeBonus[]): number {
+  return entries.reduce((sum, entry) => sum + entry.amount, 0);
 }
 
 function resolvePositions(input: DailyBonusInput): ResolvedAssignment[] {

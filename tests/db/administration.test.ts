@@ -70,6 +70,9 @@ describe("create_bonus_settings_version", () => {
       p_daily_cap: 20_000,
       p_max_amount_per_person: 3_000,
       p_rates: [{ position_id: rieter, amount: 6_000 }],
+      p_saturday_day_rate: 10_000,
+      p_sunday_day_rate: 10_000,
+      p_holiday_day_rate: 10_000,
     });
 
     expect(created.error).toBeNull();
@@ -91,6 +94,9 @@ describe("create_bonus_settings_version", () => {
       p_daily_cap: 1,
       p_max_amount_per_person: 1,
       p_rates: [],
+      p_saturday_day_rate: 10_000,
+      p_sunday_day_rate: 10_000,
+      p_holiday_day_rate: 10_000,
     });
 
     expect(created.error?.code).toBe("23514");
@@ -102,6 +108,9 @@ describe("create_bonus_settings_version", () => {
       p_daily_cap: 1,
       p_max_amount_per_person: 1,
       p_rates: [],
+      p_saturday_day_rate: 10_000,
+      p_sunday_day_rate: 10_000,
+      p_holiday_day_rate: 10_000,
     });
 
     expect(created.error?.code).toBe("42501");

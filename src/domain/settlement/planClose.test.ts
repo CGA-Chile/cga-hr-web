@@ -5,20 +5,22 @@ import { planClose } from "./planClose";
 import type { CloseCandidate, SettlementDay } from "./types";
 
 // Example values from docs/DOMAIN.md §5, built here as fixtures.
-const RIETER: BonusPosition = { id: "rieter", bonusEligible: true, triggersEqualShare: false };
-const ACM: BonusPosition = { id: "acm", bonusEligible: true, triggersEqualShare: false };
-const ENCAJADOR_ACM: BonusPosition = { id: "encajador-acm", bonusEligible: true, triggersEqualShare: false };
+const RIETER: BonusPosition = { id: "rieter", bonusEligible: true, triggersEqualShare: false, absence: false };
+const ACM: BonusPosition = { id: "acm", bonusEligible: true, triggersEqualShare: false, absence: false };
+const ENCAJADOR_ACM: BonusPosition = { id: "encajador-acm", bonusEligible: true, triggersEqualShare: false, absence: false };
 const ALIMENTADOR_RIETER: BonusPosition = {
   id: "alimentador-rieter",
   bonusEligible: true,
   triggersEqualShare: false,
+  absence: false,
 };
-const PACKING_ACM: BonusPosition = { id: "packing-acm", bonusEligible: true, triggersEqualShare: true };
+const PACKING_ACM: BonusPosition = { id: "packing-acm", bonusEligible: true, triggersEqualShare: true, absence: false };
 const POSITIONS = [RIETER, ACM, ENCAJADOR_ACM, ALIMENTADOR_RIETER, PACKING_ACM];
 
 const SETTINGS: BonusSettings = {
   dailyCap: 15_000,
   maxAmountPerPerson: 2_500,
+  dayRates: null,
   positionRates: new Map([
     [RIETER.id, 4_000],
     [ACM.id, 4_000],
@@ -32,7 +34,7 @@ const PERIOD = { startDate: "2026-08-25", endDate: "2026-09-24" };
 type Seat = { position: BonusPosition; settledAmount?: number };
 
 /** One date as the close would see it: its live assignments, calculated at the real n. */
-function day(date: string, seats: Seat[], settings: BonusSettings = SETTINGS): SettlementDay {
+function day(date: string, seats: Seat[], settings: BonusSettings = SETTINGS, dayRate: number | null = null): SettlementDay {
   const assignments = seats.map((seat, index) => ({
     employeeId: `${date}-employee-${index + 1}`,
     positionId: seat.position.id,
@@ -42,7 +44,7 @@ function day(date: string, seats: Seat[], settings: BonusSettings = SETTINGS): S
     date,
     dailyCap: settings.dailyCap,
     assignments,
-    calculation: calculateDailyBonus({ assignments, positions: POSITIONS, settings }),
+    calculation: calculateDailyBonus({ assignments, positions: POSITIONS, settings, dayRate }),
   };
 }
 
@@ -239,5 +241,20 @@ describe("the excess the gate cannot fix: a late assignment on a date whose amou
 
     expect(plan.blockingDates.map((blocking) => blocking.date)).toEqual(["2026-08-15"]);
     expect(plan.excessesRequiringValidation).toEqual([]);
+  });
+});
+
+describe("a day-rate date at close", () => {
+  it("settles a late assignment on a frozen day-rate date with no validation: the cap does not apply", () => {
+    const frozenSaturday: Seat[] = [
+      { position: RIETER, settledAmount: 10_000 },
+      { position: ACM, settledAmount: 10_000 },
+    ];
+
+    const plan = planClose(candidate([day("2026-08-15", [...frozenSaturday, { position: ENCAJADOR_ACM }], SETTINGS, 10_000)]));
+
+    expect(plan.toSettle).toMatchObject([{ date: "2026-08-15", amount: 10_000, kind: "CARRY_OVER" }]);
+    expect(plan.excessesRequiringValidation).toEqual([]);
+    expect(plan.canClose).toBe(true);
   });
 });

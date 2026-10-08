@@ -2,6 +2,7 @@ import Link from "next/link";
 import { reviewCopy } from "@/copy/review";
 import { dayPath } from "@/sections/day/paths";
 import { formatDateTimeInChile, formatLongDate } from "@/utils/chileDate";
+import { formatPesos } from "@/utils/money";
 import { AcknowledgeButton } from "./AcknowledgeButton";
 import type { ReviewEntry } from "./queries";
 import styles from "./ReviewList.module.css";
@@ -42,14 +43,9 @@ export function ReviewList({ entries, acknowledged, employeeName, positionName, 
               <div className={styles.body}>
                 <div className={styles.headline}>
                   {entry.date && <Link href={dayPath(entry.date)}>{formatLongDate(entry.date)}</Link>}
-                  <span> · {employeeName(entry.employee_id)}</span>
+                  <span> · {entry.kind === "CALENDAR" ? reviewCopy.calendarHeadline : employeeName(entry.employee_id)}</span>
                 </div>
-                <div className={styles.movement}>
-                  {reviewCopy.movement(
-                    entry.previous_position_id ? positionName(entry.previous_position_id) : reviewCopy.emptyCell,
-                    entry.new_position_id ? positionName(entry.new_position_id) : reviewCopy.emptyCell,
-                  )}
-                </div>
+                <div className={styles.movement}>{describeMovement(entry, positionName)}</div>
                 <div className={styles.meta}>
                   {entry.changed_at && reviewCopy.changedBy(formatDateTimeInChile(entry.changed_at), username(entry.changed_by))}
                   {" · "}
@@ -61,11 +57,25 @@ export function ReviewList({ entries, acknowledged, employeeName, positionName, 
                   </div>
                 )}
               </div>
-              {!acknowledged && entry.history_id && <AcknowledgeButton historyId={entry.history_id} />}
+              {!acknowledged && entry.history_id && (
+                <AcknowledgeButton historyId={entry.history_id} kind={entry.kind === "CALENDAR" ? "CALENDAR" : "ASSIGNMENT"} />
+              )}
             </li>
           ))}
         </ul>
       )}
     </main>
+  );
+}
+
+function describeMovement(entry: ReviewEntry, positionName: (id: string | null) => string): string {
+  if (entry.kind === "CALENDAR") {
+    const state = (holiday: boolean | null, dayRate: number | null) =>
+      `${holiday ? reviewCopy.holiday : reviewCopy.notHoliday}, ${dayRate === null ? reviewCopy.defaultDayRate : formatPesos(dayRate)}`;
+    return reviewCopy.movement(state(entry.previous_holiday, entry.previous_day_rate), state(entry.new_holiday, entry.new_day_rate));
+  }
+  return reviewCopy.movement(
+    entry.previous_position_id ? positionName(entry.previous_position_id) : reviewCopy.emptyCell,
+    entry.new_position_id ? positionName(entry.new_position_id) : reviewCopy.emptyCell,
   );
 }

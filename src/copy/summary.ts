@@ -7,7 +7,12 @@ export const summaryCopy = {
   triggerPresence: (count: number, positionName: string) => `hay ${people(count)} en ${positionName}`,
   positionRate: (triggerNames: string) =>
     `Tarifa por puesto — no hay nadie en ${triggerNames}. Cada puesto gana su tarifa.`,
+  dayRate: (reason: string, amount: string) =>
+    `Monto del día — ${reason}. Todos los que trabajaron ganan ${amount}, sin importar el puesto.`,
+  dayRateReasons: { SATURDAY: "es sábado", SUNDAY: "es domingo", HOLIDAY: "es feriado", WEEKDAY: "RRHH fijó un monto para esta fecha" },
+  dayRateSetForDate: "Monto fijado por RRHH para esta fecha.",
   noLine: "Nadie trabajó hoy en la línea de cardas. No hay bono.",
+  nobodyWorked: "Nadie trabajó este día. No hay bono.",
   noSettings: "No hay tarifas vigentes para esta fecha. Pídele al administrador que las registre.",
   employeeColumn: "Trabajador",
   positionColumn: "Puesto",

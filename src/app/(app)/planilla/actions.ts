@@ -36,3 +36,42 @@ function messageFor(code: string): string {
   if (code === "23514") return sheetCopy.endNotMovable;
   return sheetCopy.unavailable;
 }
+
+export type CalendarDateState = { message: string } | null;
+
+const calendarDateSchema = z.object({
+  holiday: z.boolean(),
+  dayRate: z
+    .string()
+    .trim()
+    .transform((text) => (text === "" ? null : Number(text)))
+    .refine((amount) => amount === null || (Number.isInteger(amount) && amount > 0)),
+});
+
+/**
+ * Sets a date's holiday mark and, when HR fixes one, the amount for that date alone. An empty
+ * amount means the default for its kind. The database decides who may: HR and the admin.
+ */
+export async function setCalendarDate(
+  date: string,
+  doneHref: string,
+  _previous: CalendarDateState,
+  formData: FormData,
+): Promise<CalendarDateState> {
+  const parsed = calendarDateSchema.safeParse({
+    holiday: formData.get("holiday") === "on",
+    dayRate: formData.get("dayRate") ?? "",
+  });
+  if (!parsed.success) return { message: sheetCopy.invalidDayRate };
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("set_calendar_date", {
+    p_date: date,
+    p_holiday: parsed.data.holiday,
+    p_day_rate: parsed.data.dayRate ?? undefined,
+  });
+  if (error) return { message: error.code === "42501" ? sheetCopy.calendarNoPermission : sheetCopy.unavailable };
+
+  revalidatePath("/planilla");
+  redirect(doneHref.startsWith("/planilla") ? doneHref : "/planilla");
+}

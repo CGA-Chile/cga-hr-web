@@ -18,16 +18,19 @@ type SheetGridProps = {
   weekStart: IsoDate;
   /** Today in Chile: its date header is marked so the eye finds where the sheet stands. */
   today: IsoDate;
+  /** Holidays HR marked: shaded like Sundays, the other dates paid under the day rate. */
+  holidays: ReadonlySet<IsoDate>;
 };
 
 /**
  * One row per person, one column per date, like the sheet it replaces. Every cell and every
  * date is a link that opens the side panel; the grid itself never edits.
  */
-export function SheetGrid({ sheet, positionsById, params, weekStart, today }: SheetGridProps) {
+export function SheetGrid({ sheet, positionsById, params, weekStart, today, holidays }: SheetGridProps) {
   const weekEnd = addDays(weekStart, 6);
   const outOfWeek = (date: IsoDate) => date < weekStart || date > weekEnd || undefined;
   const selected = (date: IsoDate) => params.date === date || undefined;
+  const restDay = (date: IsoDate) => dateParts(date).weekday === 0 || holidays.has(date) || undefined;
 
   return (
     <div className={styles.scroller}>
@@ -45,7 +48,7 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today }: Sh
                   scope="col"
                   className={styles.dayHeader}
                   data-out={outOfWeek(day.date)}
-                  data-sunday={weekday === 0 || undefined}
+                  data-rest={restDay(day.date)}
                   data-selected={selected(day.date)}
                   data-today={day.date === today || undefined}
                   aria-current={day.date === today ? "date" : undefined}
@@ -86,7 +89,7 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today }: Sh
                     className={styles.cell}
                     data-tone={position ? toneOf(position) : undefined}
                     data-duplicated={cell.duplicated || undefined}
-                    data-sunday={dateParts(cell.date).weekday === 0 || undefined}
+                    data-rest={restDay(cell.date)}
                     data-out={outOfWeek(cell.date)}
                     data-selected={isSelected || undefined}
                   >

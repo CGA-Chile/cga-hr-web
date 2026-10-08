@@ -110,7 +110,7 @@
   box-shadow: inset 0 0 0 1px var(--color-text-muted);
 }
 
-.grid [data-sunday] {
+.grid [data-rest] {
   background: var(--color-surface);
 }
 

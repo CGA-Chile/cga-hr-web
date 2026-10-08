@@ -9,7 +9,7 @@ export type AdminPosition = Pick<
 >;
 export type RateVersion = Pick<
   Tables["bonus_settings"]["Row"],
-  "id" | "effective_from" | "effective_to" | "daily_cap" | "max_amount_per_person"
+  "id" | "effective_from" | "effective_to" | "daily_cap" | "max_amount_per_person" | "saturday_day_rate" | "sunday_day_rate" | "holiday_day_rate"
 > & { rates: { position_id: string; amount: number }[] };
 
 export async function loadAdminEmployees(supabase: ServerSupabase): Promise<AdminEmployee[]> {
@@ -37,7 +37,7 @@ export async function loadRateVersions(supabase: ServerSupabase): Promise<RateVe
     await supabase
       .from("bonus_settings")
       .select(
-        "id, effective_from, effective_to, daily_cap, max_amount_per_person, bonus_position_rates(position_id, amount, deleted_at)",
+        "id, effective_from, effective_to, daily_cap, max_amount_per_person, saturday_day_rate, sunday_day_rate, holiday_day_rate, bonus_position_rates(position_id, amount, deleted_at)",
       )
       .is("deleted_at", null)
       .order("effective_from", { ascending: false }),

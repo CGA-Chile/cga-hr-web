@@ -114,6 +114,24 @@ export function RateVersions({ versions, positionName }: { versions: readonly Ra
                 <td>{copy.maxAmountPerPerson}</td>
                 <td>{formatPesos(version.max_amount_per_person)}</td>
               </tr>
+              {version.saturday_day_rate !== null && (
+                <tr>
+                  <td>{copy.saturdayDayRate}</td>
+                  <td>{formatPesos(version.saturday_day_rate)}</td>
+                </tr>
+              )}
+              {version.sunday_day_rate !== null && (
+                <tr>
+                  <td>{copy.sundayDayRate}</td>
+                  <td>{formatPesos(version.sunday_day_rate)}</td>
+                </tr>
+              )}
+              {version.holiday_day_rate !== null && (
+                <tr>
+                  <td>{copy.holidayDayRate}</td>
+                  <td>{formatPesos(version.holiday_day_rate)}</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </section>

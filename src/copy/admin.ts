@@ -64,6 +64,11 @@ export const adminCopy = {
     effectiveFromHint: "La vigencia actual termina el día anterior.",
     dailyCap: "Tope diario",
     maxAmountPerPerson: "Máximo por persona en reparto igualitario",
+    dayRatesHint:
+      "Sábados, domingos y feriados todos los que trabajaron ganan el monto del día, sin importar el puesto. RRHH puede cambiarlo para una fecha.",
+    saturdayDayRate: "Monto del día, sábado",
+    sundayDayRate: "Monto del día, domingo",
+    holidayDayRate: "Monto del día, feriado",
     rateFor: (name: string) => `Tarifa ${name}`,
     noRateForTrigger: (names: string) => `${names} no lleva tarifa: su presencia cambia el día a reparto igualitario.`,
     invalidAmount: "Escribe un monto en pesos, sin puntos.",

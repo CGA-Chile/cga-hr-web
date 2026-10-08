@@ -1,6 +1,6 @@
 import type { DailyBonusAnomaly, DailyBonusResult, IsoDate } from "@/domain/bonus/types";
 
-/** A live bonus-eligible assignment. `settledAmount` is set once a close froze it. */
+/** A live assignment the calculation pays. `settledAmount` is set once a close froze it. */
 export type SettlementAssignment = {
   employeeId: string;
   positionId: string;
@@ -8,7 +8,7 @@ export type SettlementAssignment = {
 };
 
 /**
- * One date the close would touch: its live bonus-eligible assignments, settled or not, and the
+ * One date the close would touch: its live paid assignments, settled or not, and the
  * calculation over all of them at the date's real n, with the settings in force on that date.
  */
 export type SettlementDay = {

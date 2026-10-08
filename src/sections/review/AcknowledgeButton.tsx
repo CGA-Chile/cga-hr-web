@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { acknowledgeReviewItem } from "@/app/(app)/revision/actions";
+import { acknowledgeReviewItem, type ReviewKind } from "@/app/(app)/revision/actions";
 import { reviewCopy } from "@/copy/review";
 import styles from "./ReviewList.module.css";
 
-export function AcknowledgeButton({ historyId }: { historyId: string }) {
+export function AcknowledgeButton({ historyId, kind }: { historyId: string; kind: ReviewKind }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
@@ -15,7 +15,7 @@ export function AcknowledgeButton({ historyId }: { historyId: string }) {
         type="button"
         className={styles.button}
         disabled={pending}
-        onClick={() => startTransition(async () => setMessage((await acknowledgeReviewItem(historyId))?.message ?? null))}
+        onClick={() => startTransition(async () => setMessage((await acknowledgeReviewItem(historyId, kind))?.message ?? null))}
       >
         {reviewCopy.acknowledge}
       </button>

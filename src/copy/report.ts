@@ -21,7 +21,7 @@ export const reportCopy = {
     amount: "Monto",
     carryOverTag: "Arrastre",
   },
-  schemes: { POSITION_RATE: "Tarifa por puesto", EQUAL_SHARE: "Reparto igualitario" },
+  schemes: { POSITION_RATE: "Tarifa por puesto", EQUAL_SHARE: "Reparto igualitario", DAY_RATE: "Monto del día" },
   downloadXlsx: "Descargar Excel",
   downloadCsv: "Descargar CSV",
   fileName: (periodName: string) => `bono-carda-${periodName.toLowerCase().replaceAll(" ", "-")}`,

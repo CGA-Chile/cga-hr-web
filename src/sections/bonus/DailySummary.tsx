@@ -1,5 +1,5 @@
 import { summaryCopy } from "@/copy/summary";
-import type { DailyBonusResult } from "@/domain/bonus/types";
+import type { DailyBonusResult, DayRate } from "@/domain/bonus/types";
 import { formatPesos } from "@/utils/money";
 import { describeAnomaly } from "./anomalyText";
 import type { DailyBonus } from "./dailyBonuses";
@@ -27,12 +27,14 @@ export function DailySummary({ dailyBonus, positions, employeeName }: DailySumma
         {summaryCopy.title}
       </h2>
       {!dailyBonus || (dailyBonus.result && dailyBonus.result.perEmployee.length === 0) ? (
-        <p className={styles.reason}>{summaryCopy.noLine}</p>
+        <p className={styles.reason}>{dailyBonus?.dayRate ? summaryCopy.nobodyWorked : summaryCopy.noLine}</p>
       ) : !dailyBonus.result ? (
         <p className={styles.mark}>{summaryCopy.noSettings}</p>
       ) : (
         <>
-          <p className={styles.reason}>{schemeReason(dailyBonus.result, positions)}</p>
+          <p className={styles.reason}>
+            {dailyBonus.dayRate ? dayRateReason(dailyBonus.dayRate) : schemeReason(dailyBonus.result, positions)}
+          </p>
           <Marks result={dailyBonus.result} positionName={positionName} />
           <table className={styles.amounts}>
             <thead>
@@ -84,6 +86,11 @@ function Marks({ result, positionName }: { result: DailyBonusResult; positionNam
       })}
     </ul>
   );
+}
+
+function dayRateReason(dayRate: DayRate): string {
+  const reason = summaryCopy.dayRate(summaryCopy.dayRateReasons[dayRate.reason], formatPesos(dayRate.amount));
+  return dayRate.setForDate && dayRate.reason !== "WEEKDAY" ? `${reason} ${summaryCopy.dayRateSetForDate}` : reason;
 }
 
 /** Names the trigger, so the scheme is understood rather than just trusted. */

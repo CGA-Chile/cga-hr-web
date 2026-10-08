@@ -1,5 +1,5 @@
 import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
-import { calculateDates, loadBonusPositions, loadLiveAssignments, loadSettingsVersions } from "./dailyBonuses";
+import { calculateDates, loadBonusPositions, loadCalendar, loadLiveAssignments, loadSettingsVersions } from "./dailyBonuses";
 import type { DailyBonus } from "./dailyBonuses";
 
 export type AnomalousDate = Extract<DailyBonus, { settings: object }>;
@@ -18,15 +18,17 @@ export async function loadAnomalousDates(supabase: ServerSupabase): Promise<Anom
   if (dates.size === 0) return [];
 
   const sorted = [...dates].sort();
-  const [assignments, positions, versions] = await Promise.all([
+  const [assignments, positions, versions, calendar] = await Promise.all([
     loadLiveAssignments(supabase, sorted[0], sorted[sorted.length - 1]),
     loadBonusPositions(supabase),
     loadSettingsVersions(supabase),
+    loadCalendar(supabase, sorted[0], sorted[sorted.length - 1]),
   ]);
 
   return calculateDates(
     assignments.filter((assignment) => dates.has(assignment.date)),
     positions,
     versions,
+    calendar,
   ).filter((day): day is AnomalousDate => day.result !== null && day.result.anomalies.length > 0);
 }

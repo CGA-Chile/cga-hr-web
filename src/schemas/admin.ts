@@ -36,6 +36,9 @@ export const rateVersionSchema = z.object({
   effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, adminCopy.required),
   dailyCap: pesos,
   maxAmountPerPerson: pesos,
+  saturdayDayRate: pesos,
+  sundayDayRate: pesos,
+  holidayDayRate: pesos,
   rates: z.record(z.string(), pesos),
 });
 export type RateVersionInput = z.input<typeof rateVersionSchema>;

@@ -47,6 +47,16 @@ export function RateVersionForm({ positions, triggerNames, defaults, doneHref }:
       <FormField label={copy.maxAmountPerPerson} error={formState.errors.maxAmountPerPerson?.message}>
         <input type="number" inputMode="numeric" {...register("maxAmountPerPerson")} />
       </FormField>
+      <p className={styles.muted}>{copy.dayRatesHint}</p>
+      <FormField label={copy.saturdayDayRate} error={formState.errors.saturdayDayRate?.message}>
+        <input type="number" inputMode="numeric" {...register("saturdayDayRate")} />
+      </FormField>
+      <FormField label={copy.sundayDayRate} error={formState.errors.sundayDayRate?.message}>
+        <input type="number" inputMode="numeric" {...register("sundayDayRate")} />
+      </FormField>
+      <FormField label={copy.holidayDayRate} error={formState.errors.holidayDayRate?.message}>
+        <input type="number" inputMode="numeric" {...register("holidayDayRate")} />
+      </FormField>
       {serverError && (
         <p role="alert" className={styles.alert}>
           {serverError}

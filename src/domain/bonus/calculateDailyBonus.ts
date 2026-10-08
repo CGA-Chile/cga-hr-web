@@ -8,6 +8,7 @@ import type {
   DailyBonusResult,
   EmployeeBonus,
 } from "./types";
+import { findDuplicatedPositions } from "./duplicates";
 
 type ResolvedAssignment = BonusAssignment & { position: BonusPosition };
 
@@ -24,7 +25,7 @@ export function calculateDailyBonus(input: DailyBonusInput): DailyBonusResult {
   const resolved = resolvePositions(input);
   const eligible = resolved.filter((assignment) => assignment.position.bonusEligible);
   const onLine = eligible.filter((assignment) => !assignment.late);
-  if (input.dayRate !== null) return payDayRate(resolved, onLine, input.dayRate);
+  if (input.dayRate !== null) return payDayRate(input, resolved, input.dayRate);
 
   const scheme = deriveScheme(onLine);
   const equalShare = equalShareAmount(input.settings, onLine.length);
@@ -38,18 +39,14 @@ export function calculateDailyBonus(input: DailyBonusInput): DailyBonusResult {
     perEmployee,
     total,
     anomalies: [
-      ...findDuplicateOccupancy(onLine, scheme),
+      ...findDuplicateOccupancy(input, scheme),
       ...findAboveDailyCap(total, input.settings),
     ],
   };
 }
 
 /** The daily cap does not apply: the day rate is a fixed amount per person, not a shared pot. */
-function payDayRate(
-  resolved: readonly ResolvedAssignment[],
-  onLine: readonly ResolvedAssignment[],
-  dayRate: number,
-): DailyBonusResult {
+function payDayRate(input: DailyBonusInput, resolved: readonly ResolvedAssignment[], dayRate: number): DailyBonusResult {
   const perEmployee = resolved
     .filter((assignment) => !assignment.position.absence)
     .map((assignment) => toBonus(assignment, dayRate));
@@ -57,7 +54,7 @@ function payDayRate(
     scheme: "DAY_RATE",
     perEmployee,
     total: sumOf(perEmployee),
-    anomalies: findDuplicateOccupancy(onLine, "DAY_RATE"),
+    anomalies: findDuplicateOccupancy(input, "DAY_RATE"),
   };
 }
 
@@ -109,26 +106,13 @@ function equalShareAmount(settings: BonusSettings, eligibleCount: number): numbe
   return Math.min(settings.maxAmountPerPerson, flooredShare);
 }
 
-/** A scheme trigger legitimately holds several people, so only rate-bearing positions count. */
-function findDuplicateOccupancy(
-  eligible: readonly ResolvedAssignment[],
-  scheme: BonusScheme,
-): DailyBonusAnomaly[] {
-  const occupantsByPosition = new Map<string, number>();
-  for (const assignment of eligible) {
-    if (assignment.position.triggersEqualShare) continue;
-    const count = occupantsByPosition.get(assignment.positionId) ?? 0;
-    occupantsByPosition.set(assignment.positionId, count + 1);
-  }
-
-  return [...occupantsByPosition]
-    .filter(([, occupantCount]) => occupantCount > 1)
-    .map(([positionId, occupantCount]) => ({
-      kind: "DUPLICATE_OCCUPANCY",
-      positionId,
-      occupantCount,
-      affectsAmount: scheme === "POSITION_RATE",
-    }));
+/** Loud under POSITION_RATE, where the extra occupant is paid; quiet otherwise. */
+function findDuplicateOccupancy(input: DailyBonusInput, scheme: BonusScheme): DailyBonusAnomaly[] {
+  return findDuplicatedPositions(input.assignments, input.positions).map((duplicate) => ({
+    kind: "DUPLICATE_OCCUPANCY",
+    ...duplicate,
+    affectsAmount: scheme === "POSITION_RATE",
+  }));
 }
 
 function findAboveDailyCap(total: number, settings: BonusSettings): DailyBonusAnomaly[] {

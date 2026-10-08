@@ -3,7 +3,7 @@
  * Accounts are never created from the app: this runs with the service role key, which must
  * never reach a browser.
  *
- *   PIN=123456 node --env-file=.env.local scripts/create-user.ts <username> <admin|editor>
+ *   PIN=123456 node --env-file=.env.local scripts/create-user.ts <username> <admin|editor|supervisor>
  *
  * The role goes into app_metadata, which only the service role can write; a trigger copies it
  * into profiles, where every RLS policy reads it.
@@ -14,7 +14,7 @@ import { pinSchema, syntheticEmailFor, usernameSchema } from "../src/schemas/sig
 
 const argsSchema = z.object({
   username: usernameSchema,
-  role: z.enum(["admin", "editor"]),
+  role: z.enum(["admin", "editor", "supervisor"]),
   pin: pinSchema,
   url: z.url(),
   serviceRoleKey: z.string().min(1),

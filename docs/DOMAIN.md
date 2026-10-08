@@ -64,10 +64,16 @@ reales están en el documento interno y en el seed; acá se describen por rol.
 
 | Perfil | Rol | Qué hace |
 |---|---|---|
-| Supervisor de producción | `editor` | Registra la asignación diaria. Uso principal. |
-| Supervisor de respaldo | `editor` | Registra la asignación diaria cuando el titular no está. |
+| Encargado de la asignación | `editor` | Registra la asignación diaria. Uso principal. |
+| Supervisor de producción | `supervisor` | Ayuda a registrar la asignación y marca atrasos. **No ve montos.** |
 | RRHH | `editor` | Consulta, corrige y exporta el reporte del cierre. Ingresa la fecha de término del período abierto. |
 | Administrador | `admin` | Todo lo anterior + personas, puestos, tarifas y cierres. |
+
+El `supervisor` escribe asignaciones y atrasos igual que un editor, y ve la planilla, la vista del
+día y los días con avisos, pero sin una sola cifra: ni totales, ni bono por persona, ni tarifas.
+De los avisos ve los puestos repetidos, que es lo que puede corregir. No entra a cierres, reporte,
+revisión ni administración, no cambia la fecha de cierre y no marca feriados. La base de datos le
+niega las tarifas, la configuración y las validaciones de exceso; ver `docs/adr/0013`.
 
 **Restricción de diseño:** varios usuarios tienen alfabetización digital limitada. Interfaz
 simple y tolerante al error, aunque la lógica interna sea compleja. Pocos elementos por

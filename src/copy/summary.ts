@@ -22,6 +22,8 @@ export const summaryCopy = {
   aboveCap: (total: string, cap: string) => `Total del día: ${total} — sobre el tope de ${cap}.`,
   duplicateAffectsAmount: (positionName: string, count: number) =>
     `${positionName} tiene ${people(count)} — afecta el monto del día.`,
+  duplicate: (positionName: string, count: number) => `${positionName} tiene ${people(count)}: debería tener una.`,
+  noDuplicates: "No hay puestos repetidos este día.",
   duplicateHarmlessToday: (positionName: string, count: number) =>
     `${positionName} tiene ${people(count)} — hoy no afecta el monto.`,
   or: " ni ",

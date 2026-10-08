@@ -20,13 +20,15 @@ type SheetGridProps = {
   today: IsoDate;
   /** Holidays HR marked: shaded like Sundays, the other dates paid under the day rate. */
   holidays: ReadonlySet<IsoDate>;
+  /** False for a role that never sees amounts: no totals row, no period column. */
+  showAmounts: boolean;
 };
 
 /**
  * One row per person, one column per date, like the sheet it replaces. Every cell and every
  * date is a link that opens the side panel; the grid itself never edits.
  */
-export function SheetGrid({ sheet, positionsById, params, weekStart, today, holidays }: SheetGridProps) {
+export function SheetGrid({ sheet, positionsById, params, weekStart, today, holidays, showAmounts }: SheetGridProps) {
   const weekEnd = addDays(weekStart, 6);
   const outOfWeek = (date: IsoDate) => date < weekStart || date > weekEnd || undefined;
   const selected = (date: IsoDate) => params.date === date || undefined;
@@ -58,7 +60,9 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
                     scroll={false}
                     aria-label={sheetCopy.daySummaryFor(formatLongDate(day.date))}
                   >
-                    <span className={styles.month}>{index === 0 || dayOfMonth === 1 ? sheetCopy.monthAbbreviations[month] : ""}</span>
+                    <span className={styles.month}>
+                      {index === 0 || dayOfMonth === 1 ? sheetCopy.monthAbbreviations[month] : ""}
+                    </span>
                     <span className={styles.weekday}>{sheetCopy.weekdayInitials[weekday]}</span>
                     <span className={styles.dayNumber}>{dayOfMonth}</span>
                     {day.flagged && <FlagIcon />}
@@ -66,9 +70,11 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
                 </th>
               );
             })}
-            <th scope="col" className={styles.totalHeader}>
-              {sheetCopy.periodTotal}
-            </th>
+            {showAmounts && (
+              <th scope="col" className={styles.totalHeader}>
+                {sheetCopy.periodTotal}
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -106,39 +112,45 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
                           : (position?.name ?? sheetCopy.noPosition),
                       )}
                     >
-                      <SheetCellLabel date={cell.date} employeeId={row.employee.id} stored={position?.abbreviation ?? ""} />
+                      <SheetCellLabel
+                        date={cell.date}
+                        employeeId={row.employee.id}
+                        stored={position?.abbreviation ?? ""}
+                      />
                     </Link>
                   </td>
                 );
               })}
-              <td className={styles.total}>{formatPesos(row.total)}</td>
+              {showAmounts && <td className={styles.total}>{formatPesos(row.total)}</td>}
             </tr>
           ))}
         </tbody>
-        <tfoot>
-          <tr>
-            <th scope="row" className={styles.name}>
-              {sheetCopy.dayTotal}
-            </th>
-            {sheet.days.map((day) => (
-              <td
-                key={day.date}
-                className={styles.dayTotal}
-                data-flagged={day.flagged || undefined}
-                data-out={outOfWeek(day.date)}
-              >
-                <Link
-                  href={sheetPath({ ...params, date: day.date, employeeId: null, endPanel: false })}
-                  scroll={false}
-                  aria-label={sheetCopy.daySummaryFor(formatLongDate(day.date))}
+        {showAmounts && (
+          <tfoot>
+            <tr>
+              <th scope="row" className={styles.name}>
+                {sheetCopy.dayTotal}
+              </th>
+              {sheet.days.map((day) => (
+                <td
+                  key={day.date}
+                  className={styles.dayTotal}
+                  data-flagged={day.flagged || undefined}
+                  data-out={outOfWeek(day.date)}
                 >
-                  {day.total === null ? "" : formatThousands(day.total)}
-                </Link>
-              </td>
-            ))}
-            <td className={styles.total}>{formatPesos(sheet.grandTotal)}</td>
-          </tr>
-        </tfoot>
+                  <Link
+                    href={sheetPath({ ...params, date: day.date, employeeId: null, endPanel: false })}
+                    scroll={false}
+                    aria-label={sheetCopy.daySummaryFor(formatLongDate(day.date))}
+                  >
+                    {day.total === null ? "" : formatThousands(day.total)}
+                  </Link>
+                </td>
+              ))}
+              <td className={styles.total}>{formatPesos(sheet.grandTotal)}</td>
+            </tr>
+          </tfoot>
+        )}
       </table>
     </div>
   );

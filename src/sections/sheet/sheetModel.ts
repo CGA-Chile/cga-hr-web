@@ -1,4 +1,5 @@
-import type { IsoDate } from "@/domain/bonus/types";
+import { findDuplicatedPositions } from "@/domain/bonus/duplicates";
+import type { BonusPosition, IsoDate } from "@/domain/bonus/types";
 import type { DailyBonus } from "../bonus/dailyBonuses";
 import type { Assignment, Employee, Position } from "../day/queries";
 import { fullName } from "../day/queries";
@@ -29,7 +30,9 @@ type SheetInput = {
   dates: readonly IsoDate[];
   employees: readonly Employee[];
   assignments: readonly Assignment[];
+  /** Empty for a role that never sees amounts: the totals stay empty, the duplicates still show. */
   dailyBonuses: readonly DailyBonus[];
+  positions: readonly BonusPosition[];
 };
 
 export function toneOf(position: Pick<Position, "type" | "bonus_eligible" | "triggers_equal_share">): CellTone {
@@ -43,9 +46,10 @@ export function toneOf(position: Pick<Position, "type" | "bonus_eligible" | "tri
  * per date underneath and each person's bonus for the range at the end. Everyone active is
  * listed, plus anyone inactive who still has a day in the range.
  */
-export function buildSheet({ dates, employees, assignments, dailyBonuses }: SheetInput): Sheet {
+export function buildSheet({ dates, employees, assignments, dailyBonuses, positions }: SheetInput): Sheet {
   const assignmentByCell = new Map(assignments.map((assignment) => [cellKey(assignment.date, assignment.employee_id), assignment]));
   const bonusByDate = new Map(dailyBonuses.map((bonus) => [bonus.date, bonus]));
+  const duplicatedByDate = duplicatedPositionsByDate(assignments, positions);
   const withAssignments = new Set(assignments.map((assignment) => assignment.employee_id));
 
   const rows = employees
@@ -55,7 +59,8 @@ export function buildSheet({ dates, employees, assignments, dailyBonuses }: Shee
       employee,
       cells: dates.map((date) => {
         const assignment = assignmentByCell.get(cellKey(date, employee.id)) ?? null;
-        return { date, assignment, duplicated: isDuplicated(bonusByDate.get(date), assignment) };
+        const duplicated = assignment !== null && !assignment.late && Boolean(duplicatedByDate.get(date)?.has(assignment.position_id));
+        return { date, assignment, duplicated };
       }),
       total: employeeTotal(dailyBonuses, employee.id),
     }));
@@ -65,7 +70,9 @@ export function buildSheet({ dates, employees, assignments, dailyBonuses }: Shee
     return {
       date,
       total: bonus?.result && bonus.result.perEmployee.length > 0 ? bonus.result.total : null,
-      flagged: bonus !== undefined && (!bonus.result || bonus.result.anomalies.length > 0),
+      flagged:
+        (bonus !== undefined && (!bonus.result || bonus.result.anomalies.length > 0)) ||
+        (duplicatedByDate.get(date)?.size ?? 0) > 0,
     };
   });
 
@@ -76,10 +83,26 @@ function cellKey(date: IsoDate, employeeId: string): string {
   return `${date}|${employeeId}`;
 }
 
-function isDuplicated(bonus: DailyBonus | undefined, assignment: Assignment | null): boolean {
-  if (!assignment || !bonus?.result) return false;
-  return bonus.result.anomalies.some(
-    (anomaly) => anomaly.kind === "DUPLICATE_OCCUPANCY" && anomaly.positionId === assignment.position_id,
+/** Same rule as the calculation's duplicate mark, computed without settings so every role sees it. */
+function duplicatedPositionsByDate(
+  assignments: readonly Assignment[],
+  positions: readonly BonusPosition[],
+): Map<IsoDate, Set<string>> {
+  const byDate = Map.groupBy(assignments, (assignment) => assignment.date);
+  return new Map(
+    [...byDate].map(([date, dateAssignments]) => [
+      date,
+      new Set(
+        findDuplicatedPositions(
+          dateAssignments.map((assignment) => ({
+            employeeId: assignment.employee_id,
+            positionId: assignment.position_id,
+            late: assignment.late,
+          })),
+          positions,
+        ).map((duplicate) => duplicate.positionId),
+      ),
+    ]),
   );
 }
 

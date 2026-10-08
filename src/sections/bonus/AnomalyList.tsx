@@ -2,20 +2,19 @@ import Link from "next/link";
 import { anomaliesCopy } from "@/copy/anomalies";
 import { dayPath } from "@/sections/day/paths";
 import { formatLongDate } from "@/utils/chileDate";
-import { describeAnomaly } from "./anomalyText";
-import type { AnomalousDate } from "./anomalousDates";
+import type { AnomalyText } from "./anomalyText";
 import styles from "./AnomalyList.module.css";
 
-type AnomalyListProps = {
-  days: readonly AnomalousDate[];
-  positionName: (id: string) => string;
-};
+/** One date and its reasons, already in words: with amounts for HR, duplicates only otherwise. */
+export type DescribedDate = { date: string; reasons: readonly AnomalyText[] };
+
+type AnomalyListProps = { days: readonly DescribedDate[] };
 
 /**
  * Dates carrying an anomaly, newest first, each with its reasons and a way there. There is no
  * acknowledge action: an anomaly is gone when it is corrected, and only then.
  */
-export function AnomalyList({ days, positionName }: AnomalyListProps) {
+export function AnomalyList({ days }: AnomalyListProps) {
   return (
     <main className="page">
       <h1 className={styles.title}>{anomaliesCopy.title}</h1>
@@ -33,14 +32,11 @@ export function AnomalyList({ days, positionName }: AnomalyListProps) {
                   <Link href={dayPath(day.date)}>{anomaliesCopy.goToDay}</Link>
                 </div>
                 <ul className={styles.reasons}>
-                  {day.result.anomalies.map((anomaly) => {
-                    const { text, quiet } = describeAnomaly(anomaly, positionName);
-                    return (
-                      <li key={text} className={quiet ? styles.quiet : styles.loud}>
-                        {text}
-                      </li>
-                    );
-                  })}
+                  {day.reasons.map(({ text, quiet }) => (
+                    <li key={text} className={quiet ? styles.quiet : styles.loud}>
+                      {text}
+                    </li>
+                  ))}
                 </ul>
               </li>
             ))}

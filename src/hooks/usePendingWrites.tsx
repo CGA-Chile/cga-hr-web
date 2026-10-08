@@ -58,6 +58,7 @@ export function PendingWritesProvider({ children }: { children: ReactNode }) {
         p_employee_id: operation.employeeId,
         p_position_id: operation.positionId ?? undefined,
         p_note: operation.note ?? undefined,
+        p_late: operation.late,
       });
       const refusal = error ? REFUSALS[error.code] : undefined;
       if (error && !refusal) break;

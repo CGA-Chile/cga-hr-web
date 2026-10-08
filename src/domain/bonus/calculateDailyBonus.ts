@@ -23,10 +23,14 @@ type ResolvedAssignment = BonusAssignment & { position: BonusPosition };
 export function calculateDailyBonus(input: DailyBonusInput): DailyBonusResult {
   const resolved = resolvePositions(input);
   const eligible = resolved.filter((assignment) => assignment.position.bonusEligible);
-  if (input.dayRate !== null) return payDayRate(resolved, eligible, input.dayRate);
+  const onLine = eligible.filter((assignment) => !assignment.late);
+  if (input.dayRate !== null) return payDayRate(resolved, onLine, input.dayRate);
 
-  const scheme = deriveScheme(eligible);
-  const perEmployee = computeAmounts(eligible, scheme, input.settings);
+  const scheme = deriveScheme(onLine);
+  const equalShare = equalShareAmount(input.settings, onLine.length);
+  const perEmployee = eligible.map((assignment) =>
+    toBonus(assignment, scheme === "EQUAL_SHARE" ? equalShare : positionRate(assignment, input.settings)),
+  );
   const total = sumOf(perEmployee);
 
   return {
@@ -34,7 +38,7 @@ export function calculateDailyBonus(input: DailyBonusInput): DailyBonusResult {
     perEmployee,
     total,
     anomalies: [
-      ...findDuplicateOccupancy(eligible, scheme),
+      ...findDuplicateOccupancy(onLine, scheme),
       ...findAboveDailyCap(total, input.settings),
     ],
   };
@@ -43,17 +47,27 @@ export function calculateDailyBonus(input: DailyBonusInput): DailyBonusResult {
 /** The daily cap does not apply: the day rate is a fixed amount per person, not a shared pot. */
 function payDayRate(
   resolved: readonly ResolvedAssignment[],
-  eligible: readonly ResolvedAssignment[],
+  onLine: readonly ResolvedAssignment[],
   dayRate: number,
 ): DailyBonusResult {
   const perEmployee = resolved
     .filter((assignment) => !assignment.position.absence)
-    .map((assignment) => ({ employeeId: assignment.employeeId, positionId: assignment.positionId, amount: dayRate }));
+    .map((assignment) => toBonus(assignment, dayRate));
   return {
     scheme: "DAY_RATE",
     perEmployee,
     total: sumOf(perEmployee),
-    anomalies: findDuplicateOccupancy(eligible, "DAY_RATE"),
+    anomalies: findDuplicateOccupancy(onLine, "DAY_RATE"),
+  };
+}
+
+/** A late arrival is listed at zero whatever the scheme would pay. */
+function toBonus(assignment: ResolvedAssignment, amount: number): EmployeeBonus {
+  return {
+    employeeId: assignment.employeeId,
+    positionId: assignment.positionId,
+    amount: assignment.late ? 0 : amount,
+    late: assignment.late,
   };
 }
 
@@ -78,21 +92,9 @@ function deriveScheme(eligible: readonly ResolvedAssignment[]): BonusScheme {
     : "POSITION_RATE";
 }
 
-function computeAmounts(
-  eligible: readonly ResolvedAssignment[],
-  scheme: BonusScheme,
-  settings: BonusSettings,
-): EmployeeBonus[] {
-  const equalShare = equalShareAmount(settings, eligible.length);
-  return eligible.map((assignment) => ({
-    employeeId: assignment.employeeId,
-    positionId: assignment.positionId,
-    amount: scheme === "EQUAL_SHARE" ? equalShare : positionRate(assignment, settings),
-  }));
-}
-
 /** A missing rate is a configuration gap; paying zero would hide it inside a plausible total. */
 function positionRate(assignment: ResolvedAssignment, settings: BonusSettings): number {
+  if (assignment.late) return 0;
   const rate = settings.positionRates.get(assignment.positionId);
   if (rate === undefined) {
     throw new Error(`No rate in force for rate-bearing position ${assignment.positionId}`);

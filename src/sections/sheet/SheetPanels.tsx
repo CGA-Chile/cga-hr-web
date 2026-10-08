@@ -14,6 +14,7 @@ import type { PositionGroup } from "../day/positionGroups";
 import { fullName, type Assignment, type CellMovement, type Employee, type Position } from "../day/queries";
 import { CalendarDateForm } from "./CalendarDateForm";
 import { CopyPreviousDay } from "./CopyPreviousDay";
+import { LateToggle } from "./LateToggle";
 import { sheetPath, type SheetParams } from "./paths";
 import { PeriodEndForm } from "./PeriodEndForm";
 import { PositionPicker } from "./PositionPicker";
@@ -106,19 +107,31 @@ export function CellPanel(props: CellPanelProps) {
         </div>
         <div>
           <dt>{sheetCopy.dayBonus}</dt>
-          <dd>{amount ? formatPesos(amount) : sheetCopy.noBonus}</dd>
+          <dd>{assignment?.late ? sheetCopy.lateBonus : amount ? formatPesos(amount) : sheetCopy.noBonus}</dd>
         </div>
       </dl>
 
       {editing ? (
-        <PositionPicker
-          key={date}
-          date={date}
-          employeeId={employee.id}
-          positionId={assignment?.position_id ?? null}
-          note={assignment?.note ?? null}
-          groups={positionGroups}
-        />
+        <>
+          <PositionPicker
+            key={date}
+            date={date}
+            employeeId={employee.id}
+            positionId={assignment?.position_id ?? null}
+            note={assignment?.note ?? null}
+            groups={positionGroups}
+          />
+          {assignment && positionsById.get(assignment.position_id)?.type === "WORK" && (
+            <LateToggle
+              key={`late-${date}`}
+              date={date}
+              employeeId={employee.id}
+              positionId={assignment.position_id}
+              note={assignment.note}
+              late={assignment.late}
+            />
+          )}
+        </>
       ) : (
         <p className={styles.muted}>{sheetCopy.readOnlyCell}</p>
       )}

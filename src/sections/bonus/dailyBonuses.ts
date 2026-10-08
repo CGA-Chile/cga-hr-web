@@ -69,7 +69,7 @@ export async function loadLiveAssignments(supabase: ServerSupabase, from: IsoDat
   const rows = orThrow(
     await supabase
       .from("assignments")
-      .select("id, date, employee_id, position_id, settled_amount")
+      .select("id, date, employee_id, position_id, settled_amount, late")
       .gte("date", from)
       .lte("date", to)
       .is("deleted_at", null),
@@ -80,6 +80,7 @@ export async function loadLiveAssignments(supabase: ServerSupabase, from: IsoDat
     employeeId: row.employee_id,
     positionId: row.position_id,
     settledAmount: row.settled_amount,
+    late: row.late,
   }));
 }
 

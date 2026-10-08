@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { usePendingWrites, type Outcome } from "./usePendingWrites";
 
-export type CellState = { positionId: string | null; note: string | null };
+/** A cell's new state. `late` left out keeps the stored mark: only the late toggle sends it. */
+export type CellState = { positionId: string | null; note: string | null; late?: boolean };
 export type WriteStatus = "IDLE" | "SAVING" | "QUEUED" | Outcome;
 
 /**

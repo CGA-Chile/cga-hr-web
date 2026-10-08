@@ -138,6 +138,13 @@
   font-weight: 700;
 }
 
+/* A late arrival keeps the position's colour, crossed out: they were there, without the bonus. */
+.grid .cell[data-late] a {
+  color: var(--color-warning);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
 .grid .dayHeader[data-selected],
 .grid tr[data-selected] .name {
   background: var(--color-accent-surface);

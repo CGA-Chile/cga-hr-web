@@ -100,7 +100,7 @@ export async function loadCloseReport(supabase: ServerSupabase, period: Period):
       total: 0,
       lines: [],
     };
-    entry.bonusDays += 1;
+    if (amount > 0) entry.bonusDays += 1;
     entry.total += amount;
     if (carryOver) entry.carryOverAmount += amount;
     else entry.periodAmount += amount;

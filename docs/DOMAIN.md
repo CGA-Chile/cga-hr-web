@@ -50,7 +50,8 @@ es lo que se está pidiendo.
 
 - Cualquier otro bono: producción, cumplimiento, camión, limpieza, turno noche. El monto del día
   de sábados, domingos y feriados sí está dentro (sección 5).
-- Horas extras, atrasos, salidas anticipadas.
+- Horas extras y salidas anticipadas. El atraso sí está dentro, solo como marca que quita el bono
+  del día (sección 5).
 - Integración con software de remuneraciones, ERP o cualquier sistema externo.
 - Migración de datos históricos. **La app parte de cero.** Si se necesita un día anterior, se
   ingresa a mano por la app.
@@ -239,6 +240,9 @@ la configuración de producción.
 | 16 | Monto del día con una ausencia | la ausencia no cobra |
 | 17 | Monto del día con PACKING_ACM | gana el monto del día, no reparto igualitario |
 | 18 | Monto del día sobre el tope | sin marca de tope |
+| 19 | Atrasado en RIETER bajo POSITION_RATE | 0, la tarifa no se reparte |
+| 20 | Atrasado bajo EQUAL_SHARE | 0, no cuenta para n |
+| 21 | Atrasado en RIETER + otro en RIETER | el otro cobra, sin marca de duplicado |
 
 Los casos 13 y 14 son la contraparte de la regla anterior y no pueden faltar: el 13 prueba que
 `POSITION_RATE` no recorta, el 14 que la duplicación es inocua **para el monto** bajo
@@ -246,16 +250,18 @@ Los casos 13 y 14 son la contraparte de la regla anterior y no pueden faltar: el
 lleva la marca callada de puesto duplicado. Son dos marcas distintas y el caso solo afirma la
 ausencia de una.
 
-Los dieciocho cubren el módulo de cálculo y nada más. La compuerta de cierre, el arrastre y la
+Los veintiuno cubren el módulo de cálculo y nada más. La compuerta de cierre, el arrastre y la
 validación del exceso son reglas de liquidación, no de cálculo: viven fuera de
 `src/domain/bonus/` y se prueban aparte.
 
 ### Reglas transversales
 
 - El bono es **por día completo**. No hay medios bonos ni prorrateo por horas.
-- Estar asignado a un puesto equivale a haber trabajado el día completo. Si alguien llegó tarde
-  o se fue antes y no corresponde pagarle, el supervisor no lo asigna a ese puesto. La app no
-  lleva control de asistencia.
+- Estar asignado a un puesto equivale a haber trabajado el día completo, salvo que la asignación
+  tenga la marca de **atraso**. El atrasado sigue en su puesto en la planilla, pero para el bono
+  no está: no cobra en ningún esquema, no cuenta para `n` y no cuenta como ocupante al buscar
+  duplicados, así que quien lo cubrió cobra sin marca. Se liquida en 0. La app no lleva control
+  de asistencia más allá de esa marca.
 - Aplica todos los días trabajados. Sábados, domingos y feriados se pagan con el monto del día.
 - Nadie cobra dos bonos el mismo día. Está garantizado por el índice único de la sección 6.
 - Una persona con `active = false` que tiene asignaciones dentro del rango consultado **sí
@@ -466,6 +472,7 @@ depende de que alguien se acuerde de registrarlo.
 ```
 assignment_id, date, employee_id
 previous_position_id, new_position_id
+previous_late, new_late                 -- null en filas anteriores al atraso
 changed_by, changed_at
 acknowledged_at, acknowledged_by        -- ver "La lista de revisión", sección 7
 ```
@@ -475,8 +482,10 @@ El trigger registra **los tres movimientos**, no solo los cambios de puesto:
 - Inserción: `previous_position_id` nulo.
 - Cambio de puesto: ambos presentes.
 - Borrado lógico (`deleted_at` pasa de nulo a no nulo): `new_position_id` nulo.
+- Marca de atraso puesta o quitada: el mismo puesto en ambos lados y el atraso distinto.
 
-Una escritura que no cambia el puesto no deja fila: es el no-op silencioso de la sección 10.
+Una escritura que no cambia ni el puesto ni el atraso no deja fila: es el no-op silencioso de la
+sección 10.
 
 "Append-only" tiene una sola excepción, y es acotada: `acknowledged_at` y `acknowledged_by` se
 pueden escribir una vez, y nada más de la fila se puede tocar.
@@ -631,7 +640,8 @@ sea reconocible.
   **abreviatura** del puesto (`positions.abbreviation`). Abajo va el bono de la línea por día, y a
   la derecha el bono de cada persona en el período.
 - **Colores.** Línea de cardas, Packing ACM, otros puestos y ausencias se distinguen por color. Un
-  puesto repetido se pinta fuerte, y el día con aviso lleva una marca en el encabezado.
+  puesto repetido se pinta fuerte, y el día con aviso lleva una marca en el encabezado. Un atraso
+  se ve tachado; en modo edición se marca o se quita desde el panel de la celda.
 - **Panel lateral.** Tocar un día abre su resumen, el mismo de la sección 8.2. Tocar una celda abre
   el puesto, el bono de ese día, la nota y el historial. En modo edición, los puestos se eligen ahí
   con botones agrupados, nunca escribiendo en la celda.

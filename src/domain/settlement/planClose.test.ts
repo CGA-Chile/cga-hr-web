@@ -38,6 +38,7 @@ function day(date: string, seats: Seat[], settings: BonusSettings = SETTINGS, da
   const assignments = seats.map((seat, index) => ({
     employeeId: `${date}-employee-${index + 1}`,
     positionId: seat.position.id,
+    late: false,
     settledAmount: seat.settledAmount ?? null,
   }));
   return {

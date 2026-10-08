@@ -6,10 +6,10 @@ import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
 type Tables = Database["public"]["Tables"];
 export type Employee = Pick<Tables["employees"]["Row"], "id" | "first_name" | "last_name" | "national_id" | "active">;
 export type Position = Pick<Tables["positions"]["Row"], "id" | "code" | "name" | "abbreviation" | "bonus_eligible" | "triggers_equal_share" | "type" | "display_order">;
-export type Assignment = Pick<Tables["assignments"]["Row"], "id" | "date" | "employee_id" | "position_id" | "note" | "settled_in_period_id">;
+export type Assignment = Pick<Tables["assignments"]["Row"], "id" | "date" | "employee_id" | "position_id" | "note" | "settled_in_period_id" | "late">;
 
 const EMPLOYEE_COLUMNS = "id, first_name, last_name, national_id, active";
-const ASSIGNMENT_COLUMNS = "id, date, employee_id, position_id, note, settled_in_period_id";
+const ASSIGNMENT_COLUMNS = "id, date, employee_id, position_id, note, settled_in_period_id, late";
 
 export type DayRow = { employee: Employee; assignment: Assignment | null };
 
@@ -101,7 +101,7 @@ function compareByName(a: Employee, b: Employee): number {
 
 export type CellMovement = Pick<
   Tables["assignment_history"]["Row"],
-  "id" | "previous_position_id" | "new_position_id" | "changed_at"
+  "id" | "previous_position_id" | "new_position_id" | "previous_late" | "new_late" | "changed_at"
 > & { changedBy: string | null };
 
 /** Employees whose cell on this date moved more than once: created, then changed or cleared. */
@@ -125,7 +125,7 @@ export async function loadCellHistory(
   const [movements, profiles] = await Promise.all([
     supabase
       .from("assignment_history")
-      .select("id, previous_position_id, new_position_id, changed_at, changed_by")
+      .select("id, previous_position_id, new_position_id, previous_late, new_late, changed_at, changed_by")
       .eq("date", date)
       .eq("employee_id", employeeId)
       .is("deleted_at", null)

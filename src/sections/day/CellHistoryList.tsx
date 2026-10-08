@@ -1,5 +1,6 @@
 import { dayCopy } from "@/copy/day";
 import { formatDateTimeInChile } from "@/utils/chileDate";
+import { describeMovement } from "./movementText";
 import type { CellMovement, Position } from "./queries";
 import styles from "./CellDrawer.module.css";
 
@@ -20,9 +21,7 @@ export function CellHistoryList({ history, positionsById }: CellHistoryListProps
           <span className={styles.meta}>
             {formatDateTimeInChile(movement.changed_at)} · {movement.changedBy ?? dayCopy.unknownUser}
           </span>
-          <span>
-            {positionName(movement.previous_position_id)} → {positionName(movement.new_position_id)}
-          </span>
+          <span>{describeMovement(movement, positionName)}</span>
         </li>
       ))}
     </ol>

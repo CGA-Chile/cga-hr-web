@@ -45,7 +45,7 @@ const SETTINGS: BonusSettings = {
 let nextEmployee = 0;
 function assign(position: BonusPosition): BonusAssignment {
   nextEmployee += 1;
-  return { employeeId: `employee-${nextEmployee}`, positionId: position.id };
+  return { employeeId: `employee-${nextEmployee}`, positionId: position.id, late: false };
 }
 
 function calculate(assignments: BonusAssignment[], settings: BonusSettings = SETTINGS) {
@@ -297,5 +297,64 @@ describe("DAY_RATE: on a Saturday, Sunday or holiday everyone who worked earns t
     expect(result.anomalies).toEqual([
       { kind: "DUPLICATE_OCCUPANCY", positionId: RIETER.id, occupantCount: 2, affectsAmount: false },
     ]);
+  });
+});
+
+describe("a late arrival is on the sheet but not on the line", () => {
+  const late = (position: BonusPosition): BonusAssignment => ({ ...assign(position), late: true });
+
+  it("under POSITION_RATE earns nothing, and the position's rate is not passed to anyone", () => {
+    const result = calculate([late(RIETER), assign(ACM)]);
+
+    expect(amounts(result)).toEqual([0, 4_000]);
+    expect(result.total).toBe(4_000);
+  });
+
+  it("under EQUAL_SHARE earns nothing and does not count toward n", () => {
+    const result = calculate([
+      late(RIETER),
+      assign(ACM),
+      assign(ENCAJADOR_ACM),
+      assign(ALIMENTADOR_RIETER),
+      assign(PACKING_ACM),
+      assign(PACKING_ACM),
+      assign(PACKING_ACM),
+    ]);
+
+    expect(amounts(result)).toEqual([0, 2_500, 2_500, 2_500, 2_500, 2_500, 2_500]);
+    expect(result.total).toBe(15_000);
+  });
+
+  it("is still listed, marked late, so the close settles them at zero", () => {
+    const person = late(RIETER);
+
+    expect(calculate([person]).perEmployee).toEqual([
+      { employeeId: person.employeeId, positionId: RIETER.id, amount: 0, late: true },
+    ]);
+  });
+
+  it("does not count as an occupant: whoever covered the position is paid without a duplicate mark", () => {
+    const result = calculate([late(RIETER), assign(RIETER)]);
+
+    expect(amounts(result)).toEqual([0, 4_000]);
+    expect(result.anomalies).toEqual([]);
+  });
+
+  it("on a day-rate date earns nothing either", () => {
+    const result = calculateDailyBonus({
+      assignments: [late(BODEGA), assign(BODEGA)],
+      positions: POSITIONS,
+      settings: SETTINGS,
+      dayRate: 10_000,
+    });
+
+    expect(amounts(result)).toEqual([0, 10_000]);
+  });
+
+  it("alone on the line does not make a scheme trigger count", () => {
+    const result = calculate([assign(RIETER), late(PACKING_ACM)]);
+
+    expect(result.scheme).toBe("POSITION_RATE");
+    expect(amounts(result)).toEqual([4_000, 0]);
   });
 });

@@ -99,6 +99,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               effectiveFrom: addDays(todayInChile(), 1),
               dailyCap: String(current?.daily_cap ?? ""),
               maxAmountPerPerson: String(current?.max_amount_per_person ?? ""),
+              saturdayDayRate: String(current?.saturday_day_rate ?? ""),
+              sundayDayRate: String(current?.sunday_day_rate ?? ""),
+              holidayDayRate: String(current?.holiday_day_rate ?? ""),
               rates: Object.fromEntries(
                 rateBearing.map((p) => [p.id, String(current?.rates.find((r) => r.position_id === p.id)?.amount ?? "")]),
               ),

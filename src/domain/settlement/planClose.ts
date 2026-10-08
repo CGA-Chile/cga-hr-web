@@ -11,7 +11,7 @@ import type {
 } from "./types";
 
 /**
- * Plans the close of a period. Closing settles every unsettled bonus-eligible assignment dated on
+ * Plans the close of a period. Closing settles every unsettled paid assignment dated on
  * or before the period end, including dates before its start: that is carry-over, and it is how a
  * date the company forgot to record still gets paid. Frozen amounts are never recomputed.
  *
@@ -28,7 +28,7 @@ export function planClose(candidate: CloseCandidate): ClosePlan {
   const toSettle = days.flatMap((day) => entriesToSettle(day, kindOf(day, candidate)));
   const blockingDates = days.filter(isBlocking).map(toBlockingDate);
   const excessesRequiringValidation = days
-    .filter((day) => !isBlocking(day) && hasFrozenAmounts(day) && settledTotal(day) > day.dailyCap)
+    .filter((day) => !isBlocking(day) && isCapped(day) && hasFrozenAmounts(day) && settledTotal(day) > day.dailyCap)
     .map((day) => toExcess(day, candidate.validatedExcesses));
 
   return {
@@ -115,4 +115,9 @@ function totalOf(entries: readonly SettlementEntry[], kind: SettlementKind): num
   return entries
     .filter((entry) => entry.kind === kind)
     .reduce((sum, entry) => sum + entry.amount, 0);
+}
+
+/** A day-rate date pays a fixed amount per person; the daily cap is not its ceiling. */
+function isCapped(day: SettlementDay): boolean {
+  return day.calculation.scheme !== "DAY_RATE";
 }

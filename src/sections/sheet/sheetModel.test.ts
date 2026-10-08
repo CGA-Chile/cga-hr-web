@@ -10,6 +10,7 @@ const SETTINGS: BonusSettingsVersion = {
   dailyCap: 1_000,
   maxAmountPerPerson: 300,
   positionRates: new Map(),
+  dayRates: null,
 };
 
 function employee(id: string, firstName: string, active = true): Employee {
@@ -21,7 +22,7 @@ function assignment(date: string, employeeId: string, positionId: string): Assig
 }
 
 function bonus(date: string, result: DailyBonusResult): DailyBonus {
-  return { date, settings: SETTINGS, result };
+  return { date, settings: SETTINGS, dayRate: null, result };
 }
 
 const ana = employee("ana", "Ana");
@@ -83,7 +84,7 @@ describe("buildSheet", () => {
       dates: ["2026-09-01"],
       employees: [ana],
       assignments: [assignment("2026-09-01", "ana", "RIE")],
-      dailyBonuses: [{ date: "2026-09-01", settings: null, result: null }],
+      dailyBonuses: [{ date: "2026-09-01", settings: null, dayRate: null, result: null }],
     });
     expect(noRates.days).toEqual([{ date: "2026-09-01", total: null, flagged: true }]);
   });

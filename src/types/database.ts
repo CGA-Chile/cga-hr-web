@@ -206,20 +206,6 @@ export type Database = {
             referencedRelation: "periods"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "assignments_settled_in_period_id_fkey"
-            columns: ["settled_in_period_id"]
-            isOneToOne: false
-            referencedRelation: "review_history"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "assignments_settled_in_period_id_fkey"
-            columns: ["settled_in_period_id"]
-            isOneToOne: false
-            referencedRelation: "review_items"
-            referencedColumns: ["period_id"]
-          },
         ]
       }
       bonus_position_rates: {
@@ -274,8 +260,11 @@ export type Database = {
           deleted_at: string | null
           effective_from: string
           effective_to: string | null
+          holiday_day_rate: number | null
           id: string
           max_amount_per_person: number
+          saturday_day_rate: number | null
+          sunday_day_rate: number | null
           updated_at: string
         }
         Insert: {
@@ -284,8 +273,11 @@ export type Database = {
           deleted_at?: string | null
           effective_from: string
           effective_to?: string | null
+          holiday_day_rate?: number | null
           id?: string
           max_amount_per_person: number
+          saturday_day_rate?: number | null
+          sunday_day_rate?: number | null
           updated_at?: string
         }
         Update: {
@@ -294,8 +286,100 @@ export type Database = {
           deleted_at?: string | null
           effective_from?: string
           effective_to?: string | null
+          holiday_day_rate?: number | null
           id?: string
           max_amount_per_person?: number
+          saturday_day_rate?: number | null
+          sunday_day_rate?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      calendar_date_history: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          calendar_date_id: string
+          changed_at: string
+          changed_by: string | null
+          created_at: string
+          date: string
+          deleted_at: string | null
+          id: string
+          new_day_rate: number | null
+          new_holiday: boolean
+          previous_day_rate: number | null
+          previous_holiday: boolean
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          calendar_date_id: string
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          date: string
+          deleted_at?: string | null
+          id?: string
+          new_day_rate?: number | null
+          new_holiday: boolean
+          previous_day_rate?: number | null
+          previous_holiday: boolean
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          calendar_date_id?: string
+          changed_at?: string
+          changed_by?: string | null
+          created_at?: string
+          date?: string
+          deleted_at?: string | null
+          id?: string
+          new_day_rate?: number | null
+          new_holiday?: boolean
+          previous_day_rate?: number | null
+          previous_holiday?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_date_history_calendar_date_id_fkey"
+            columns: ["calendar_date_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_dates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_dates: {
+        Row: {
+          created_at: string
+          date: string
+          day_rate: number | null
+          deleted_at: string | null
+          holiday: boolean
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          day_rate?: number | null
+          deleted_at?: string | null
+          holiday?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          day_rate?: number | null
+          deleted_at?: string | null
+          holiday?: boolean
+          id?: string
           updated_at?: string
         }
         Relationships: []
@@ -347,20 +431,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "periods"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cap_overrides_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "review_history"
-            referencedColumns: ["period_id"]
-          },
-          {
-            foreignKeyName: "cap_overrides_period_id_fkey"
-            columns: ["period_id"]
-            isOneToOne: false
-            referencedRelation: "review_items"
-            referencedColumns: ["period_id"]
           },
         ]
       }
@@ -520,40 +590,16 @@ export type Database = {
           date: string | null
           employee_id: string | null
           history_id: string | null
+          kind: string | null
+          new_day_rate: number | null
+          new_holiday: boolean | null
           new_position_id: string | null
           period_id: string | null
+          previous_day_rate: number | null
+          previous_holiday: boolean | null
           previous_position_id: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "assignment_history_assignment_id_fkey"
-            columns: ["assignment_id"]
-            isOneToOne: false
-            referencedRelation: "assignments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assignment_history_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assignment_history_new_position_id_fkey"
-            columns: ["new_position_id"]
-            isOneToOne: false
-            referencedRelation: "positions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assignment_history_previous_position_id_fkey"
-            columns: ["previous_position_id"]
-            isOneToOne: false
-            referencedRelation: "positions"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       review_items: {
         Row: {
@@ -563,40 +609,12 @@ export type Database = {
           date: string | null
           employee_id: string | null
           history_id: string | null
+          kind: string | null
           new_position_id: string | null
           period_id: string | null
           previous_position_id: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "assignment_history_assignment_id_fkey"
-            columns: ["assignment_id"]
-            isOneToOne: false
-            referencedRelation: "assignments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assignment_history_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assignment_history_new_position_id_fkey"
-            columns: ["new_position_id"]
-            isOneToOne: false
-            referencedRelation: "positions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assignment_history_previous_position_id_fkey"
-            columns: ["previous_position_id"]
-            isOneToOne: false
-            referencedRelation: "positions"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
@@ -623,10 +641,17 @@ export type Database = {
         Args: {
           p_daily_cap: number
           p_effective_from: string
+          p_holiday_day_rate: number
           p_max_amount_per_person: number
           p_rates: Json
+          p_saturday_day_rate: number
+          p_sunday_day_rate: number
         }
         Returns: string
+      }
+      set_calendar_date: {
+        Args: { p_date: string; p_day_rate?: number; p_holiday: boolean }
+        Returns: undefined
       }
       set_period_end: {
         Args: { p_end_date: string; p_period_id: string }

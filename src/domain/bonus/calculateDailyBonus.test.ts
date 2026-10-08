@@ -5,31 +5,35 @@ import type { BonusAssignment, BonusPosition, BonusSettings } from "./types";
 // Example values from docs/DOMAIN.md §5. Fictional by design: they keep the structure of the
 // real rates (three equal rates, a lower fourth, the four summing exactly to the cap) and
 // nothing else.
-const RIETER: BonusPosition = { id: "rieter", bonusEligible: true, triggersEqualShare: false };
-const ACM: BonusPosition = { id: "acm", bonusEligible: true, triggersEqualShare: false };
+const RIETER: BonusPosition = { id: "rieter", bonusEligible: true, triggersEqualShare: false, absence: false };
+const ACM: BonusPosition = { id: "acm", bonusEligible: true, triggersEqualShare: false, absence: false };
 const ENCAJADOR_ACM: BonusPosition = {
   id: "encajador-acm",
   bonusEligible: true,
   triggersEqualShare: false,
+  absence: false,
 };
 const ALIMENTADOR_RIETER: BonusPosition = {
   id: "alimentador-rieter",
   bonusEligible: true,
   triggersEqualShare: false,
+  absence: false,
 };
 const PACKING_ACM: BonusPosition = {
   id: "packing-acm",
   bonusEligible: true,
   triggersEqualShare: true,
+  absence: false,
 };
-const BODEGA: BonusPosition = { id: "bodega", bonusEligible: false, triggersEqualShare: false };
-const LICENCIA: BonusPosition = { id: "licencia", bonusEligible: false, triggersEqualShare: false };
+const BODEGA: BonusPosition = { id: "bodega", bonusEligible: false, triggersEqualShare: false, absence: false };
+const LICENCIA: BonusPosition = { id: "licencia", bonusEligible: false, triggersEqualShare: false, absence: true };
 
 const POSITIONS = [RIETER, ACM, ENCAJADOR_ACM, ALIMENTADOR_RIETER, PACKING_ACM, BODEGA, LICENCIA];
 
 const SETTINGS: BonusSettings = {
   dailyCap: 15_000,
   maxAmountPerPerson: 2_500,
+  dayRates: null,
   positionRates: new Map([
     [RIETER.id, 4_000],
     [ACM.id, 4_000],
@@ -45,7 +49,7 @@ function assign(position: BonusPosition): BonusAssignment {
 }
 
 function calculate(assignments: BonusAssignment[], settings: BonusSettings = SETTINGS) {
-  return calculateDailyBonus({ assignments, positions: POSITIONS, settings });
+  return calculateDailyBonus({ assignments, positions: POSITIONS, settings, dayRate: null });
 }
 
 function amounts(result: ReturnType<typeof calculate>) {
@@ -181,11 +185,13 @@ describe("the scheme trigger is data, not a position code", () => {
       id: "some-future-position",
       bonusEligible: true,
       triggersEqualShare: true,
+      absence: false,
     };
     const result = calculateDailyBonus({
       assignments: [assign(RIETER), assign(secondInlinePacking)],
       positions: [...POSITIONS, secondInlinePacking],
       settings: SETTINGS,
+      dayRate: null,
     });
 
     expect(result.scheme).toBe("EQUAL_SHARE");
@@ -238,5 +244,58 @@ describe("only bonus-eligible positions earn", () => {
     expect(result.perEmployee.map((entry) => entry.employeeId)).not.toContain(absent.employeeId);
     expect(amounts(result)).toEqual(Array(7).fill(2_142));
     expect(result.total).toBe(14_994);
+  });
+});
+
+describe("DAY_RATE: on a Saturday, Sunday or holiday everyone who worked earns the day rate", () => {
+  const DAY_RATE = 10_000;
+
+  function onDayRate(assignments: BonusAssignment[], settings: BonusSettings = SETTINGS) {
+    return calculateDailyBonus({ assignments, positions: POSITIONS, settings, dayRate: DAY_RATE });
+  }
+
+  it("pays the line and every other work position the same amount, whatever the position", () => {
+    const result = onDayRate([assign(RIETER), assign(ACM), assign(BODEGA)]);
+
+    expect(result.scheme).toBe("DAY_RATE");
+    expect(amounts(result)).toEqual([DAY_RATE, DAY_RATE, DAY_RATE]);
+    expect(result.total).toBe(30_000);
+  });
+
+  it("pays nobody on an absence position", () => {
+    const absent = assign(LICENCIA);
+    const result = onDayRate([assign(BODEGA), absent]);
+
+    expect(result.perEmployee.map((entry) => entry.employeeId)).not.toContain(absent.employeeId);
+    expect(result.total).toBe(DAY_RATE);
+  });
+
+  it("takes precedence over a scheme trigger: inline packing earns the day rate too, not a share", () => {
+    const result = onDayRate([assign(RIETER), assign(PACKING_ACM)]);
+
+    expect(result.scheme).toBe("DAY_RATE");
+    expect(amounts(result)).toEqual([DAY_RATE, DAY_RATE]);
+  });
+
+  it("is not held to the daily cap, so a large crew is not marked above it", () => {
+    const crew = Array.from({ length: 6 }, () => assign(BODEGA));
+    const result = onDayRate(crew);
+
+    expect(result.total).toBe(60_000);
+    expect(result.anomalies).toEqual([]);
+  });
+
+  it("needs no position rate, so a version without one for a filled position still pays", () => {
+    const noRates: BonusSettings = { ...SETTINGS, positionRates: new Map() };
+
+    expect(onDayRate([assign(RIETER)], noRates).total).toBe(DAY_RATE);
+  });
+
+  it("still marks a duplicated rate-bearing position, quietly, since it does not change the amount", () => {
+    const result = onDayRate([assign(RIETER), assign(RIETER)]);
+
+    expect(result.anomalies).toEqual([
+      { kind: "DUPLICATE_OCCUPANCY", positionId: RIETER.id, occupantCount: 2, affectsAmount: false },
+    ]);
   });
 });

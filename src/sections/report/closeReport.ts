@@ -1,4 +1,7 @@
+import { dayRateOn } from "@/domain/bonus/dayRate";
+import { findSettingsInForce } from "@/domain/bonus/settingsInForce";
 import type { BonusScheme, IsoDate } from "@/domain/bonus/types";
+import { loadCalendar, loadSettingsVersions } from "@/sections/bonus/dailyBonuses";
 import { fullName } from "@/sections/day/queries";
 import type { Period } from "@/sections/periods/queries";
 import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
@@ -36,7 +39,8 @@ export type CloseReport = {
  *
  * The scheme shown for a date is the one its paid amounts were settled under: it considers only
  * assignments settled by this close or an earlier one, so a trigger recorded later does not
- * rewrite how an earlier payment is explained.
+ * rewrite how an earlier payment is explained. A day-rate date is read from the settings and the
+ * calendar as they stand.
  */
 export async function loadCloseReport(supabase: ServerSupabase, period: Period): Promise<CloseReport> {
   const settled = orThrow(
@@ -47,7 +51,8 @@ export async function loadCloseReport(supabase: ServerSupabase, period: Period):
   );
   const dates = [...new Set(settled.map((row) => row.date))];
 
-  const [positions, periods, settledOnDates] = await Promise.all([
+  const sortedDates = [...dates].sort();
+  const [positions, periods, settledOnDates, versions, calendar] = await Promise.all([
     supabase.from("positions").select("id, name, triggers_equal_share"),
     supabase.from("periods").select("id, closed_at").eq("status", "CLOSED"),
     dates.length
@@ -57,6 +62,8 @@ export async function loadCloseReport(supabase: ServerSupabase, period: Period):
           .in("date", dates)
           .not("settled_in_period_id", "is", null)
       : Promise.resolve({ data: [], error: null }),
+    loadSettingsVersions(supabase),
+    loadCalendar(supabase, sortedDates[0] ?? period.start_date, sortedDates.at(-1) ?? period.end_date),
   ]);
   const positionsById = new Map(orThrow(positions).map((position) => [position.id, position]));
   const closedAt = new Map(orThrow(periods).map((closed) => [closed.id, closed.closed_at ?? ""]));
@@ -71,6 +78,12 @@ export async function loadCloseReport(supabase: ServerSupabase, period: Period):
       )
       .map((row) => row.date),
   );
+
+  const schemeOn = (date: IsoDate): BonusScheme => {
+    const settings = findSettingsInForce(date, versions);
+    if (settings && dayRateOn(date, settings, calendar.get(date))) return "DAY_RATE";
+    return equalShareDates.has(date) ? "EQUAL_SHARE" : "POSITION_RATE";
+  };
 
   const byEmployee = new Map<string, ReportRow>();
   for (const row of settled) {
@@ -94,7 +107,7 @@ export async function loadCloseReport(supabase: ServerSupabase, period: Period):
     entry.lines.push({
       date: row.date,
       positionName: positionsById.get(row.position_id)?.name ?? "",
-      scheme: equalShareDates.has(row.date) ? "EQUAL_SHARE" : "POSITION_RATE",
+      scheme: schemeOn(row.date),
       amount,
       carryOver,
     });

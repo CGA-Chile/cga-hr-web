@@ -1,5 +1,7 @@
 import { loadAnomalousDates } from "@/sections/bonus/anomalousDates";
-import { loadDailyBonuses } from "@/sections/bonus/dailyBonuses";
+import { dayRateOn } from "@/domain/bonus/dayRate";
+import { findSettingsInForce } from "@/domain/bonus/settingsInForce";
+import { loadCalendar, loadDailyBonuses, loadSettingsVersions } from "@/sections/bonus/dailyBonuses";
 import { groupPositionsForPicker } from "@/sections/day/positionGroups";
 import { fullName, loadCellHistory, loadPositions, loadRangeRows } from "@/sections/day/queries";
 import { loadPeriods } from "@/sections/periods/queries";
@@ -11,6 +13,7 @@ import { CellPanel, DayPanel, PeriodEndPanel } from "@/sections/sheet/SheetPanel
 import { datesOf, resolveSheetRanges, resolveWeek } from "@/sections/sheet/sheetRange";
 import { SheetView } from "@/sections/sheet/SheetView";
 import { addDays, isIsoDate, todayInChile } from "@/utils/chileDate";
+import { loadCurrentProfile } from "@/utils/supabase/currentProfile";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
 
 /** How far before the range the column copy looks for a date to copy from. */
@@ -57,13 +60,17 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
     endPanel: single(query.panel) === "cierre" && ranges.current.endMovable,
   };
 
-  const [positions, { employees, assignments }, dailyBonuses, anomalousDates, cellHistory] = await Promise.all([
-    loadPositions(supabase),
-    loadRangeRows(supabase, addDays(start, -LOOK_BACK_DAYS), end),
-    loadDailyBonuses(supabase, start, end),
-    loadAnomalousDates(supabase),
-    params.date && params.employeeId ? loadCellHistory(supabase, params.date, params.employeeId) : null,
-  ]);
+  const [positions, { employees, assignments }, dailyBonuses, anomalousDates, cellHistory, calendar, versions, profile] =
+    await Promise.all([
+      loadPositions(supabase),
+      loadRangeRows(supabase, addDays(start, -LOOK_BACK_DAYS), end),
+      loadDailyBonuses(supabase, start, end),
+      loadAnomalousDates(supabase),
+      params.date && params.employeeId ? loadCellHistory(supabase, params.date, params.employeeId) : null,
+      loadCalendar(supabase, start, end),
+      loadSettingsVersions(supabase),
+      loadCurrentProfile(supabase),
+    ]);
   const inRange = assignments.filter((assignment) => assignment.date >= start);
   const sheet = buildSheet({ dates: datesOf(start, end), employees, assignments: inRange, dailyBonuses });
   const positionsById = new Map(positions.map((position) => [position.id, position]));
@@ -71,6 +78,13 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
   const cellEmployee = employees.find((employee) => employee.id === params.employeeId);
   const cellBonus = dailyBonuses.find((bonus) => bonus.date === params.date);
   const previousName = periods.find((period) => period.end_date === addDays(start, -1))?.name ?? null;
+  const holidays = new Set([...calendar].filter(([, entry]) => entry.holiday).map(([day]) => day));
+  const panelCalendar = params.date ? calendar.get(params.date) : undefined;
+  const panelSettings = params.date ? findSettingsInForce(params.date, versions) : null;
+  const dayRateFallback =
+    params.date && panelSettings
+      ? (dayRateOn(params.date, panelSettings, { holiday: panelCalendar?.holiday ?? false, dayRate: null })?.amount ?? null)
+      : null;
 
   return (
     <SheetAbbreviations entries={positions.map((position) => [position.id, position.abbreviation])}>
@@ -80,7 +94,16 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
         params={params}
         previousName={previousName}
         anomalousDateCount={anomalousDates.length}
-        grid={<SheetGrid sheet={sheet} positionsById={positionsById} params={params} weekStart={week.start} today={today} />}
+        grid={
+          <SheetGrid
+            sheet={sheet}
+            positionsById={positionsById}
+            params={params}
+            weekStart={week.start}
+            today={today}
+            holidays={holidays}
+          />
+        }
       />
       {params.date && !params.employeeId && (
         <DayPanel
@@ -90,6 +113,9 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
           positions={positions}
           employeeName={(id) => namesById.get(id) ?? ""}
           columnCopy={params.editing ? copyFromPreviousDate(params.date, sheet.rows, assignments) : null}
+          calendar={panelCalendar}
+          dayRateFallback={dayRateFallback}
+          canManageCalendar={profile !== null}
         />
       )}
       {params.date && cellEmployee && cellHistory && (

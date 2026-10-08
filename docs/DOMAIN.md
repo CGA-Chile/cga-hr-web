@@ -48,7 +48,8 @@ a errores que hay que corregirle a los usuarios.
 Explícito para evitar deriva: el dominio invita a construir un módulo de RRHH completo, y no
 es lo que se está pidiendo.
 
-- Cualquier otro bono: producción, cumplimiento, sábado, camión, limpieza, turno noche.
+- Cualquier otro bono: producción, cumplimiento, camión, limpieza, turno noche. El monto del día
+  de sábados, domingos y feriados sí está dentro (sección 5).
 - Horas extras, atrasos, salidas anticipadas.
 - Integración con software de remuneraciones, ERP o cualquier sistema externo.
 - Migración de datos históricos. **La app parte de cero.** Si se necesita un día anterior, se
@@ -81,8 +82,8 @@ parámetros vigentes. Salida: el monto por trabajador.
 
 ### Puestos bonificables
 
-`RIETER`, `ACM`, `ENCAJADOR_ACM`, `ALIMENTADOR_RIETER`, `PACKING_ACM`. Ningún otro, incluido
-`PACKING` genérico y la carda antigua.
+`RIETER`, `ACM`, `ENCAJADOR_ACM`, `ALIMENTADOR_RIETER`, `PACKING_ACM`, `MANTAS_RIETER`. Ningún
+otro, incluido `PACKING` genérico y la carda antigua.
 
 **Esta lista es dato, no código.** Vive en la columna `positions.bonus_eligible`. El módulo de
 cálculo nunca compara contra una lista literal de códigos: recibe los puestos con su bandera y
@@ -99,8 +100,16 @@ hasSchemeTrigger = existe al menos una asignación cuyo puesto tiene triggers_eq
 scheme = hasSchemeTrigger ? EQUAL_SHARE : POSITION_RATE
 ```
 
-No hay marca manual. El esquema se deriva de los datos. Hoy el único puesto con esa bandera es
-`PACKING_ACM`; que sea uno solo es una circunstancia del catálogo, no un supuesto del cálculo.
+No hay marca manual. El esquema se deriva de los datos. Hoy los puestos con esa bandera son
+`PACKING_ACM` y `MANTAS_RIETER` (la Rieter haciendo mantas, con 3 o 4 personas); cuántos son es
+una circunstancia del catálogo, no un supuesto del cálculo.
+
+Antes que todo eso va el **monto del día**: si la fecha es sábado, domingo o feriado, el esquema es
+`DAY_RATE` y ni las tarifas ni los disparadores importan.
+
+```
+scheme = dayRate(fecha) ? DAY_RATE : hasSchemeTrigger ? EQUAL_SHARE : POSITION_RATE
+```
 
 ### POSITION_RATE — sin packing en línea
 
@@ -138,6 +147,24 @@ esto último existe para no premiar a quien haga el trabajo de dos.
 
 Truncamiento hacia abajo, al peso, para no pasarse del tope por redondeo. El truncamiento
 puede dejar el total apenas bajo el tope; es correcto y esperado.
+
+### DAY_RATE — sábados, domingos y feriados
+
+Todos los que **trabajaron** ese día ganan el mismo monto fijo, sin importar el puesto ni si es de
+la línea de cardas: bodega gana lo mismo que el operario de la Rieter. Trabajó quien tiene un
+puesto que no es ausencia (`FALTA`, `LICENCIA`, `VACACIONES`). Ver `docs/adr/0012`.
+
+- El monto por defecto vive en `bonus_settings`, uno por tipo de día: sábado, domingo y feriado.
+  Una vigencia sin esos montos es anterior a la regla, y bajo ella ningún día es `DAY_RATE`.
+- RRHH marca los feriados, uno por fecha, y puede fijar otro monto para una fecha puntual. Ese
+  monto gana sobre el por defecto, y hasta convierte un día hábil cualquiera en `DAY_RATE`.
+- El tope diario **no aplica**: el total es monto × personas y puede superar el tope varias veces
+  sin que sea una anomalía.
+- Un puesto de tarifa duplicado se sigue marcando, callado, porque no cambia el monto.
+
+La regla vive dos veces, en `src/domain/bonus/dayRate.ts` y en `private.is_day_rate_date` en SQL,
+porque el cierre y la lista de revisión tienen que saber qué asignaciones paga un día sin correr
+el cálculo. Cambian juntas.
 
 ### El tope diario limita lo que se **liquida**, no lo que se calcula
 
@@ -204,10 +231,14 @@ la configuración de producción.
 | 8 | 3 puestos + 1 PACKING_ACM (n=4) | 2.500 c/u · total 10.000 |
 | 9 | Día sin asignaciones bonificables | nadie cobra · total 0 |
 | 10 | Persona con puesto de tipo ausencia | no cobra, no cuenta para n |
-| 11 | Sábado con asignaciones bonificables | cobra igual, el bono no distingue día |
+| 11 | Sábado bajo una vigencia sin monto del día | cobra igual que un día hábil |
 | 12 | Cambio de tarifas a mitad de cierre | cada día usa los parámetros vigentes en esa fecha |
 | 13 | 2 personas en RIETER + los otros 3 puestos | 4.000 / 4.000 / 4.000 / 4.000 / 3.000 · total 19.000, **sobre el tope, marcado, no recortado** |
 | 14 | 2 personas en RIETER + 1 PACKING_ACM (n=6) | 2.500 c/u · total 15.000, sin marca de tope |
+| 15 | Monto del día con línea y bodega | todos el monto del día, sin importar el puesto |
+| 16 | Monto del día con una ausencia | la ausencia no cobra |
+| 17 | Monto del día con PACKING_ACM | gana el monto del día, no reparto igualitario |
+| 18 | Monto del día sobre el tope | sin marca de tope |
 
 Los casos 13 y 14 son la contraparte de la regla anterior y no pueden faltar: el 13 prueba que
 `POSITION_RATE` no recorta, el 14 que la duplicación es inocua **para el monto** bajo
@@ -215,7 +246,7 @@ Los casos 13 y 14 son la contraparte de la regla anterior y no pueden faltar: el
 lleva la marca callada de puesto duplicado. Son dos marcas distintas y el caso solo afirma la
 ausencia de una.
 
-Los catorce cubren el módulo de cálculo y nada más. La compuerta de cierre, el arrastre y la
+Los dieciocho cubren el módulo de cálculo y nada más. La compuerta de cierre, el arrastre y la
 validación del exceso son reglas de liquidación, no de cálculo: viven fuera de
 `src/domain/bonus/` y se prueban aparte.
 
@@ -225,7 +256,7 @@ validación del exceso son reglas de liquidación, no de cálculo: viven fuera d
 - Estar asignado a un puesto equivale a haber trabajado el día completo. Si alguien llegó tarde
   o se fue antes y no corresponde pagarle, el supervisor no lo asigna a ese puesto. La app no
   lleva control de asistencia.
-- Aplica todos los días trabajados, incluidos sábados.
+- Aplica todos los días trabajados. Sábados, domingos y feriados se pagan con el monto del día.
 - Nadie cobra dos bonos el mismo día. Está garantizado por el índice único de la sección 6.
 - Una persona con `active = false` que tiene asignaciones dentro del rango consultado **sí
   aparece** en ese rango (caso: desvinculado a mitad de mes). En rangos posteriores a su última
@@ -349,6 +380,21 @@ effective_from          date not null
 effective_to            date null           -- null = vigente
 daily_cap               int not null
 max_amount_per_person   int not null
+saturday_day_rate       int null            -- los tres juntos, o ninguno
+sunday_day_rate         int null
+holiday_day_rate        int null
+```
+
+### calendar_dates
+
+Lo que RRHH registra de una fecha: si es feriado y, si corresponde, un monto del día distinto
+al por defecto. Una fecha sin fila es un día corriente. Sus cambios quedan en
+`calendar_date_history`, con el mismo contrato que `assignment_history`.
+
+```
+date        date not null        -- único entre las filas vivas
+holiday     boolean not null
+day_rate    int null             -- null = el monto por defecto de su tipo de día
 ```
 
 ### bonus_position_rates
@@ -482,8 +528,9 @@ niega un pago porque a la empresa se le olvidó registrarlo; lo que no se pagó 
 siguiente. Eso se modela con liquidación diferida:
 
 - Cerrar el período P estampa `settled_in_period_id = P` y `settled_amount` en **todas** las
-  asignaciones bonificables no liquidadas con fecha `<= P.end_date`, sin importar si caen antes
-  de `P.start_date`.
+  asignaciones pagadas no liquidadas con fecha `<= P.end_date`, sin importar si caen antes
+  de `P.start_date`. Pagada es la que el cálculo paga: la de un puesto bonificable en un día
+  corriente, y la de cualquier puesto que no sea ausencia en un día de monto del día.
 - Una asignación de un mes ya cerrado que se ingresa tarde queda sin estampar, y el cierre
   siguiente la recoge sola.
 - El reporte del cierre separa dos subtotales: **días del período** y **arrastre de períodos
@@ -542,7 +589,13 @@ leen de la misma tabla y se expresan como una sola regla. Una fila de `assignmen
 
 - su asignación está liquidada y la fila es posterior al `closed_at` del período que la liquidó;
 - su fecha cae dentro de un período cerrado, la fila es posterior al `closed_at` de ese período, y
-  el puesto anterior o el nuevo es bonificable.
+  el puesto anterior o el nuevo es uno que ese día se paga (bonificable, o cualquier puesto de
+  trabajo en un día de monto del día).
+
+Los cambios de feriado o de monto del día de una fecha cerrada también son ítems de revisión: la
+fila de `calendar_date_history` cuenta cuando es posterior al `closed_at` del período cerrado que
+contiene la fecha. La vista `review_history` junta las dos tablas y dice en `kind` de cuál viene
+cada fila.
 
 La segunda forma cubre también un caso que ninguna de las dos listas originales nombraba: una
 asignación no bonificable de un día cerrado que se cambia **a** un puesto bonificable. No estaba
@@ -586,6 +639,9 @@ sea reconocible.
   anterior que tenga registros. Solo llena celdas vacías: lo ya registrado no se toca.
 - **Fecha de cierre.** Desde la planilla, RRHH cambia la fecha de término del período abierto. Ver
   sección 7.
+- **Feriados.** Domingos y feriados van sombreados. En modo edición, el resumen del día deja a RRHH
+  marcar el feriado y fijar el monto del día para esa fecha. Si la fecha ya está en un período
+  cerrado, el cambio queda como ítem de revisión.
 - **Celular.** Muestra la misma planilla una semana a la vez, con flechas para pasar de semana, y el
   panel sube desde abajo. La lógica y la edición son idénticas; solo cambia la presentación.
 - **Días sin período.** Después de que termina el último período y antes de que se cierre, la

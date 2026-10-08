@@ -1,7 +1,13 @@
 import type { IsoDate } from "@/domain/bonus/types";
 import { planClose } from "@/domain/settlement/planClose";
 import type { ClosePlan, SettlementDay } from "@/domain/settlement/types";
-import { calculateDates, loadBonusPositions, loadLiveAssignments, loadSettingsVersions } from "@/sections/bonus/dailyBonuses";
+import {
+  calculateDates,
+  loadBonusPositions,
+  loadCalendar,
+  loadLiveAssignments,
+  loadSettingsVersions,
+} from "@/sections/bonus/dailyBonuses";
 import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
 import type { Period } from "./queries";
 
@@ -18,30 +24,32 @@ export type LoadedClosePlan = {
 
 /**
  * Everything the close of `period` would settle, run through the settlement rules: every date on
- * or before its end that still has an unsettled bonus-eligible assignment, calculated over all of
- * that date's live assignments with the settings in force on it.
+ * or before its end that still has an unsettled assignment, calculated over all of that date's
+ * live assignments with the settings in force on it. What gets settled is what the calculation
+ * pays: the line on an ordinary date, everyone who worked on a day-rate date.
  */
 export async function loadClosePlan(supabase: ServerSupabase, period: Period): Promise<LoadedClosePlan> {
   const [unsettled, positions, versions, validations] = await Promise.all([
     supabase
       .from("assignments")
-      .select("date, positions!inner(bonus_eligible)")
+      .select("date")
       .is("settled_in_period_id", null)
       .is("deleted_at", null)
-      .lte("date", period.end_date)
-      .eq("positions.bonus_eligible", true),
+      .lte("date", period.end_date),
     loadBonusPositions(supabase),
     loadSettingsVersions(supabase),
     supabase.from("cap_overrides").select("date, approved_amount").eq("period_id", period.id).is("deleted_at", null),
   ]);
   const dateSet = new Set(orThrow(unsettled).map((row) => row.date));
   const dates = [...dateSet].sort();
-  const eligible = new Set(positions.filter((position) => position.bonusEligible).map((position) => position.id));
-
-  const assignments = dates.length
-    ? (await loadLiveAssignments(supabase, dates[0], dates[dates.length - 1])).filter((a) => dateSet.has(a.date))
-    : [];
-  const calculated = calculateDates(assignments, positions, versions);
+  const [inRange, calendar] = dates.length
+    ? await Promise.all([
+        loadLiveAssignments(supabase, dates[0], dates[dates.length - 1]),
+        loadCalendar(supabase, dates[0], dates[dates.length - 1]),
+      ])
+    : [[], new Map()];
+  const assignments = inRange.filter((a) => dateSet.has(a.date));
+  const calculated = calculateDates(assignments, positions, versions, calendar);
 
   const days: SettlementDay[] = calculated.flatMap((day) =>
     day.result
@@ -50,7 +58,9 @@ export async function loadClosePlan(supabase: ServerSupabase, period: Period): P
             date: day.date,
             dailyCap: day.settings.dailyCap,
             calculation: day.result,
-            assignments: assignments.filter((a) => a.date === day.date && eligible.has(a.positionId)),
+            assignments: assignments.filter(
+              (a) => a.date === day.date && day.result.perEmployee.some((entry) => entry.employeeId === a.employeeId),
+            ),
           },
         ]
       : [],

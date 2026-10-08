@@ -87,6 +87,9 @@ export async function createRateVersion(input: RateVersionValues): Promise<Admin
     p_daily_cap: parsed.data.dailyCap,
     p_max_amount_per_person: parsed.data.maxAmountPerPerson,
     p_rates: Object.entries(parsed.data.rates).map(([position_id, amount]) => ({ position_id, amount })),
+    p_saturday_day_rate: parsed.data.saturdayDayRate,
+    p_sunday_day_rate: parsed.data.sundayDayRate,
+    p_holiday_day_rate: parsed.data.holidayDayRate,
   });
   if (error?.code === "23514") return { message: adminCopy.rates.mustStartLater };
   if (error) return { message: messageFor(error.code, adminCopy.unavailable) };

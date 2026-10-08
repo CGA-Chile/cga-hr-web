@@ -11,7 +11,8 @@ type CataloguePosition = {
   display_order: number;
 };
 
-const LINE = ["RIETER", "ACM", "ENCAJADOR_ACM", "ALIMENTADOR_RIETER", "PACKING_ACM"];
+const LINE = ["RIETER", "ACM", "ENCAJADOR_ACM", "ALIMENTADOR_RIETER", "PACKING_ACM", "MANTAS_RIETER"];
+const TRIGGERS = ["PACKING_ACM", "MANTAS_RIETER"];
 const RATE_BEARING = ["RIETER", "ACM", "ENCAJADOR_ACM", "ALIMENTADOR_RIETER"];
 const OTHER_WORK = [
   "ABSORBENTE",
@@ -30,7 +31,7 @@ const OTHER_WORK = [
   "PRENSADO",
   "SUPERVISOR",
 ];
-const ABSENCE = ["LICENCIA", "FALTA"];
+const ABSENCE = ["LICENCIA", "FALTA", "VACACIONES"];
 /** The example seed's settings version. Other test files add later versions after it. */
 const EXAMPLE_VERSION_START = "2026-01-01";
 
@@ -68,20 +69,20 @@ describe("the position catalogue from docs/DOMAIN.md §11", () => {
     expect(new Set(abbreviations).size).toBe(abbreviations.length);
   });
 
-  it("marks the five line positions, and only them, as bonus-eligible", () => {
+  it("marks the line positions, and only them, as bonus-eligible", () => {
     const eligible = catalogue.filter((position) => position.bonus_eligible).map((p) => p.code);
 
     expect(eligible.sort()).toEqual([...LINE].sort());
   });
 
-  it("has exactly one scheme trigger, Packing ACM, and it is bonus-eligible", () => {
+  it("has two scheme triggers, Packing ACM and Mantas Rieter, both bonus-eligible", () => {
     const triggers = catalogue.filter((position) => position.triggers_equal_share);
 
-    expect(triggers.map((position) => position.code)).toEqual(["PACKING_ACM"]);
-    expect(triggers[0].bonus_eligible).toBe(true);
+    expect(triggers.map((position) => position.code)).toEqual(TRIGGERS);
+    expect(triggers.every((position) => position.bonus_eligible)).toBe(true);
   });
 
-  it("types Licencia and Falta as absences and everything else as work", () => {
+  it("types Licencia, Falta and Vacaciones as absences and everything else as work", () => {
     for (const position of catalogue) {
       expect([position.code, position.type]).toEqual([
         position.code,
@@ -90,7 +91,7 @@ describe("the position catalogue from docs/DOMAIN.md §11", () => {
     }
   });
 
-  it("puts the five line positions at the top of the picker", () => {
+  it("puts the line positions at the top of the picker", () => {
     expect(catalogue.slice(0, LINE.length).map((position) => position.code)).toEqual(LINE);
   });
 

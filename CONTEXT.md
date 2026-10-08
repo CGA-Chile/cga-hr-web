@@ -12,13 +12,36 @@ already uses; it is not a translation choice left open to the author.
 ## The day's calculation
 
 **Bonus scheme** _(esquema de bono)_:
-Which of the two formulas a given date is paid under. Derived from that date's assignments,
-never stored and never set by hand.
+Which of the three formulas a given date is paid under: `POSITION_RATE`, `EQUAL_SHARE` or
+`DAY_RATE`. Derived from the date and its assignments, never stored and never set by hand.
 _Avoid_: mode, type, variant
+
+**Day rate** _(monto del día)_:
+The scheme for Saturdays, Sundays and holidays, and the amount it pays. Everyone who worked
+that date earns the same fixed amount, whatever their position and whether or not it is on the
+carding line. Position rates, scheme triggers and the daily cap play no part. The amount has a
+default per kind of date and HR may change it for one date.
+_Avoid_: weekend bonus, Saturday bonus, flat rate
+
+**Holiday** _(feriado)_:
+A date HR marks as such. It is paid under the day rate even when it falls on a weekday.
+_Avoid_: day off, non-working day
+
+**Worked** _(trabajó)_:
+Assigned that date to a position that is not an absence, and not marked late. Absences are
+Falta, Licencia and Vacaciones: together they cover every reason someone does not show up.
+
+**Late** _(atraso)_:
+A mark on an assignment. The person stays on their position in the sheet, but for the bonus
+they are not there: they earn nothing under any scheme, they do not count in the equal share's
+`n`, and they do not count as an occupant when looking for duplicates — so whoever covered for
+them is paid without a mark.
+_Avoid_: tardiness, absence
 
 **Scheme trigger** _(disparador de esquema)_:
 A position whose presence on a date forces `EQUAL_SHARE`. A property of the position, carried
-as data, so the calculation never recognises a position by its code.
+as data, so the calculation never recognises a position by its code. Packing ACM and Mantas
+Rieter are the two today.
 _Avoid_: inline packing flag, special position
 
 **Bonus-eligible position** _(puesto bonificable)_:
@@ -28,8 +51,12 @@ receives the flag and obeys it.
 **Daily cap** _(tope diario)_:
 The ceiling on what one date may **settle**. It is not a ceiling on what the calculation may
 return: during the month an over-cap total is computed, displayed and left alone, because
-hiding it would hide the assignment error that caused it.
+hiding it would hide the assignment error that caused it. It does not apply on day-rate dates.
 _Avoid_: limit, maximum, budget
+
+**Supervisor** _(supervisor)_:
+The role that assigns people to positions and marks lateness, and never sees an amount. It sees
+the anomalies so it can fix them, with any figures left out.
 
 **Rate-bearing position** _(puesto de tarifa)_:
 One of the bonus-eligible positions that has an amount under `POSITION_RATE`. Distinguished

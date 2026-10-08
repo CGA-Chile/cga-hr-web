@@ -16,13 +16,15 @@ type SheetGridProps = {
   params: SheetParams;
   /** The Monday of the week a phone shows; the other columns are hidden on narrow screens. */
   weekStart: IsoDate;
+  /** Today in Chile: its date header is marked so the eye finds where the sheet stands. */
+  today: IsoDate;
 };
 
 /**
  * One row per person, one column per date, like the sheet it replaces. Every cell and every
  * date is a link that opens the side panel; the grid itself never edits.
  */
-export function SheetGrid({ sheet, positionsById, params, weekStart }: SheetGridProps) {
+export function SheetGrid({ sheet, positionsById, params, weekStart, today }: SheetGridProps) {
   const weekEnd = addDays(weekStart, 6);
   const outOfWeek = (date: IsoDate) => date < weekStart || date > weekEnd || undefined;
   const selected = (date: IsoDate) => params.date === date || undefined;
@@ -45,6 +47,8 @@ export function SheetGrid({ sheet, positionsById, params, weekStart }: SheetGrid
                   data-out={outOfWeek(day.date)}
                   data-sunday={weekday === 0 || undefined}
                   data-selected={selected(day.date)}
+                  data-today={day.date === today || undefined}
+                  aria-current={day.date === today ? "date" : undefined}
                 >
                   <Link
                     href={sheetPath({ ...params, date: day.date, employeeId: null, endPanel: false })}

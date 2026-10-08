@@ -80,7 +80,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
         params={params}
         previousName={previousName}
         anomalousDateCount={anomalousDates.length}
-        grid={<SheetGrid sheet={sheet} positionsById={positionsById} params={params} weekStart={week.start} />}
+        grid={<SheetGrid sheet={sheet} positionsById={positionsById} params={params} weekStart={week.start} today={today} />}
       />
       {params.date && !params.employeeId && (
         <DayPanel

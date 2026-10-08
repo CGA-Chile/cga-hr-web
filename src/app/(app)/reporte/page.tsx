@@ -3,6 +3,7 @@ import { loadPeriods } from "@/sections/periods/queries";
 import { CloseReportView } from "@/sections/report/CloseReportView";
 import { loadReportFor } from "@/sections/report/loadReportFor";
 import styles from "@/sections/report/ReportPage.module.css";
+import { requireAmounts } from "@/utils/supabase/currentProfile";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
 
 type ReportPageProps = { searchParams: Promise<{ cierre?: string | string[] }> };
@@ -10,6 +11,7 @@ type ReportPageProps = { searchParams: Promise<{ cierre?: string | string[] }> }
 export default async function ReportPage({ searchParams }: ReportPageProps) {
   const { cierre } = await searchParams;
   const supabase = await createSupabaseServerClient();
+  await requireAmounts(supabase);
   const closed = (await loadPeriods(supabase)).filter((period) => period.status === "CLOSED");
   const selectedId = (typeof cierre === "string" && closed.some((p) => p.id === cierre) ? cierre : closed[0]?.id) ?? null;
   const loaded = selectedId ? await loadReportFor(supabase, selectedId) : null;

@@ -14,7 +14,7 @@ export default async function AuthenticatedLayout({ children }: Readonly<{ child
 
   return (
     <PendingWritesProvider>
-      <AppHeader isAdmin={profile?.role === "admin"} />
+      <AppHeader role={profile?.role ?? null} />
       {children}
     </PendingWritesProvider>
   );

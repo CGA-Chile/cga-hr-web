@@ -14,11 +14,13 @@ type SheetViewProps = {
   /** The period before an upcoming range, named in "created when … closes". */
   previousName: string | null;
   anomalousDateCount: number;
+  /** HR and the admin move the open period's end; the supervisor does not. */
+  canChangeEnd: boolean;
   grid: ReactNode;
 };
 
 /** Opens locked for every role, like the day view: a misclick here pays someone the wrong amount. */
-export function SheetView({ ranges, week, params, previousName, anomalousDateCount, grid }: SheetViewProps) {
+export function SheetView({ ranges, week, params, previousName, anomalousDateCount, canChangeEnd, grid }: SheetViewProps) {
   const { current } = ranges;
   const editing = Boolean(params.editing);
   const atRange = (start: string) => sheetPath({ start, editing });
@@ -34,7 +36,7 @@ export function SheetView({ ranges, week, params, previousName, anomalousDateCou
             <h1 className={styles.title}>{current.name}</h1>
             <p className={styles.subtitle}>
               {sheetCopy.range(formatDayMonth(current.start), formatDayMonth(current.end))} · {statusOf(current, previousName)}
-              {current.endMovable && (
+              {current.endMovable && canChangeEnd && (
                 <>
                   {" · "}
                   <Link href={sheetPath({ ...params, date: null, endPanel: true })} scroll={false}>

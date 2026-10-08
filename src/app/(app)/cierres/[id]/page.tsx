@@ -11,7 +11,7 @@ import styles from "@/sections/periods/Periods.module.css";
 import { ValidateExcessForm } from "@/sections/periods/ValidateExcessForm";
 import { formatDateTimeInChile, formatLongDate } from "@/utils/chileDate";
 import { formatPesos } from "@/utils/money";
-import { loadCurrentProfile } from "@/utils/supabase/currentProfile";
+import { requireAmounts } from "@/utils/supabase/currentProfile";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
 
 type PeriodPageProps = {
@@ -25,12 +25,12 @@ export default async function PeriodPage({ params, searchParams }: PeriodPagePro
   const supabase = await createSupabaseServerClient();
   const [period, profile, positions] = await Promise.all([
     loadPeriod(supabase, id),
-    loadCurrentProfile(supabase),
+    requireAmounts(supabase),
     loadPositions(supabase),
   ]);
   if (!period) notFound();
 
-  const isAdmin = profile?.role === "admin";
+  const isAdmin = profile.role === "admin";
   const names = new Map(positions.map((position) => [position.id, position.name]));
   const loaded = period.status === "OPEN" ? await loadClosePlan(supabase, period) : null;
   const closedBy = period.closed_by ? await loadUsername(supabase, period.closed_by) : null;

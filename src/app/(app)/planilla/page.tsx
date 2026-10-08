@@ -1,7 +1,11 @@
 import { loadAnomalousDates } from "@/sections/bonus/anomalousDates";
 import { dayRateOn } from "@/domain/bonus/dayRate";
 import { findSettingsInForce } from "@/domain/bonus/settingsInForce";
-import { loadCalendar, loadDailyBonuses, loadSettingsVersions } from "@/sections/bonus/dailyBonuses";
+import { findDuplicatedPositions } from "@/domain/bonus/duplicates";
+import { DailySummary } from "@/sections/bonus/DailySummary";
+import { DuplicateSummary } from "@/sections/bonus/DuplicateSummary";
+import { loadCalendar, loadDailyBonuses, loadSettingsVersions, toBonusPosition } from "@/sections/bonus/dailyBonuses";
+import { loadDuplicateDates } from "@/sections/bonus/duplicateDates";
 import { groupPositionsForPicker } from "@/sections/day/positionGroups";
 import { fullName, loadCellHistory, loadPositions, loadRangeRows } from "@/sections/day/queries";
 import { loadPeriods } from "@/sections/periods/queries";
@@ -13,7 +17,7 @@ import { CellPanel, DayPanel, PeriodEndPanel } from "@/sections/sheet/SheetPanel
 import { datesOf, resolveSheetRanges, resolveWeek } from "@/sections/sheet/sheetRange";
 import { SheetView } from "@/sections/sheet/SheetView";
 import { addDays, isIsoDate, todayInChile } from "@/utils/chileDate";
-import { loadCurrentProfile } from "@/utils/supabase/currentProfile";
+import { loadCurrentProfile, seesAmounts } from "@/utils/supabase/currentProfile";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
 
 /** How far before the range the column copy looks for a date to copy from. */
@@ -45,7 +49,8 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
   const today = todayInChile();
   const supabase = await createSupabaseServerClient();
 
-  const periods = await loadPeriods(supabase);
+  const [periods, profile] = await Promise.all([loadPeriods(supabase), loadCurrentProfile(supabase)]);
+  const showAmounts = seesAmounts(profile);
   const ranges = resolveSheetRanges(periods, date(query.desde), today);
   const { start, end } = ranges.current;
   const week = resolveWeek(ranges.current, date(query.semana), today);
@@ -57,22 +62,41 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
     editing: single(query.modo) === "editar",
     date: panelDate,
     employeeId: panelDate ? single(query.persona) : null,
-    endPanel: single(query.panel) === "cierre" && ranges.current.endMovable,
+    endPanel: single(query.panel) === "cierre" && ranges.current.endMovable && showAmounts,
   };
 
-  const [positions, { employees, assignments }, dailyBonuses, anomalousDates, cellHistory, calendar, versions, profile] =
+  // A role without amounts gets no calculation at all: the database would refuse it the rates.
+  const [positions, { employees, assignments }, dailyBonuses, anomalousDateCount, cellHistory, calendar, versions] =
     await Promise.all([
       loadPositions(supabase),
       loadRangeRows(supabase, addDays(start, -LOOK_BACK_DAYS), end),
-      loadDailyBonuses(supabase, start, end),
-      loadAnomalousDates(supabase),
+      showAmounts ? loadDailyBonuses(supabase, start, end) : [],
+      (showAmounts ? loadAnomalousDates(supabase) : loadDuplicateDates(supabase)).then((dates) => dates.length),
       params.date && params.employeeId ? loadCellHistory(supabase, params.date, params.employeeId) : null,
       loadCalendar(supabase, start, end),
-      loadSettingsVersions(supabase),
-      loadCurrentProfile(supabase),
+      showAmounts ? loadSettingsVersions(supabase) : [],
     ]);
   const inRange = assignments.filter((assignment) => assignment.date >= start);
-  const sheet = buildSheet({ dates: datesOf(start, end), employees, assignments: inRange, dailyBonuses });
+  const bonusPositions = positions.map(toBonusPosition);
+  const sheet = buildSheet({
+    dates: datesOf(start, end),
+    employees,
+    assignments: inRange,
+    dailyBonuses,
+    positions: bonusPositions,
+  });
+  const panelDuplicates = params.date
+    ? findDuplicatedPositions(
+        inRange
+          .filter((assignment) => assignment.date === params.date)
+          .map((assignment) => ({
+            employeeId: assignment.employee_id,
+            positionId: assignment.position_id,
+            late: assignment.late,
+          })),
+        bonusPositions,
+      )
+    : [];
   const positionsById = new Map(positions.map((position) => [position.id, position]));
   const namesById = new Map(employees.map((employee) => [employee.id, fullName(employee)]));
   const cellEmployee = employees.find((employee) => employee.id === params.employeeId);
@@ -83,7 +107,8 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
   const panelSettings = params.date ? findSettingsInForce(params.date, versions) : null;
   const dayRateFallback =
     params.date && panelSettings
-      ? (dayRateOn(params.date, panelSettings, { holiday: panelCalendar?.holiday ?? false, dayRate: null })?.amount ?? null)
+      ? (dayRateOn(params.date, panelSettings, { holiday: panelCalendar?.holiday ?? false, dayRate: null })?.amount ??
+        null)
       : null;
 
   return (
@@ -93,7 +118,8 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
         week={week}
         params={params}
         previousName={previousName}
-        anomalousDateCount={anomalousDates.length}
+        anomalousDateCount={anomalousDateCount}
+        canChangeEnd={showAmounts}
         grid={
           <SheetGrid
             sheet={sheet}
@@ -102,6 +128,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
             weekStart={week.start}
             today={today}
             holidays={holidays}
+            showAmounts={showAmounts}
           />
         }
       />
@@ -109,13 +136,21 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
         <DayPanel
           date={params.date}
           params={params}
-          dailyBonus={cellBonus ?? null}
-          positions={positions}
-          employeeName={(id) => namesById.get(id) ?? ""}
+          summary={
+            showAmounts ? (
+              <DailySummary
+                dailyBonus={cellBonus ?? null}
+                positions={positions}
+                employeeName={(id) => namesById.get(id) ?? ""}
+              />
+            ) : (
+              <DuplicateSummary duplicates={panelDuplicates} positionName={(id) => positionsById.get(id)?.name ?? ""} />
+            )
+          }
           columnCopy={params.editing ? copyFromPreviousDate(params.date, sheet.rows, assignments) : null}
           calendar={panelCalendar}
           dayRateFallback={dayRateFallback}
-          canManageCalendar={profile !== null}
+          canManageCalendar={showAmounts}
         />
       )}
       {params.date && cellEmployee && cellHistory && (
@@ -125,10 +160,15 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
           range={{ start, end }}
           employee={cellEmployee}
           assignment={
-            inRange.find((assignment) => assignment.date === params.date && assignment.employee_id === cellEmployee.id) ??
-            null
+            inRange.find(
+              (assignment) => assignment.date === params.date && assignment.employee_id === cellEmployee.id,
+            ) ?? null
           }
-          amount={cellBonus?.result?.perEmployee.find((entry) => entry.employeeId === cellEmployee.id)?.amount ?? null}
+          amount={
+            showAmounts
+              ? (cellBonus?.result?.perEmployee.find((entry) => entry.employeeId === cellEmployee.id)?.amount ?? null)
+              : undefined
+          }
           history={cellHistory}
           positionsById={positionsById}
           positionGroups={groupPositionsForPicker(positions)}
@@ -140,4 +180,3 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
     </SheetAbbreviations>
   );
 }
-

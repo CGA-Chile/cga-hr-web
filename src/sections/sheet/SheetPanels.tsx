@@ -1,12 +1,11 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Drawer } from "@/components/Drawer";
 import { dayCopy } from "@/copy/day";
 import { sheetCopy } from "@/copy/sheet";
 import type { CalendarDate, IsoDate } from "@/domain/bonus/types";
 import { addDays, formatLongDate } from "@/utils/chileDate";
 import { formatPesos } from "@/utils/money";
-import { DailySummary } from "../bonus/DailySummary";
-import type { DailyBonus } from "../bonus/dailyBonuses";
 import { CellHistoryList } from "../day/CellHistoryList";
 import { CellNote } from "../day/CellNote";
 import { dayPath } from "../day/paths";
@@ -24,9 +23,8 @@ import styles from "./SheetPanels.module.css";
 type DayPanelProps = {
   date: IsoDate;
   params: SheetParams;
-  dailyBonus: DailyBonus | null;
-  positions: readonly Position[];
-  employeeName: (employeeId: string) => string;
+  /** The daily summary, with amounts or, for a role without them, the duplicates only. */
+  summary: ReactNode;
   /** What the column copy would fill; null outside edit mode or with nothing earlier to copy. */
   columnCopy: ColumnCopy | null;
   calendar: CalendarDate | undefined;
@@ -41,12 +39,11 @@ type DayPanelProps = {
  * in edit mode.
  */
 export function DayPanel(props: DayPanelProps) {
-  const { date, params, dailyBonus, positions, employeeName, columnCopy, calendar, dayRateFallback, canManageCalendar } =
-    props;
+  const { date, params, summary, columnCopy, calendar, dayRateFallback, canManageCalendar } = props;
   return (
     <Drawer title={formatLongDate(date)} closeHref={sheetPath({ ...params, date: null })} closeLabel={dayCopy.close}>
       {calendar?.holiday && <p className={styles.tag}>{sheetCopy.holidayTag}</p>}
-      <DailySummary dailyBonus={dailyBonus} positions={positions} employeeName={employeeName} />
+      {summary}
       {columnCopy && <CopyPreviousDay key={date} date={date} copy={columnCopy} />}
       {params.editing && canManageCalendar && (
         <section className={styles.section}>
@@ -74,7 +71,8 @@ type CellPanelProps = {
   range: { start: IsoDate; end: IsoDate };
   employee: Employee;
   assignment: Assignment | null;
-  amount: number | null;
+  /** Undefined for a role that never sees amounts: the bonus fact is left out. */
+  amount: number | null | undefined;
   history: readonly CellMovement[];
   positionsById: ReadonlyMap<string, Position>;
   positionGroups: readonly PositionGroup[];
@@ -105,10 +103,12 @@ export function CellPanel(props: CellPanelProps) {
           <dt>{sheetCopy.position}</dt>
           <dd>{assignment ? (positionsById.get(assignment.position_id)?.name ?? "") : sheetCopy.noPosition}</dd>
         </div>
-        <div>
-          <dt>{sheetCopy.dayBonus}</dt>
-          <dd>{assignment?.late ? sheetCopy.lateBonus : amount ? formatPesos(amount) : sheetCopy.noBonus}</dd>
-        </div>
+        {amount !== undefined && (
+          <div>
+            <dt>{sheetCopy.dayBonus}</dt>
+            <dd>{assignment?.late ? sheetCopy.lateBonus : amount ? formatPesos(amount) : sheetCopy.noBonus}</dd>
+          </div>
+        )}
       </dl>
 
       {editing ? (

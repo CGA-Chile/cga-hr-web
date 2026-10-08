@@ -27,16 +27,22 @@ export type LiveAssignment = BonusAssignment & {
   settledAmount: number | null;
 };
 
-export async function loadBonusPositions(supabase: ServerSupabase): Promise<BonusPosition[]> {
-  const rows = orThrow(
-    await supabase.from("positions").select("id, bonus_eligible, triggers_equal_share, type").is("deleted_at", null),
-  );
-  return rows.map((row) => ({
+type PositionFlags = { id: string; bonus_eligible: boolean; triggers_equal_share: boolean; type: string };
+
+export function toBonusPosition(row: PositionFlags): BonusPosition {
+  return {
     id: row.id,
     bonusEligible: row.bonus_eligible,
     triggersEqualShare: row.triggers_equal_share,
     absence: row.type === "ABSENCE",
-  }));
+  };
+}
+
+export async function loadBonusPositions(supabase: ServerSupabase): Promise<BonusPosition[]> {
+  const rows = orThrow(
+    await supabase.from("positions").select("id, bonus_eligible, triggers_equal_share, type").is("deleted_at", null),
+  );
+  return rows.map(toBonusPosition);
 }
 
 export async function loadSettingsVersions(supabase: ServerSupabase): Promise<BonusSettingsVersion[]> {

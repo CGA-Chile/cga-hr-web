@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { BonusSettingsVersion, DailyBonusResult } from "@/domain/bonus/types";
+import type { BonusPosition, BonusSettingsVersion, DailyBonusResult } from "@/domain/bonus/types";
 import type { DailyBonus } from "../bonus/dailyBonuses";
 import type { Assignment, Employee } from "../day/queries";
 import { buildSheet, copyFromPreviousDate, toneOf } from "./sheetModel";
@@ -24,6 +24,12 @@ function assignment(date: string, employeeId: string, positionId: string): Assig
 function bonus(date: string, result: DailyBonusResult): DailyBonus {
   return { date, settings: SETTINGS, dayRate: null, result };
 }
+
+const POSITIONS: BonusPosition[] = [
+  { id: "RIE", bonusEligible: true, triggersEqualShare: false, absence: false },
+  { id: "ACM", bonusEligible: true, triggersEqualShare: false, absence: false },
+  { id: "BOD", bonusEligible: false, triggersEqualShare: false, absence: false },
+];
 
 const ana = employee("ana", "Ana");
 const bruno = employee("bruno", "Bruno");
@@ -57,6 +63,7 @@ describe("buildSheet", () => {
         anomalies: [],
       }),
     ],
+    positions: POSITIONS,
   });
 
   it("lists active people and inactive people with a day in the range, by name", () => {
@@ -85,8 +92,22 @@ describe("buildSheet", () => {
       employees: [ana],
       assignments: [assignment("2026-09-01", "ana", "RIE")],
       dailyBonuses: [{ date: "2026-09-01", settings: null, dayRate: null, result: null }],
+      positions: POSITIONS,
     });
     expect(noRates.days).toEqual([{ date: "2026-09-01", total: null, flagged: true }]);
+  });
+
+  it("without amounts, as the supervisor sees it, still marks and flags a duplicated position", () => {
+    const withoutAmounts = buildSheet({
+      dates: ["2026-09-01"],
+      employees: [ana, bruno],
+      assignments: [assignment("2026-09-01", "ana", "RIE"), assignment("2026-09-01", "bruno", "RIE")],
+      dailyBonuses: [],
+      positions: POSITIONS,
+    });
+
+    expect(withoutAmounts.rows.flatMap((row) => row.cells.map((cell) => cell.duplicated))).toEqual([true, true]);
+    expect(withoutAmounts.days).toEqual([{ date: "2026-09-01", total: null, flagged: true }]);
   });
 });
 

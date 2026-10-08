@@ -3,6 +3,7 @@ import { loadPeriods } from "@/sections/periods/queries";
 import { loadReviewEntries } from "@/sections/review/queries";
 import { ReviewList } from "@/sections/review/ReviewList";
 import { orThrow } from "@/utils/supabase/query";
+import { requireAmounts } from "@/utils/supabase/currentProfile";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
 
 type ReviewPageProps = { searchParams: Promise<{ ver?: string | string[] }> };
@@ -11,6 +12,7 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
   const { ver } = await searchParams;
   const acknowledged = ver === "revisados";
   const supabase = await createSupabaseServerClient();
+  await requireAmounts(supabase);
   const [entries, employees, positions, profiles, periods] = await Promise.all([
     loadReviewEntries(supabase, acknowledged),
     supabase.from("employees").select("id, first_name, last_name"),

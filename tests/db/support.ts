@@ -4,7 +4,7 @@ import { inject } from "vitest";
 import type { Database } from "@/types/database";
 import { addDays } from "@/utils/chileDate";
 
-export type AppRole = "admin" | "editor";
+export type AppRole = "admin" | "editor" | "supervisor";
 export type Client = SupabaseClient<Database>;
 
 const connection = inject("supabase");

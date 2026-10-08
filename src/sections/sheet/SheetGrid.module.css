@@ -76,6 +76,23 @@
   font-weight: 600;
 }
 
+/* Today, like a calendar: the date number in a filled circle and a line under the header. The
+   cells below keep their colours, which carry meaning. */
+.grid .dayHeader[data-today] {
+  border-bottom: 2px solid var(--color-accent);
+}
+
+.dayHeader[data-today] .dayNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-on-strong);
+}
+
 .flag {
   color: var(--color-warning);
 }

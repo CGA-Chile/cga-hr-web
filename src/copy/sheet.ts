@@ -59,6 +59,8 @@ export const sheetCopy = {
   leftEarlyGroup: "Salida",
   leftEarly: "Se retiró temprano",
   readOnlyCell: "Modo lectura. Aprieta «Editar» para cambiar el puesto.",
+  historyLoading: "Cargando cambios…",
+  historyFailed: "No se pudieron cargar los cambios. Revisa la señal y vuelve a abrir la celda.",
   clearPosition: "Vaciar",
   previousDay: "← Día anterior",
   nextDay: "Día siguiente →",

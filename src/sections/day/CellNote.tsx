@@ -3,7 +3,12 @@ import { NoteForm } from "./NoteForm";
 import type { Assignment } from "./queries";
 import styles from "./CellDrawer.module.css";
 
-type CellNoteProps = { date: string; employeeId: string; assignment: Assignment | null; editing: boolean };
+type CellNoteProps = {
+  date: string;
+  employeeId: string;
+  assignment: Pick<Assignment, "position_id" | "note"> | null;
+  editing: boolean;
+};
 
 /** A cell's note: a form in edit mode when there is a position to attach it to, text otherwise. */
 export function CellNote({ date, employeeId, assignment, editing }: CellNoteProps) {

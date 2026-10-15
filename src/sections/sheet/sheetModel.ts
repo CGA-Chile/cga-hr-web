@@ -81,7 +81,8 @@ export function buildSheet({ dates, employees, assignments, dailyBonuses, positi
   return { days, rows, grandTotal: days.reduce((sum, day) => sum + (day.total ?? 0), 0) };
 }
 
-function cellKey(date: IsoDate, employeeId: string): string {
+/** One cell's key: in the panel payload, on the grid's data-cell attribute and in the browser. */
+export function cellKey(date: IsoDate, employeeId: string): string {
   return `${date}|${employeeId}`;
 }
 
@@ -139,4 +140,41 @@ export function copyFromPreviousDate(
     return positionId && !positionOn(date, employee.id) ? [{ employeeId: employee.id, positionId }] : [];
   });
   return { from, cells };
+}
+
+export type PanelAssignment = Pick<Assignment, "position_id" | "note" | "late" | "late_notified" | "left_early">;
+type PanelCell = { assignment: PanelAssignment; amount?: number | null };
+export type PanelCells = { amounts: boolean; byCell: Record<string, PanelCell> };
+
+/**
+ * What the cell panel shows, for every filled cell on the sheet, so it opens in the browser
+ * without asking the server. Null bonuses mean a role that never sees amounts: the amount is
+ * left out of the payload, not hidden in the browser.
+ */
+export function buildPanelCells(rows: readonly Pick<SheetRow, "employee" | "cells">[], dailyBonuses: readonly DailyBonus[] | null): PanelCells {
+  const amountOn = (date: IsoDate, employeeId: string) =>
+    dailyBonuses?.find((bonus) => bonus.date === date)?.result?.perEmployee.find((entry) => entry.employeeId === employeeId)
+      ?.amount ?? null;
+
+  const byCell: Record<string, PanelCell> = {};
+  for (const { employee, cells } of rows) {
+    for (const { date, assignment } of cells) {
+      if (!assignment) continue;
+      const { position_id, note, late, late_notified, left_early } = assignment;
+      byCell[cellKey(date, employee.id)] = {
+        assignment: { position_id, note, late, late_notified, left_early },
+        ...(dailyBonuses && { amount: amountOn(date, employee.id) }),
+      };
+    }
+  }
+  return { amounts: dailyBonuses !== null, byCell };
+}
+
+export function findPanelCell(
+  cells: PanelCells,
+  { date, employeeId }: { date: IsoDate; employeeId: string },
+): { assignment: PanelAssignment | null; amount: number | null | undefined } {
+  const cell = cells.byCell[cellKey(date, employeeId)];
+  const emptyAmount = cells.amounts ? null : undefined;
+  return { assignment: cell?.assignment ?? null, amount: cell ? cell.amount : emptyAmount };
 }

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { BonusPosition, BonusSettingsVersion, DailyBonusResult } from "@/domain/bonus/types";
 import type { DailyBonus } from "../bonus/dailyBonuses";
 import type { Assignment, Employee } from "../day/queries";
-import { buildSheet, copyFromPreviousDate, toneOf } from "./sheetModel";
+import { buildPanelCells, buildSheet, copyFromPreviousDate, findPanelCell, toneOf } from "./sheetModel";
 
 const SETTINGS: BonusSettingsVersion = {
   effectiveFrom: "2026-01-01",
@@ -142,5 +142,44 @@ describe("copyFromPreviousDate", () => {
 
   it("has nothing to copy when no earlier date has anything", () => {
     expect(copyFromPreviousDate("2026-09-01", rows, [assignment("2026-09-02", "ana", "RIE")])).toBeNull();
+  });
+});
+
+describe("panel cells", () => {
+  const late = { ...assignment("2026-09-01", "ana", "RIE"), note: "Llegó 9:15", late: true, late_notified: true };
+  const rows = [
+    { employee: ana, cells: [{ date: "2026-09-01", assignment: late, duplicated: false }, { date: "2026-09-02", assignment: null, duplicated: false }] },
+  ];
+  const dailyBonuses = [
+    bonus("2026-09-01", {
+      scheme: "POSITION_RATE",
+      perEmployee: [{ employeeId: "ana", positionId: "RIE", amount: 0, late: true, leftEarly: false }],
+      total: 0,
+      anomalies: [],
+    }),
+  ];
+
+  it("hands the panel what the cell holds: position, note and marks", () => {
+    const cells = buildPanelCells(rows, dailyBonuses);
+    expect(findPanelCell(cells, { date: "2026-09-01", employeeId: "ana" }).assignment).toEqual({
+      position_id: "RIE",
+      note: "Llegó 9:15",
+      late: true,
+      late_notified: true,
+      left_early: false,
+    });
+  });
+
+  it("gives an amount to a role that sees them, and null to an empty cell", () => {
+    const cells = buildPanelCells(rows, dailyBonuses);
+    expect(findPanelCell(cells, { date: "2026-09-01", employeeId: "ana" }).amount).toBe(0);
+    expect(findPanelCell(cells, { date: "2026-09-02", employeeId: "ana" })).toEqual({ assignment: null, amount: null });
+  });
+
+  it("leaves the amount out entirely for a role that never sees one", () => {
+    const cells = buildPanelCells(rows, null);
+    expect(findPanelCell(cells, { date: "2026-09-01", employeeId: "ana" }).amount).toBeUndefined();
+    expect(findPanelCell(cells, { date: "2026-09-02", employeeId: "ana" }).amount).toBeUndefined();
+    expect(JSON.stringify(cells)).not.toContain('"amount"');
   });
 });

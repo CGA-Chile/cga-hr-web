@@ -1,7 +1,7 @@
 import type { IsoDate } from "@/domain/bonus/types";
 import type { Database } from "@/types/database";
 import { monthRange } from "@/utils/chileDate";
-import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
+import { orThrow, type BrowserSupabase, type ServerSupabase } from "@/utils/supabase/query";
 
 type Tables = Database["public"]["Tables"];
 export type Employee = Pick<Tables["employees"]["Row"], "id" | "first_name" | "last_name" | "national_id" | "active">;
@@ -127,7 +127,7 @@ export async function loadModifiedEmployeeIds(supabase: ServerSupabase, date: Is
 
 /** Every movement of one cell, oldest first, with the username of whoever made it. */
 export async function loadCellHistory(
-  supabase: ServerSupabase,
+  supabase: ServerSupabase | BrowserSupabase,
   date: IsoDate,
   employeeId: string,
 ): Promise<CellMovement[]> {

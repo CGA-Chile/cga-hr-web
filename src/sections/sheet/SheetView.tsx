@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { anomaliesCopy } from "@/copy/anomalies";
 import { sheetCopy } from "@/copy/sheet";
 import { addDays, formatDayMonth } from "@/utils/chileDate";
+import { EditModeLink } from "./EditModeLink";
 import { LateIcon, LeftEarlyIcon } from "./MarkIcons";
 import { sheetPath, type SheetParams } from "./paths";
 import type { SheetRange, SheetRanges, SheetWeek } from "./sheetRange";
@@ -58,9 +59,9 @@ export function SheetView({ ranges, week, params, previousName, anomalousDateCou
 
       <div className={styles.modeBar} data-editing={editing || undefined}>
         <p className={styles.notice}>{editing ? sheetCopy.editModeNotice : sheetCopy.readModeNotice}</p>
-        <Link href={sheetPath({ ...params, editing: !editing })} scroll={false} className={styles.edit}>
+        <EditModeLink editing={editing} className={styles.edit}>
           {editing ? sheetCopy.finishEditing : sheetCopy.edit}
-        </Link>
+        </EditModeLink>
       </div>
 
       <ul className={styles.legend}>

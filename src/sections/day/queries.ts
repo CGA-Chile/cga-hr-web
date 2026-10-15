@@ -5,7 +5,7 @@ import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
 
 type Tables = Database["public"]["Tables"];
 export type Employee = Pick<Tables["employees"]["Row"], "id" | "first_name" | "last_name" | "national_id" | "active">;
-export type Position = Pick<Tables["positions"]["Row"], "id" | "code" | "name" | "abbreviation" | "bonus_eligible" | "triggers_equal_share" | "type" | "display_order">;
+export type Position = Pick<Tables["positions"]["Row"], "id" | "code" | "name" | "abbreviation" | "bonus_eligible" | "triggers_equal_share" | "type" | "display_order" | "active">;
 export type Assignment = Pick<Tables["assignments"]["Row"], "id" | "date" | "employee_id" | "position_id" | "note" | "settled_in_period_id" | "late">;
 
 const EMPLOYEE_COLUMNS = "id, first_name, last_name, national_id, active";
@@ -17,7 +17,7 @@ export async function loadPositions(supabase: ServerSupabase): Promise<Position[
   return orThrow(
     await supabase
       .from("positions")
-      .select("id, code, name, abbreviation, bonus_eligible, triggers_equal_share, type, display_order")
+      .select("id, code, name, abbreviation, bonus_eligible, triggers_equal_share, type, display_order, active")
       .is("deleted_at", null)
       .order("display_order"),
   );

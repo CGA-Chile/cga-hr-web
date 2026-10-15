@@ -9,6 +9,7 @@ type CataloguePosition = {
   bonus_eligible: boolean;
   triggers_equal_share: boolean;
   display_order: number;
+  active: boolean;
 };
 
 const LINE = ["RIETER", "ACM", "ENCAJADOR_ACM", "ALIMENTADOR_RIETER", "PACKING_ACM", "MANTAS_RIETER"];
@@ -31,7 +32,7 @@ const OTHER_WORK = [
   "PRENSADO",
   "SUPERVISOR",
 ];
-const ABSENCE = ["LICENCIA", "FALTA", "VACACIONES"];
+const ABSENCE = ["FALTA_CON_AVISO", "FALTA_SIN_AVISO", "LICENCIA", "FALTA", "VACACIONES"];
 /** The example seed's settings version. Other test files add later versions after it. */
 const EXAMPLE_VERSION_START = "2026-01-01";
 
@@ -41,7 +42,7 @@ beforeAll(async () => {
   catalogue = unwrap(
     await service
       .from("positions")
-      .select("id, code, abbreviation, type, bonus_eligible, triggers_equal_share, display_order")
+      .select("id, code, abbreviation, type, bonus_eligible, triggers_equal_share, display_order, active")
       .not("code", "like", "TEST_%")
       .is("deleted_at", null)
       .order("display_order"),
@@ -56,9 +57,7 @@ function byCode(code: string): CataloguePosition {
 
 describe("the position catalogue from docs/DOMAIN.md §11", () => {
   it("holds exactly the listed positions, and none of the discarded ones", () => {
-    expect(catalogue.map((position) => position.code).sort()).toEqual(
-      [...LINE, ...OTHER_WORK, ...ABSENCE].sort(),
-    );
+    expect(catalogue.map((position) => position.code).sort()).toEqual([...LINE, ...OTHER_WORK, ...ABSENCE].sort());
   });
 
   it("gives every position a distinct abbreviation for the period sheet", () => {
@@ -82,7 +81,18 @@ describe("the position catalogue from docs/DOMAIN.md §11", () => {
     expect(triggers.every((position) => position.bonus_eligible)).toBe(true);
   });
 
-  it("types Licencia, Falta and Vacaciones as absences and everything else as work", () => {
+  it("retires Falta, whose past assignments do not say whether there was notice, and keeps everything else active", () => {
+    const inactive = catalogue.filter((position) => !position.active).map((position) => position.code);
+
+    expect(inactive).toEqual(["FALTA"]);
+  });
+
+  it("splits Falta by notice, both kept as absences", () => {
+    expect(byCode("FALTA_CON_AVISO")).toMatchObject({ abbreviation: "FCA", type: "ABSENCE", bonus_eligible: false });
+    expect(byCode("FALTA_SIN_AVISO")).toMatchObject({ abbreviation: "FSA", type: "ABSENCE", bonus_eligible: false });
+  });
+
+  it("types the faltas, Licencia and Vacaciones as absences and everything else as work", () => {
     for (const position of catalogue) {
       expect([position.code, position.type]).toEqual([
         position.code,

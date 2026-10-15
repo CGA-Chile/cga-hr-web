@@ -29,7 +29,13 @@ _Avoid_: day off, non-working day
 
 **Worked** _(trabajó)_:
 Assigned that date to a position that is not an absence, and not marked late. Absences are
-Falta, Licencia and Vacaciones: together they cover every reason someone does not show up.
+Falta con aviso, Falta sin aviso, Licencia and Vacaciones: together they cover every reason
+someone does not show up. The notice is a record, not a rule: both faltas pay nothing.
+
+**Retired position** _(puesto inactivo)_:
+A position with `active = false`. Past cells keep showing it; the picker no longer offers it.
+Falta was retired when it split by notice.
+_Avoid_: deleted position, archived position
 
 **Late** _(atraso)_:
 A mark on an assignment. The person stays on their position in the sheet, but for the bonus

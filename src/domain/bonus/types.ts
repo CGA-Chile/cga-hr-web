@@ -10,7 +10,7 @@ export type BonusPosition = {
   bonusEligible: boolean;
   /** Its presence on a date forces EQUAL_SHARE. Always bonus-eligible, never rate-bearing. */
   triggersEqualShare: boolean;
-  /** Falta, Licencia, Vacaciones: the person did not work, so no scheme pays them. */
+  /** The faltas, Licencia, Vacaciones: the person did not work, so no scheme pays them. */
   absence: boolean;
 };
 

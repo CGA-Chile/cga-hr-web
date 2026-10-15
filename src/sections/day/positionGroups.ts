@@ -5,10 +5,10 @@ export type PositionGroup = { key: "LINE" | "OTHER" | "ABSENCE"; positions: Posi
 /**
  * The picker's groups, in display order. The carding line comes first and holds Packing ACM;
  * generic Packing sits in another group entirely, since confusing the two changes the bonus for
- * the whole line.
+ * the whole line. An inactive position is left out: past cells still show it, nobody assigns it.
  */
 export function groupPositionsForPicker(positions: readonly Position[]): PositionGroup[] {
-  const sorted = [...positions].sort((a, b) => a.display_order - b.display_order);
+  const sorted = positions.filter((position) => position.active).sort((a, b) => a.display_order - b.display_order);
   return [
     { key: "LINE" as const, positions: sorted.filter((position) => position.bonus_eligible) },
     {

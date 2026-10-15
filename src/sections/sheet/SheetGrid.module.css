@@ -157,13 +157,10 @@
   color: var(--color-on-strong);
 }
 
-.grid .dayHeader[data-selected],
-.grid tr[data-selected] .name {
+/* The date whose summary is open. The open cell, its row and its date are marked by the cell
+   panel host, which knows the selection the server never sees. */
+.grid .dayHeader[data-selected] {
   background: var(--color-accent-surface);
-}
-
-.cell[data-selected] a {
-  box-shadow: inset 0 0 0 2px var(--color-text);
 }
 
 .pending {

@@ -7,14 +7,15 @@ import { DuplicateSummary } from "@/sections/bonus/DuplicateSummary";
 import { loadCalendar, loadDailyBonuses, loadSettingsVersions } from "@/sections/bonus/dailyBonuses";
 import { toBonusAssignment, toBonusPosition } from "@/sections/bonus/toBonus";
 import { loadDuplicateDates } from "@/sections/bonus/duplicateDates";
-import { groupPositionsForPicker } from "@/sections/day/positionGroups";
-import { fullName, loadCellHistory, loadPositions, loadRangeRows } from "@/sections/day/queries";
+import { fullName, loadPositions, loadRangeRows } from "@/sections/day/queries";
 import { loadPeriods } from "@/sections/periods/queries";
 import type { SheetParams } from "@/sections/sheet/paths";
 import { SheetAbbreviations } from "@/sections/sheet/SheetCellLabel";
 import { SheetGrid } from "@/sections/sheet/SheetGrid";
-import { buildSheet, copyFromPreviousDate } from "@/sections/sheet/sheetModel";
-import { CellPanel, DayPanel, PeriodEndPanel } from "@/sections/sheet/SheetPanels";
+import { CellPanelHost } from "@/sections/sheet/CellPanelHost";
+import { buildPanelCells, buildSheet, copyFromPreviousDate } from "@/sections/sheet/sheetModel";
+import { ServerPanelGate } from "@/sections/sheet/ServerPanelGate";
+import { DayPanel, PeriodEndPanel } from "@/sections/sheet/SheetPanels";
 import { datesOf, resolveSheetRanges, resolveWeek } from "@/sections/sheet/sheetRange";
 import { SheetView } from "@/sections/sheet/SheetView";
 import { addDays, isIsoDate, todayInChile } from "@/utils/chileDate";
@@ -55,25 +56,26 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
   const ranges = resolveSheetRanges(periods, date(query.desde), today);
   const { start, end } = ranges.current;
   const week = resolveWeek(ranges.current, date(query.semana), today);
+  // An open cell is the browser's business: the cell panel host reads it from the URL and the
+  // server renders nothing for it, so opening one never costs a server render.
+  const cellOpen = single(query.persona) !== null;
   const openDate = date(query.dia);
-  const panelDate = openDate && openDate >= start && openDate <= end ? openDate : null;
+  const panelDate = !cellOpen && openDate && openDate >= start && openDate <= end ? openDate : null;
   const params: SheetParams = {
     start,
     week: date(query.semana) ? week.start : null,
     editing: single(query.modo) === "editar",
     date: panelDate,
-    employeeId: panelDate ? single(query.persona) : null,
-    endPanel: single(query.panel) === "cierre" && ranges.current.endMovable && showAmounts,
+    endPanel: !cellOpen && single(query.panel) === "cierre" && ranges.current.endMovable && showAmounts,
   };
 
   // A role without amounts gets no calculation at all: the database would refuse it the rates.
-  const [positions, { employees, assignments }, dailyBonuses, anomalousDateCount, cellHistory, calendar, versions] =
+  const [positions, { employees, assignments }, dailyBonuses, anomalousDateCount, calendar, versions] =
     await Promise.all([
       loadPositions(supabase),
       loadRangeRows(supabase, addDays(start, -LOOK_BACK_DAYS), end),
       showAmounts ? loadDailyBonuses(supabase, start, end) : [],
       (showAmounts ? loadAnomalousDates(supabase) : loadDuplicateDates(supabase)).then((dates) => dates.length),
-      params.date && params.employeeId ? loadCellHistory(supabase, params.date, params.employeeId) : null,
       loadCalendar(supabase, start, end),
       showAmounts ? loadSettingsVersions(supabase) : [],
     ]);
@@ -94,8 +96,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
     : [];
   const positionsById = new Map(positions.map((position) => [position.id, position]));
   const namesById = new Map(employees.map((employee) => [employee.id, fullName(employee)]));
-  const cellEmployee = employees.find((employee) => employee.id === params.employeeId);
-  const cellBonus = dailyBonuses.find((bonus) => bonus.date === params.date);
+  const dayBonus = dailyBonuses.find((bonus) => bonus.date === params.date);
   const previousName = periods.find((period) => period.end_date === addDays(start, -1))?.name ?? null;
   const holidays = new Set([...calendar].filter(([, entry]) => entry.holiday).map(([day]) => day));
   const panelCalendar = params.date ? calendar.get(params.date) : undefined;
@@ -116,25 +117,34 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
         anomalousDateCount={anomalousDateCount}
         canChangeEnd={showAmounts}
         grid={
-          <SheetGrid
-            sheet={sheet}
-            positionsById={positionsById}
-            params={params}
-            weekStart={week.start}
-            today={today}
-            holidays={holidays}
-            showAmounts={showAmounts}
-          />
+          <CellPanelHost
+            range={{ start, end }}
+            editing={Boolean(params.editing)}
+            employees={sheet.rows.map(({ employee: { id, first_name, last_name } }) => ({ id, first_name, last_name }))}
+            cells={buildPanelCells(sheet.rows, showAmounts ? dailyBonuses : null)}
+            positions={positions}
+          >
+            <SheetGrid
+              sheet={sheet}
+              positionsById={positionsById}
+              params={params}
+              weekStart={week.start}
+              today={today}
+              holidays={holidays}
+              showAmounts={showAmounts}
+            />
+          </CellPanelHost>
         }
       />
-      {params.date && !params.employeeId && (
-        <DayPanel
+      {params.date && (
+        <ServerPanelGate panel={{ date: params.date }}>
+          <DayPanel
           date={params.date}
           params={params}
           summary={
             showAmounts ? (
               <DailySummary
-                dailyBonus={cellBonus ?? null}
+                dailyBonus={dayBonus ?? null}
                 positions={positions}
                 employeeName={(id) => namesById.get(id) ?? ""}
               />
@@ -146,31 +156,13 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
           calendar={panelCalendar}
           dayRateFallback={dayRateFallback}
           canManageCalendar={showAmounts}
-        />
-      )}
-      {params.date && cellEmployee && cellHistory && (
-        <CellPanel
-          date={params.date}
-          params={params}
-          range={{ start, end }}
-          employee={cellEmployee}
-          assignment={
-            inRange.find(
-              (assignment) => assignment.date === params.date && assignment.employee_id === cellEmployee.id,
-            ) ?? null
-          }
-          amount={
-            showAmounts
-              ? (cellBonus?.result?.perEmployee.find((entry) => entry.employeeId === cellEmployee.id)?.amount ?? null)
-              : undefined
-          }
-          history={cellHistory}
-          positionsById={positionsById}
-          positionGroups={groupPositionsForPicker(positions)}
-        />
+          />
+        </ServerPanelGate>
       )}
       {params.endPanel && ranges.current.period && (
-        <PeriodEndPanel periodId={ranges.current.period.id} start={start} end={end} params={params} />
+        <ServerPanelGate panel={{ periodEnd: true }}>
+          <PeriodEndPanel periodId={ranges.current.period.id} start={start} end={end} params={params} />
+        </ServerPanelGate>
       )}
     </SheetAbbreviations>
   );

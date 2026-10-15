@@ -9,7 +9,9 @@
 .backdrop {
   position: absolute;
   inset: 0;
+  border: 0;
   background: rgb(0 0 0 / 0.25);
+  cursor: pointer;
 }
 
 .panel {
@@ -37,7 +39,12 @@
 }
 
 .close {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
   color: var(--color-accent);
+  cursor: pointer;
 }
 
 .body {

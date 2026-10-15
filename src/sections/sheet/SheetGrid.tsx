@@ -8,7 +8,7 @@ import { sheetPath, type SheetParams } from "./paths";
 import { describeMarks } from "./incompleteDay";
 import { LateIcon, LeftEarlyIcon } from "./MarkIcons";
 import { SheetCellLabel } from "./SheetCellLabel";
-import { toneOf, type Sheet } from "./sheetModel";
+import { cellKey, toneOf, type Sheet } from "./sheetModel";
 import styles from "./SheetGrid.module.css";
 
 type SheetGridProps = {
@@ -28,7 +28,8 @@ type SheetGridProps = {
 
 /**
  * One row per person, one column per date, like the sheet it replaces. Every cell and every
- * date is a link that opens the side panel; the grid itself never edits.
+ * date is a link that opens the side panel; the grid itself never edits. A cell's link is a plain
+ * anchor: the cell panel host opens it in the browser, so the open cell is marked there too.
  */
 export function SheetGrid({ sheet, positionsById, params, weekStart, today, holidays, showAmounts }: SheetGridProps) {
   const weekEnd = addDays(weekStart, 6);
@@ -55,6 +56,7 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
                   data-rest={restDay(day.date)}
                   data-selected={selected(day.date)}
                   data-today={day.date === today || undefined}
+                  data-date={day.date}
                   aria-current={day.date === today ? "date" : undefined}
                 >
                   <Link
@@ -81,7 +83,7 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
         </thead>
         <tbody>
           {sheet.rows.map((row) => (
-            <tr key={row.employee.id} data-selected={params.employeeId === row.employee.id || undefined}>
+            <tr key={row.employee.id} data-employee={row.employee.id}>
               <th scope="row" className={styles.name}>
                 <span className={styles.fullName}>{fullName(row.employee)}</span>
                 <span className={styles.shortName}>
@@ -91,7 +93,6 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
               {row.cells.map((cell) => {
                 const position = cell.assignment ? positionsById.get(cell.assignment.position_id) : undefined;
                 const marks = cell.assignment ? describeMarks(cell.assignment) : null;
-                const isSelected = params.date === cell.date && params.employeeId === row.employee.id;
                 return (
                   <td
                     key={cell.date}
@@ -100,11 +101,11 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
                     data-duplicated={cell.duplicated || undefined}
                     data-rest={restDay(cell.date)}
                     data-out={outOfWeek(cell.date)}
-                    data-selected={isSelected || undefined}
+                    data-cell={cellKey(cell.date, row.employee.id)}
                   >
-                    <Link
+                    <a
                       href={sheetPath({ ...params, date: cell.date, employeeId: row.employee.id, endPanel: false })}
-                      scroll={false}
+                      data-cell-link
                       title={marks ? `${position?.name ?? ""} · ${marks}` : position?.name}
                       aria-label={sheetCopy.cellFor(
                         fullName(row.employee),
@@ -123,7 +124,7 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
                           {cell.assignment?.left_early && <LeftEarlyIcon />}
                         </span>
                       )}
-                    </Link>
+                    </a>
                   </td>
                 );
               })}

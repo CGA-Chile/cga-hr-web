@@ -159,7 +159,7 @@ puede dejar el total apenas bajo el tope; es correcto y esperado.
 
 Todos los que **trabajaron** ese día ganan el mismo monto fijo, sin importar el puesto ni si es de
 la línea de cardas: bodega gana lo mismo que el operario de la Rieter. Trabajó quien tiene un
-puesto que no es ausencia (`FALTA`, `LICENCIA`, `VACACIONES`). Ver `docs/adr/0012`.
+puesto que no es ausencia (las faltas, `LICENCIA`, `VACACIONES`). Ver `docs/adr/0012`.
 
 - El monto por defecto vive en `bonus_settings`, uno por tipo de día: sábado, domingo y feriado.
   Una vigencia sin esos montos es anterior a la regla, y bajo ella ningún día es `DAY_RATE`.
@@ -359,9 +359,15 @@ al módulo de cálculo a defenderse de él, y deja `n` bien definido.
 pegados en el selector, que es el error más caro posible. El orden manual permite separarlos y
 poner arriba los cinco puestos de la línea.
 
-`type = 'ABSENCE'` cubre `Licencia` y `Falta`. La celda en blanco sigue significando ausente,
-como en la planilla actual; los puestos de ausencia son opcionales y solo para cuando se quiera
-dejar constancia del motivo.
+`type = 'ABSENCE'` cubre `Falta con aviso`, `Falta sin aviso`, `Licencia` y `Vacaciones`: la
+persona no vino, y por eso una ausencia nunca va junto a un puesto de trabajo. El aviso no cambia el
+bono, que es cero en los dos casos; queda como registro. La celda en blanco sigue significando
+ausente, como en la planilla actual; los puestos de ausencia son opcionales y solo para cuando se
+quiera dejar constancia del motivo.
+
+`active = false` retira un puesto: las celdas pasadas lo siguen mostrando, pero el selector ya no lo
+ofrece. Así se retiró `Falta`, que existía antes de separar el aviso. Sus asignaciones no dicen si
+hubo aviso, y renombrarla habría inventado ese dato para todas las faltas anteriores.
 
 ### assignments
 
@@ -787,7 +793,8 @@ Sin migración. Se siembra el catálogo y se registra desde el día uno.
 Copos, Encajador Falus, Falu A1 Maxi, Falu A2 Maxi, Falu N1, Falu N2, Mantención, Packing,
 Prensado, Supervisor.
 
-**Puestos de ausencia:** Licencia, Falta.
+**Puestos de ausencia:** Falta con aviso, Falta sin aviso, Licencia, Vacaciones. `Falta`, la
+original, sigue en el catálogo como puesto retirado (sección 6).
 
 El catálogo va en una **migración**, no en el seed: `db push` no ejecuta el seed en producción, y
 sin catálogo la app no sirve. No es información sensible.

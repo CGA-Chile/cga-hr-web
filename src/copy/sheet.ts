@@ -1,4 +1,12 @@
+import type { RangeDays } from "@/sections/sheet/rangePlan";
+
 const cells = (count: number) => (count === 1 ? "1 celda vacía" : `${count} celdas vacías`);
+const days = (count: number) => (count === 1 ? "1 día" : `${count} días`);
+const RANGE_DAYS_TEXT: Record<RangeDays, string> = {
+  ALL: "corridos",
+  MON_FRI: "de lunes a viernes",
+  MON_SAT: "de lunes a sábado",
+};
 
 export const sheetCopy = {
   previousPeriod: "Período anterior",
@@ -97,4 +105,56 @@ export const sheetCopy = {
   calendarWho: "Lo pueden cambiar RRHH y el administrador.",
   invalidDayRate: "Escribe un monto en pesos, sin puntos, o déjalo vacío.",
   calendarNoPermission: "Tu usuario no puede marcar feriados ni cambiar el monto del día.",
+
+  assignRange: "Asignar por rango",
+  rangeIntro:
+    "El mismo puesto en varios días seguidos, para licencias, vacaciones o un puesto fijo. Reemplaza lo que haya en esos días.",
+  rangeEmployee: "Trabajador",
+  rangeChooseEmployee: "Elige a la persona",
+  rangePosition: "Puesto",
+  rangeFrom: "Desde",
+  rangeTo: "Hasta",
+  rangeLengths: "Cuántos días:",
+  rangeLength: (count: number) => days(count),
+  rangeDaysLabel: "Qué días",
+  rangeDays: { ALL: "Todos", MON_FRI: "Lun a vie", MON_SAT: "Lun a sáb" } satisfies Record<RangeDays, string>,
+  rangeNote: "Nota para todos esos días",
+  rangeNoteHint: "Opcional. Si la dejas vacía, cada día conserva la nota que tenga.",
+  rangeEndBeforeStart: "La fecha «Hasta» tiene que ser igual o posterior a «Desde».",
+  rangeTooLong: "Elige un rango de hasta un año.",
+  rangePreviewTitle: "Qué va a cambiar",
+  rangeSpan: (count: number, which: RangeDays, from: string, to: string) =>
+    `${count === 1 ? "1 día" : `${count} días ${RANGE_DAYS_TEXT[which]}`}, ${from === to ? `el ${from}` : `del ${from} al ${to}`}`,
+  rangeReplace: (count: number) => `Reemplaza ${days(count)} que ya tenían otro puesto.`,
+  rangeClear: (count: number) => `Deja ${count === 1 ? "vacío 1 día" : `vacíos ${count} días`} que tenían puesto.`,
+  rangeFill: (count: number) => `Llena ${count === 1 ? "1 día vacío" : `${count} días vacíos`}.`,
+  rangeNoteOnly: (count: number) => `Cambia la nota de ${days(count)} que ya tenían ese puesto.`,
+  rangeSame: (count: number) => (count === 1 ? "1 día queda igual." : `${count} días quedan igual.`),
+  rangePaid: (count: number) =>
+    count === 1
+      ? "1 día ya se pagó y no se cambia. Solo un administrador puede cambiarlo."
+      : `${count} días ya se pagaron y no se cambian. Solo un administrador puede cambiarlos.`,
+  rangeAfterEnd: (count: number, from: string) =>
+    `${count === 1 ? "1 día es" : `${count} días son`} del período siguiente, desde el ${from}.`,
+  rangeChoose: "Elige la persona y el puesto para ver qué cambia.",
+  rangeTilesHint: "En cada día: arriba lo que hay hoy, abajo lo que queda.",
+  rangeLoading: "Revisando esos días…",
+  rangeLoadFailed: "No se pudieron revisar esos días. Revisa la señal y vuelve a intentarlo.",
+  rangeApply: (position: string, count: number) => `Asignar ${position} en ${days(count)}`,
+  rangeApplyClear: (count: number) => `Vaciar ${days(count)}`,
+  rangeNothingToChange: "No hay nada que cambiar",
+  rangeSaving: "Guardando…",
+  rangeCancel: "Cancelar",
+  rangeOffline: "Sin conexión. Para asignar varios días a la vez se necesita señal.",
+  rangeNoPermission: "Tu usuario no puede hacer este cambio.",
+  rangeDone: (name: string, position: string, from: string, to: string, count: number) =>
+    `Listo. ${name} queda con ${position} del ${from} al ${to} (${days(count)} cambiados).`,
+  rangeDoneCleared: (name: string, from: string, to: string, count: number) =>
+    `Listo. ${name} queda sin puesto del ${from} al ${to} (${days(count)} cambiados).`,
+  rangeUndo: "Deshacer",
+  rangeUndone: "Se deshizo. Se guarda igual que cualquier cambio.",
+  rangeDismiss: "Cerrar aviso",
+  fromCellTitle: "Varios días",
+  fromCellHint: "Para una licencia, vacaciones o un puesto fijo: elige el puesto una vez para un rango de fechas, desde este día.",
+  fromCellButton: "Asignar a varios días",
 } as const;

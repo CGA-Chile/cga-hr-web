@@ -5,6 +5,7 @@ import { sheetCopy } from "@/copy/sheet";
 import { addDays, formatDayMonth } from "@/utils/chileDate";
 import { EditModeLink } from "./EditModeLink";
 import { LateIcon, LeftEarlyIcon } from "./MarkIcons";
+import { RangeLink } from "./RangeLink";
 import { sheetPath, type SheetParams } from "./paths";
 import type { SheetRange, SheetRanges, SheetWeek } from "./sheetRange";
 import styles from "./SheetView.module.css";
@@ -59,9 +60,12 @@ export function SheetView({ ranges, week, params, previousName, anomalousDateCou
 
       <div className={styles.modeBar} data-editing={editing || undefined}>
         <p className={styles.notice}>{editing ? sheetCopy.editModeNotice : sheetCopy.readModeNotice}</p>
-        <EditModeLink editing={editing} className={styles.edit}>
-          {editing ? sheetCopy.finishEditing : sheetCopy.edit}
-        </EditModeLink>
+        <div className={styles.modeActions}>
+          {editing && <RangeLink className={styles.rangeLink} />}
+          <EditModeLink editing={editing} className={styles.edit}>
+            {editing ? sheetCopy.finishEditing : sheetCopy.edit}
+          </EditModeLink>
+        </div>
       </div>
 
       <ul className={styles.legend}>

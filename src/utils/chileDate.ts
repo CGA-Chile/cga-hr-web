@@ -20,6 +20,11 @@ export function addDays(date: IsoDate, days: number): IsoDate {
   return new Date(toUtc(date).getTime() + days * DAY_MS).toISOString().slice(0, 10);
 }
 
+/** 0 for Sunday to 6 for Saturday, as Date.getUTCDay counts. */
+export function weekdayOf(date: IsoDate): number {
+  return toUtc(date).getUTCDay();
+}
+
 export function monthRange(date: IsoDate): { first: IsoDate; last: IsoDate } {
   const first = `${date.slice(0, 7)}-01`;
   const nextMonth = toUtc(first);

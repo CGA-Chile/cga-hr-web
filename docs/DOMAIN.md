@@ -680,6 +680,21 @@ sea reconocible.
   con botones agrupados, nunca escribiendo en la celda.
 - **Copiar columna.** En modo edición, el resumen del día ofrece copiar los puestos del último día
   anterior que tenga registros. Solo llena celdas vacías: lo ya registrado no se toca.
+- **Asignar por rango.** En modo edición, para licencias, vacaciones o un puesto fijo: una persona,
+  un puesto y un rango de fechas (todos los días, de lunes a viernes o de lunes a sábado). Se abre
+  con el botón «Asignar por rango» o desde el panel de una celda, que deja puestos la persona y la
+  fecha de inicio. Reemplaza lo que haya en esos días:
+  - Un día que ya tiene ese puesto queda igual, con sus marcas. Solo cambia su nota si se escribe
+    una nueva.
+  - Un día reemplazado pierde las marcas de día incompleto, que eran del puesto anterior. Su nota se
+    mantiene, salvo que se escriba una nueva.
+  - Un día ya pagado se salta para quien no puede cambiarlo, y el resto se asigna igual. El
+    administrador lo reemplaza, como haría con una celda, pero un rango nunca lo vacía: se perdería
+    el registro de lo pagado y «Deshacer» no podría devolverlo.
+  - Los días después del último período también se pueden asignar.
+  Antes de guardar, el panel dice día por día qué se reemplaza, qué se llena y qué queda igual, y lo
+  marca en la planilla. Se guarda completo o no se guarda. Después ofrece «Deshacer», que devuelve
+  cada día a como estaba.
 - **Fecha de cierre.** Desde la planilla, RRHH cambia la fecha de término del período abierto. Ver
   sección 7.
 - **Feriados.** Domingos y feriados van sombreados. En modo edición, el resumen del día deja a RRHH
@@ -801,6 +816,9 @@ localmente es la cola de escrituras pendientes.
   se registra cambio ni se muestra advertencia. Es el caso común y esperado.
 - Si mandan valores **distintos**, gana el último y queda constancia en el historial. Nunca
   sobreescribir sin dejar rastro.
+- **Asignar por rango necesita señal.** No pasa por la cola: la vista previa lee la base y el
+  rango se guarda completo en una sola llamada, o no se guarda. Sin conexión, el panel lo dice y no
+  guarda nada. «Deshacer» sí pasa por la cola, una celda por día. Ver `docs/adr/0015`.
 
 ---
 

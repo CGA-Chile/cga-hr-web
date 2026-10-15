@@ -29,6 +29,8 @@ type CellPanelProps = {
   /** The arrows' targets along the row, or null at the edge of the range. */
   previousHref: string | null;
   nextHref: string | null;
+  /** Opens the range panel from this cell; null in read mode. */
+  rangeHref: string | null;
   /** Changes with every server render, so the history is read again after an edit lands. */
   freshness: unknown;
   onClose: () => void;
@@ -91,6 +93,15 @@ export function CellPanel(props: CellPanelProps) {
               leftEarly={assignment.left_early}
             />
           )}
+          {props.rangeHref && (
+            <section className={styles.fromCell}>
+              <h3 className={styles.heading}>{sheetCopy.fromCellTitle}</h3>
+              <p className={styles.muted}>{sheetCopy.fromCellHint}</p>
+              <a href={props.rangeHref} data-cell-link className={styles.rangeLink}>
+                {sheetCopy.fromCellButton}
+              </a>
+            </section>
+          )}
         </>
       ) : (
         <p className={styles.muted}>{sheetCopy.readOnlyCell}</p>
@@ -129,5 +140,5 @@ function History({ selection, positionsById, freshness }: HistoryProps) {
   const history = useCellHistory(selection, freshness);
   if (history.status === "LOADING") return <p className={styles.muted}>{sheetCopy.historyLoading}</p>;
   if (history.status === "FAILED") return <p className={styles.muted}>{sheetCopy.historyFailed}</p>;
-  return <CellHistoryList history={history.movements} positionsById={positionsById} />;
+  return <CellHistoryList history={history.data} positionsById={positionsById} />;
 }

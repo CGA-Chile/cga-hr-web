@@ -150,3 +150,21 @@ export async function loadCellHistory(
     changedBy: changedBy ? (usernames.get(changedBy) ?? null) : null,
   }));
 }
+
+/** What one person holds on each date of a range, for the range panel's preview. */
+export async function loadStoredDays(
+  supabase: ServerSupabase | BrowserSupabase,
+  employeeId: string,
+  from: IsoDate,
+  to: IsoDate,
+): Promise<Pick<Assignment, "date" | "position_id" | "note" | "settled_in_period_id">[]> {
+  return orThrow(
+    await supabase
+      .from("assignments")
+      .select("date, position_id, note, settled_in_period_id")
+      .eq("employee_id", employeeId)
+      .gte("date", from)
+      .lte("date", to)
+      .is("deleted_at", null),
+  );
+}

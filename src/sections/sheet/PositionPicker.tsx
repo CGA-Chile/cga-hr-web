@@ -32,6 +32,27 @@ export function PositionPicker({ date, employeeId, positionId, note, groups }: P
 
   return (
     <div className={styles.picker}>
+      <PositionOptions groups={groups} selected={shown || null} onChoose={(id) => choose(id ?? "")} />
+      {status !== "IDLE" && (
+        <p role="status" className={styles.status} data-status={status}>
+          {dayCopy.writeStatus[status]}
+        </p>
+      )}
+    </div>
+  );
+}
+
+type PositionOptionsProps = {
+  groups: readonly PositionGroup[];
+  /** Null is «Vaciar»; undefined is nothing chosen yet. */
+  selected: string | null | undefined;
+  onChoose: (positionId: string | null) => void;
+};
+
+/** The catalogue as buttons, grouped, with «Vaciar» last. Shared by a single cell and a range. */
+export function PositionOptions({ groups, selected, onChoose }: PositionOptionsProps) {
+  return (
+    <>
       {groups.map((group) => (
         <fieldset key={group.key} className={styles.group}>
           <legend className={styles.groupLabel}>{dayCopy.positionGroups[group.key]}</legend>
@@ -40,8 +61,8 @@ export function PositionPicker({ date, employeeId, positionId, note, groups }: P
               <button
                 key={position.id}
                 type="button"
-                aria-pressed={shown === position.id}
-                onClick={() => choose(position.id)}
+                aria-pressed={selected === position.id}
+                onClick={() => onChoose(position.id)}
                 className={styles.option}
               >
                 {position.name}
@@ -51,15 +72,10 @@ export function PositionPicker({ date, employeeId, positionId, note, groups }: P
         </fieldset>
       ))}
       <div className={styles.options}>
-        <button type="button" aria-pressed={shown === ""} onClick={() => choose("")} className={styles.option}>
+        <button type="button" aria-pressed={selected === null} onClick={() => onChoose(null)} className={styles.option}>
           {sheetCopy.clearPosition}
         </button>
       </div>
-      {status !== "IDLE" && (
-        <p role="status" className={styles.status} data-status={status}>
-          {dayCopy.writeStatus[status]}
-        </p>
-      )}
-    </div>
+    </>
   );
 }

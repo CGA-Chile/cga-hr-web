@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { opensInPlace, readCellSelection, sheetHrefFor, showsServerPanel, stepSelection } from "./cellSelection";
+import { opensInPlace, readCellSelection, readRangeOpening, sheetHrefFor, showsServerPanel, stepSelection } from "./cellSelection";
 
 const RANGE = { start: "2026-09-25", end: "2026-10-24" };
 
@@ -42,6 +42,38 @@ describe("sheetHrefFor", () => {
     expect(sheetHrefFor(open, { editing: true })).toBe("/planilla?modo=editar&dia=2026-10-03&persona=ana");
     const editing = new URLSearchParams("modo=editar&dia=2026-10-03&persona=ana");
     expect(sheetHrefFor(editing, { editing: false })).toBe("/planilla?dia=2026-10-03&persona=ana");
+  });
+});
+
+describe("the range panel in the URL", () => {
+  it("opens from a cell keeping its person and date, which the panel starts from", () => {
+    const open = new URLSearchParams("desde=2026-09-25&modo=editar&dia=2026-10-14&persona=ana");
+    const href = sheetHrefFor(open, { range: true });
+    expect(href).toBe("/planilla?desde=2026-09-25&modo=editar&dia=2026-10-14&persona=ana&rango=1");
+    expect(readRangeOpening(new URLSearchParams(href.split("?")[1]))).toEqual({ employeeId: "ana", from: "2026-10-14" });
+  });
+
+  it("opens with nothing chosen from the sheet's own button", () => {
+    const href = sheetHrefFor(new URLSearchParams("modo=editar&panel=cierre"), { range: true });
+    expect(href).toBe("/planilla?modo=editar&rango=1");
+    expect(readRangeOpening(new URLSearchParams("modo=editar&rango=1"))).toEqual({ employeeId: null, from: null });
+  });
+
+  it("is not open without its parameter, and ignores a date that is not a date", () => {
+    expect(readRangeOpening(new URLSearchParams("dia=2026-10-14&persona=ana"))).toBeNull();
+    expect(readRangeOpening(new URLSearchParams("dia=ayer&rango=1"))).toEqual({ employeeId: null, from: null });
+  });
+
+  it("closes together with the cell it opened from, and stays closed when another cell opens", () => {
+    const open = new URLSearchParams("modo=editar&dia=2026-10-14&persona=ana&rango=1");
+    expect(sheetHrefFor(open, { range: false, cell: null })).toBe("/planilla?modo=editar");
+    expect(sheetHrefFor(open, { cell: { date: "2026-10-15", employeeId: "ana" } })).toBe(
+      "/planilla?modo=editar&dia=2026-10-15&persona=ana",
+    );
+  });
+
+  it("hides any panel the server drew", () => {
+    expect(showsServerPanel(new URLSearchParams("panel=cierre&rango=1"), { periodEnd: true })).toBe(false);
   });
 });
 

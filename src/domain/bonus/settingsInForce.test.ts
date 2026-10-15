@@ -36,8 +36,8 @@ function totalOn(date: string, versions: readonly BonusSettingsVersion[] = VERSI
   const settings = settingsInForceOn(date, versions);
   return calculateDailyBonus({
     assignments: [
-      { employeeId: "a", positionId: RIETER.id, late: false },
-      { employeeId: "b", positionId: ACM.id, late: false },
+      { employeeId: "a", positionId: RIETER.id, late: false, leftEarly: false },
+      { employeeId: "b", positionId: ACM.id, late: false, leftEarly: false },
     ],
     positions: POSITIONS,
     settings,

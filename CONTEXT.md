@@ -28,8 +28,8 @@ A date HR marks as such. It is paid under the day rate even when it falls on a w
 _Avoid_: day off, non-working day
 
 **Worked** _(trabajó)_:
-Assigned that date to a position that is not an absence, and not marked late. Absences are
-Falta con aviso, Falta sin aviso, Licencia and Vacaciones: together they cover every reason
+Assigned that date to a position that is not an absence, on a day that was not incomplete. Absences
+are Falta con aviso, Falta sin aviso, Licencia and Vacaciones: together they cover every reason
 someone does not show up. The notice is a record, not a rule: both faltas pay nothing.
 
 **Retired position** _(puesto inactivo)_:
@@ -37,12 +37,22 @@ A position with `active = false`. Past cells keep showing it; the picker no long
 Falta was retired when it split by notice.
 _Avoid_: deleted position, archived position
 
+**Incomplete day** _(día incompleto)_:
+An assignment marked late, left early, or both. The person stays on their position in the sheet,
+but for the bonus they are not there: they earn nothing under any scheme, they do not count in
+the equal share's `n`, and they do not count as an occupant when looking for duplicates — so
+whoever covered for them is paid without a mark. Only someone who came has one: an absence
+carries no marks.
+_Avoid_: partial day, half day
+
 **Late** _(atraso)_:
-A mark on an assignment. The person stays on their position in the sheet, but for the bonus
-they are not there: they earn nothing under any scheme, they do not count in the equal share's
-`n`, and they do not count as an occupant when looking for duplicates — so whoever covered for
-them is paid without a mark.
+A mark of an incomplete day: arrived after the start. Recorded with notice or without; the notice
+is for HR and does not change the pay. Marks from before the notice existed have none.
 _Avoid_: tardiness, absence
+
+**Left early** _(salida temprana)_:
+A mark of an incomplete day: left before the end. No notice is recorded for it.
+_Avoid_: early exit, absence
 
 **Scheme trigger** _(disparador de esquema)_:
 A position whose presence on a date forces `EQUAL_SHARE`. A property of the position, carried
@@ -61,7 +71,7 @@ hiding it would hide the assignment error that caused it. It does not apply on d
 _Avoid_: limit, maximum, budget
 
 **Supervisor** _(supervisor)_:
-The role that assigns people to positions and marks lateness, and never sees an amount. It sees
+The role that assigns people to positions and marks incomplete days, and never sees an amount. It sees
 the anomalies so it can fix them, with any figures left out.
 
 **Rate-bearing position** _(puesto de tarifa)_:

@@ -9,6 +9,7 @@ import type {
   EmployeeBonus,
 } from "./types";
 import { findDuplicatedPositions } from "./duplicates";
+import { workedFullDay } from "./fullDay";
 
 type ResolvedAssignment = BonusAssignment & { position: BonusPosition };
 
@@ -24,7 +25,7 @@ type ResolvedAssignment = BonusAssignment & { position: BonusPosition };
 export function calculateDailyBonus(input: DailyBonusInput): DailyBonusResult {
   const resolved = resolvePositions(input);
   const eligible = resolved.filter((assignment) => assignment.position.bonusEligible);
-  const onLine = eligible.filter((assignment) => !assignment.late);
+  const onLine = eligible.filter(workedFullDay);
   if (input.dayRate !== null) return payDayRate(input, resolved, input.dayRate);
 
   const scheme = deriveScheme(onLine);
@@ -58,13 +59,14 @@ function payDayRate(input: DailyBonusInput, resolved: readonly ResolvedAssignmen
   };
 }
 
-/** A late arrival is listed at zero whatever the scheme would pay. */
+/** An incomplete day is listed at zero whatever the scheme would pay. */
 function toBonus(assignment: ResolvedAssignment, amount: number): EmployeeBonus {
   return {
     employeeId: assignment.employeeId,
     positionId: assignment.positionId,
-    amount: assignment.late ? 0 : amount,
+    amount: workedFullDay(assignment) ? amount : 0,
     late: assignment.late,
+    leftEarly: assignment.leftEarly,
   };
 }
 
@@ -91,7 +93,7 @@ function deriveScheme(eligible: readonly ResolvedAssignment[]): BonusScheme {
 
 /** A missing rate is a configuration gap; paying zero would hide it inside a plausible total. */
 function positionRate(assignment: ResolvedAssignment, settings: BonusSettings): number {
-  if (assignment.late) return 0;
+  if (!workedFullDay(assignment)) return 0;
   const rate = settings.positionRates.get(assignment.positionId);
   if (rate === undefined) {
     throw new Error(`No rate in force for rate-bearing position ${assignment.positionId}`);

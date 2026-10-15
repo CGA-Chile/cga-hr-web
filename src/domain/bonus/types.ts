@@ -19,6 +19,8 @@ export type BonusAssignment = {
   positionId: string;
   /** Arrived late: stays on the position, but for the bonus is not there. */
   late: boolean;
+  /** Left before the end of the day: treated exactly like a late arrival. */
+  leftEarly: boolean;
 };
 
 /** The day-rate defaults, one per kind of date. Amounts are integer Chilean pesos. */
@@ -76,8 +78,9 @@ export type EmployeeBonus = {
   employeeId: string;
   positionId: string;
   amount: number;
-  /** Listed at zero, so the close settles the assignment and the summary can say why. */
+  /** With leftEarly: listed at zero, so the close settles the assignment and the summary says why. */
   late: boolean;
+  leftEarly: boolean;
 };
 
 export type DailyBonusAnomaly =

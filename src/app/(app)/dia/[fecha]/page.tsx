@@ -3,7 +3,8 @@ import { findDuplicatedPositions } from "@/domain/bonus/duplicates";
 import { DailySummary } from "@/sections/bonus/DailySummary";
 import { DuplicateSummary } from "@/sections/bonus/DuplicateSummary";
 import { loadAnomalousDates } from "@/sections/bonus/anomalousDates";
-import { loadDailyBonuses, toBonusPosition } from "@/sections/bonus/dailyBonuses";
+import { loadDailyBonuses } from "@/sections/bonus/dailyBonuses";
+import { toBonusAssignment, toBonusPosition } from "@/sections/bonus/toBonus";
 import { loadDuplicateDates } from "@/sections/bonus/duplicateDates";
 import { CellDrawer } from "@/sections/day/CellDrawer";
 import { DayView } from "@/sections/day/DayView";
@@ -76,9 +77,7 @@ export default async function DayPage({ params, searchParams }: DayPageProps) {
           ) : (
             <DuplicateSummary
               duplicates={findDuplicatedPositions(
-                rows.flatMap(({ employee, assignment }) =>
-                  assignment ? [{ employeeId: employee.id, positionId: assignment.position_id, late: assignment.late }] : [],
-                ),
+                rows.flatMap(({ assignment }) => (assignment ? [toBonusAssignment(assignment)] : [])),
                 positions.map(toBonusPosition),
               )}
               positionName={(id) => positionsById.get(id)?.name ?? ""}

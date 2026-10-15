@@ -4,7 +4,8 @@ import { findSettingsInForce } from "@/domain/bonus/settingsInForce";
 import { findDuplicatedPositions } from "@/domain/bonus/duplicates";
 import { DailySummary } from "@/sections/bonus/DailySummary";
 import { DuplicateSummary } from "@/sections/bonus/DuplicateSummary";
-import { loadCalendar, loadDailyBonuses, loadSettingsVersions, toBonusPosition } from "@/sections/bonus/dailyBonuses";
+import { loadCalendar, loadDailyBonuses, loadSettingsVersions } from "@/sections/bonus/dailyBonuses";
+import { toBonusAssignment, toBonusPosition } from "@/sections/bonus/toBonus";
 import { loadDuplicateDates } from "@/sections/bonus/duplicateDates";
 import { groupPositionsForPicker } from "@/sections/day/positionGroups";
 import { fullName, loadCellHistory, loadPositions, loadRangeRows } from "@/sections/day/queries";
@@ -87,13 +88,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
   });
   const panelDuplicates = params.date
     ? findDuplicatedPositions(
-        inRange
-          .filter((assignment) => assignment.date === params.date)
-          .map((assignment) => ({
-            employeeId: assignment.employee_id,
-            positionId: assignment.position_id,
-            late: assignment.late,
-          })),
+        inRange.filter((assignment) => assignment.date === params.date).map(toBonusAssignment),
         bonusPositions,
       )
     : [];

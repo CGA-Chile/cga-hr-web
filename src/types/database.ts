@@ -77,8 +77,12 @@ export type Database = {
           employee_id: string
           id: string
           new_late: boolean | null
+          new_late_notified: boolean | null
+          new_left_early: boolean | null
           new_position_id: string | null
           previous_late: boolean | null
+          previous_late_notified: boolean | null
+          previous_left_early: boolean | null
           previous_position_id: string | null
           updated_at: string
         }
@@ -94,8 +98,12 @@ export type Database = {
           employee_id: string
           id?: string
           new_late?: boolean | null
+          new_late_notified?: boolean | null
+          new_left_early?: boolean | null
           new_position_id?: string | null
           previous_late?: boolean | null
+          previous_late_notified?: boolean | null
+          previous_left_early?: boolean | null
           previous_position_id?: string | null
           updated_at?: string
         }
@@ -111,8 +119,12 @@ export type Database = {
           employee_id?: string
           id?: string
           new_late?: boolean | null
+          new_late_notified?: boolean | null
+          new_left_early?: boolean | null
           new_position_id?: string | null
           previous_late?: boolean | null
+          previous_late_notified?: boolean | null
+          previous_left_early?: boolean | null
           previous_position_id?: string | null
           updated_at?: string
         }
@@ -156,6 +168,8 @@ export type Database = {
           employee_id: string
           id: string
           late: boolean
+          late_notified: boolean | null
+          left_early: boolean
           note: string | null
           position_id: string
           settled_amount: number | null
@@ -171,6 +185,8 @@ export type Database = {
           employee_id: string
           id?: string
           late?: boolean
+          late_notified?: boolean | null
+          left_early?: boolean
           note?: string | null
           position_id: string
           settled_amount?: number | null
@@ -186,6 +202,8 @@ export type Database = {
           employee_id?: string
           id?: string
           late?: boolean
+          late_notified?: boolean | null
+          left_early?: boolean
           note?: string | null
           position_id?: string
           settled_amount?: number | null
@@ -603,11 +621,15 @@ export type Database = {
           new_day_rate: number | null
           new_holiday: boolean | null
           new_late: boolean | null
+          new_late_notified: boolean | null
+          new_left_early: boolean | null
           new_position_id: string | null
           period_id: string | null
           previous_day_rate: number | null
           previous_holiday: boolean | null
           previous_late: boolean | null
+          previous_late_notified: boolean | null
+          previous_left_early: boolean | null
           previous_position_id: string | null
         }
         Relationships: []
@@ -634,6 +656,8 @@ export type Database = {
           p_date: string
           p_employee_id: string
           p_late?: boolean
+          p_late_notified?: boolean
+          p_left_early?: boolean
           p_note?: string
           p_op_id: string
           p_position_id?: string

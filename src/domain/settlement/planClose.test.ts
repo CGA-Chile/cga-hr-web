@@ -39,6 +39,7 @@ function day(date: string, seats: Seat[], settings: BonusSettings = SETTINGS, da
     employeeId: `${date}-employee-${index + 1}`,
     positionId: seat.position.id,
     late: false,
+    leftEarly: false,
     settledAmount: seat.settledAmount ?? null,
   }));
   return {

@@ -18,7 +18,8 @@ export const summaryCopy = {
   positionColumn: "Puesto",
   amountColumn: "Monto",
   total: "Total del día",
-  late: "Atraso, $0",
+  incomplete: (late: boolean, leftEarly: boolean) =>
+    `${late && leftEarly ? "Atraso y salida temprana" : late ? "Atraso" : "Salida temprana"}, $0`,
   aboveCap: (total: string, cap: string) => `Total del día: ${total} — sobre el tope de ${cap}.`,
   duplicateAffectsAmount: (positionName: string, count: number) =>
     `${positionName} tiene ${people(count)} — afecta el monto del día.`,

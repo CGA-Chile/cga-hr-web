@@ -38,9 +38,14 @@ export const dayCopy = {
   history: "Cambios",
   noHistory: "Sin cambios registrados.",
   emptyCell: "(vacío)",
-  markedLate: "Marcado como atrasado",
+  /** Null on a late mark recorded before the notice was asked for. */
+  markedLate: (notified: boolean | null) =>
+    notified === null ? "Atraso" : notified ? "Atraso con aviso" : "Atraso sin aviso",
   unmarkedLate: "Se quitó el atraso",
   lateSuffix: "(atrasado)",
+  markedLeftEarly: "Salida temprana",
+  unmarkedLeftEarly: "Se quitó la salida temprana",
+  leftEarlySuffix: "(salió temprano)",
   unknownUser: "alguien",
   note: "Nota",
   noNote: "Sin nota.",

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { anomaliesCopy } from "@/copy/anomalies";
 import { sheetCopy } from "@/copy/sheet";
 import { addDays, formatDayMonth } from "@/utils/chileDate";
+import { LateIcon, LeftEarlyIcon } from "./MarkIcons";
 import { sheetPath, type SheetParams } from "./paths";
 import type { SheetRange, SheetRanges, SheetWeek } from "./sheetRange";
 import styles from "./SheetView.module.css";
@@ -68,7 +69,14 @@ export function SheetView({ ranges, week, params, previousName, anomalousDateCou
         <li data-tone="OTHER">{sheetCopy.legendOther}</li>
         <li data-tone="ABSENCE">{sheetCopy.legendAbsence}</li>
         <li data-tone="DUPLICATED">{sheetCopy.legendDuplicated}</li>
-        <li data-tone="LATE">{sheetCopy.legendLate}</li>
+        <li data-tone="MARK">
+          <LateIcon size={13} />
+          {sheetCopy.legendLate}
+        </li>
+        <li data-tone="MARK">
+          <LeftEarlyIcon size={13} />
+          {sheetCopy.legendLeftEarly}
+        </li>
       </ul>
 
       <nav className={styles.weekNav}>

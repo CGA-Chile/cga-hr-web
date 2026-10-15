@@ -138,11 +138,23 @@
   font-weight: 700;
 }
 
-/* A late arrival keeps the position's colour, crossed out: they were there, without the bonus. */
-.grid .cell[data-late] a {
+/* An incomplete day keeps the position as it is, with a small icon in the corner: they were there,
+   without the bonus. A clock for arriving late, an arrow out for leaving early. */
+.cell a {
+  position: relative;
+}
+
+.marks {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  gap: 1px;
   color: var(--color-warning);
-  text-decoration: line-through;
-  text-decoration-thickness: 2px;
+}
+
+.cell[data-duplicated] .marks {
+  color: var(--color-on-strong);
 }
 
 .grid .dayHeader[data-selected],

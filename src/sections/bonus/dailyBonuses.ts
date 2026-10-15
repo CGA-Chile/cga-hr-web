@@ -11,6 +11,7 @@ import type {
   IsoDate,
 } from "@/domain/bonus/types";
 import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
+import { toBonusAssignment, toBonusPosition } from "./toBonus";
 
 /** One date's calculation, or the fact that no settings version covers it. */
 export type DailyBonus =
@@ -26,17 +27,6 @@ export type LiveAssignment = BonusAssignment & {
   date: IsoDate;
   settledAmount: number | null;
 };
-
-type PositionFlags = { id: string; bonus_eligible: boolean; triggers_equal_share: boolean; type: string };
-
-export function toBonusPosition(row: PositionFlags): BonusPosition {
-  return {
-    id: row.id,
-    bonusEligible: row.bonus_eligible,
-    triggersEqualShare: row.triggers_equal_share,
-    absence: row.type === "ABSENCE",
-  };
-}
 
 export async function loadBonusPositions(supabase: ServerSupabase): Promise<BonusPosition[]> {
   const rows = orThrow(
@@ -75,19 +65,12 @@ export async function loadLiveAssignments(supabase: ServerSupabase, from: IsoDat
   const rows = orThrow(
     await supabase
       .from("assignments")
-      .select("id, date, employee_id, position_id, settled_amount, late")
+      .select("id, date, employee_id, position_id, settled_amount, late, left_early")
       .gte("date", from)
       .lte("date", to)
       .is("deleted_at", null),
   );
-  return rows.map((row) => ({
-    id: row.id,
-    date: row.date,
-    employeeId: row.employee_id,
-    positionId: row.position_id,
-    settledAmount: row.settled_amount,
-    late: row.late,
-  }));
+  return rows.map((row) => ({ ...toBonusAssignment(row), id: row.id, date: row.date, settledAmount: row.settled_amount }));
 }
 
 export async function loadCalendar(supabase: ServerSupabase, from: IsoDate, to: IsoDate): Promise<Calendar> {

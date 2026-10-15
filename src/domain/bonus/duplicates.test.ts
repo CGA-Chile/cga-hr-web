@@ -7,7 +7,12 @@ const PACKING_ACM: BonusPosition = { id: "packing-acm", bonusEligible: true, tri
 const BODEGA: BonusPosition = { id: "bodega", bonusEligible: false, triggersEqualShare: false, absence: false };
 const POSITIONS = [RIETER, PACKING_ACM, BODEGA];
 
-const seat = (employeeId: string, position: BonusPosition, late = false) => ({ employeeId, positionId: position.id, late });
+const seat = (employeeId: string, position: BonusPosition, marks: { late?: boolean; leftEarly?: boolean } = {}) => ({
+  employeeId,
+  positionId: position.id,
+  late: marks.late ?? false,
+  leftEarly: marks.leftEarly ?? false,
+});
 
 describe("duplicated positions, found without any amount", () => {
   it("reports a rate-bearing position held by two people", () => {
@@ -23,6 +28,10 @@ describe("duplicated positions, found without any amount", () => {
   });
 
   it("does not count a late arrival as an occupant", () => {
-    expect(findDuplicatedPositions([seat("a", RIETER, true), seat("b", RIETER)], POSITIONS)).toEqual([]);
+    expect(findDuplicatedPositions([seat("a", RIETER, { late: true }), seat("b", RIETER)], POSITIONS)).toEqual([]);
+  });
+
+  it("does not count someone who left early as an occupant", () => {
+    expect(findDuplicatedPositions([seat("a", RIETER, { leftEarly: true }), seat("b", RIETER)], POSITIONS)).toEqual([]);
   });
 });

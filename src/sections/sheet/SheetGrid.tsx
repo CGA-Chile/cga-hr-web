@@ -5,6 +5,8 @@ import { addDays, formatLongDate } from "@/utils/chileDate";
 import { formatPesos, formatThousands } from "@/utils/money";
 import { fullName, type Position } from "../day/queries";
 import { sheetPath, type SheetParams } from "./paths";
+import { describeMarks } from "./incompleteDay";
+import { LateIcon, LeftEarlyIcon } from "./MarkIcons";
 import { SheetCellLabel } from "./SheetCellLabel";
 import { toneOf, type Sheet } from "./sheetModel";
 import styles from "./SheetGrid.module.css";
@@ -88,6 +90,7 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
               </th>
               {row.cells.map((cell) => {
                 const position = cell.assignment ? positionsById.get(cell.assignment.position_id) : undefined;
+                const marks = cell.assignment ? describeMarks(cell.assignment) : null;
                 const isSelected = params.date === cell.date && params.employeeId === row.employee.id;
                 return (
                   <td
@@ -98,18 +101,15 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
                     data-rest={restDay(cell.date)}
                     data-out={outOfWeek(cell.date)}
                     data-selected={isSelected || undefined}
-                    data-late={cell.assignment?.late || undefined}
                   >
                     <Link
                       href={sheetPath({ ...params, date: cell.date, employeeId: row.employee.id, endPanel: false })}
                       scroll={false}
-                      title={position?.name}
+                      title={marks ? `${position?.name ?? ""} · ${marks}` : position?.name}
                       aria-label={sheetCopy.cellFor(
                         fullName(row.employee),
                         formatLongDate(cell.date),
-                        cell.assignment?.late
-                          ? `${position?.name ?? ""}, ${sheetCopy.lateLabel}`
-                          : (position?.name ?? sheetCopy.noPosition),
+                        marks ? `${position?.name ?? ""}, ${marks}` : (position?.name ?? sheetCopy.noPosition),
                       )}
                     >
                       <SheetCellLabel
@@ -117,6 +117,12 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
                         employeeId={row.employee.id}
                         stored={position?.abbreviation ?? ""}
                       />
+                      {marks && (
+                        <span className={styles.marks}>
+                          {cell.assignment?.late && <LateIcon />}
+                          {cell.assignment?.left_early && <LeftEarlyIcon />}
+                        </span>
+                      )}
                     </Link>
                   </td>
                 );

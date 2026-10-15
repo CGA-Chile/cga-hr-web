@@ -3,8 +3,17 @@
 import { useState } from "react";
 import { usePendingWrites, type Outcome } from "./usePendingWrites";
 
-/** A cell's new state. `late` left out keeps the stored mark: only the late toggle sends it. */
-export type CellState = { positionId: string | null; note: string | null; late?: boolean };
+/**
+ * A cell's new state. A mark left out keeps what is stored: only the incomplete-day buttons send
+ * them. The database clears the notice with the late mark, and every mark on an absence.
+ */
+export type CellState = {
+  positionId: string | null;
+  note: string | null;
+  late?: boolean;
+  lateNotified?: boolean;
+  leftEarly?: boolean;
+};
 export type WriteStatus = "IDLE" | "SAVING" | "QUEUED" | Outcome;
 
 /**

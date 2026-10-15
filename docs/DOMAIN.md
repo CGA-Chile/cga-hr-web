@@ -50,8 +50,8 @@ es lo que se está pidiendo.
 
 - Cualquier otro bono: producción, cumplimiento, camión, limpieza, turno noche. El monto del día
   de sábados, domingos y feriados sí está dentro (sección 5).
-- Horas extras y salidas anticipadas. El atraso sí está dentro, solo como marca que quita el bono
-  del día (sección 5).
+- Horas extras y control de horario. El atraso y la salida temprana sí están dentro, solo como
+  marcas que quitan el bono del día (sección 5).
 - Integración con software de remuneraciones, ERP o cualquier sistema externo.
 - Migración de datos históricos. **La app parte de cero.** Si se necesita un día anterior, se
   ingresa a mano por la app.
@@ -65,11 +65,11 @@ reales están en el documento interno y en el seed; acá se describen por rol.
 | Perfil | Rol | Qué hace |
 |---|---|---|
 | Encargado de la asignación | `editor` | Registra la asignación diaria. Uso principal. |
-| Supervisor de producción | `supervisor` | Ayuda a registrar la asignación y marca atrasos. **No ve montos.** |
+| Supervisor de producción | `supervisor` | Ayuda a registrar la asignación y marca atrasos y salidas tempranas. **No ve montos.** |
 | RRHH | `editor` | Consulta, corrige y exporta el reporte del cierre. Ingresa la fecha de término del período abierto. |
 | Administrador | `admin` | Todo lo anterior + personas, puestos, tarifas y cierres. |
 
-El `supervisor` escribe asignaciones y atrasos igual que un editor, y ve la planilla, la vista del
+El `supervisor` escribe asignaciones, atrasos y salidas tempranas igual que un editor, y ve la planilla, la vista del
 día y los días con avisos, pero sin una sola cifra: ni totales, ni bono por persona, ni tarifas.
 De los avisos ve los puestos repetidos, que es lo que puede corregir. No entra a cierres, reporte,
 revisión ni administración, no cambia la fecha de cierre y no marca feriados. La base de datos le
@@ -249,6 +249,10 @@ la configuración de producción.
 | 19 | Atrasado en RIETER bajo POSITION_RATE | 0, la tarifa no se reparte |
 | 20 | Atrasado bajo EQUAL_SHARE | 0, no cuenta para n |
 | 21 | Atrasado en RIETER + otro en RIETER | el otro cobra, sin marca de duplicado |
+| 22 | Salida temprana en RIETER bajo POSITION_RATE | 0, la tarifa no se reparte |
+| 23 | Salida temprana bajo EQUAL_SHARE | 0, no cuenta para n |
+| 24 | Salida temprana en RIETER + otro en RIETER | el otro cobra, sin marca de duplicado |
+| 25 | Salida temprana en un día con monto del día | 0 |
 
 Los casos 13 y 14 son la contraparte de la regla anterior y no pueden faltar: el 13 prueba que
 `POSITION_RATE` no recorta, el 14 que la duplicación es inocua **para el monto** bajo
@@ -256,18 +260,24 @@ Los casos 13 y 14 son la contraparte de la regla anterior y no pueden faltar: el
 lleva la marca callada de puesto duplicado. Son dos marcas distintas y el caso solo afirma la
 ausencia de una.
 
-Los veintiuno cubren el módulo de cálculo y nada más. La compuerta de cierre, el arrastre y la
+Los veinticinco cubren el módulo de cálculo y nada más. La compuerta de cierre, el arrastre y la
 validación del exceso son reglas de liquidación, no de cálculo: viven fuera de
 `src/domain/bonus/` y se prueban aparte.
 
 ### Reglas transversales
 
 - El bono es **por día completo**. No hay medios bonos ni prorrateo por horas.
-- Estar asignado a un puesto equivale a haber trabajado el día completo, salvo que la asignación
-  tenga la marca de **atraso**. El atrasado sigue en su puesto en la planilla, pero para el bono
-  no está: no cobra en ningún esquema, no cuenta para `n` y no cuenta como ocupante al buscar
-  duplicados, así que quien lo cubrió cobra sin marca. Se liquida en 0. La app no lleva control
-  de asistencia más allá de esa marca.
+- Estar asignado a un puesto equivale a haber trabajado el día completo, salvo que el **día esté
+  incompleto**: la asignación tiene la marca de **atraso**, la de **salida temprana**, o las dos.
+  Esa persona sigue en su puesto en la planilla, pero para el bono no está: no cobra en ningún
+  esquema, no cuenta para `n` y no cuenta como ocupante al buscar duplicados, así que quien la
+  cubrió cobra sin marca. Se liquida en 0. La app no lleva control de asistencia más allá de esas
+  marcas.
+- El atraso se registra **con aviso** o **sin aviso**. Para el bono da lo mismo; el aviso queda como
+  registro para RRHH. La salida temprana no lleva aviso. Los atrasos marcados antes de que existiera
+  el aviso no lo tienen, y se muestran solo como "Atraso".
+- Las marcas son de quien vino. Una ausencia (las faltas, licencia, vacaciones) no puede llevarlas:
+  al asignar una ausencia, la base de datos borra las marcas de la celda.
 - Aplica todos los días trabajados. Sábados, domingos y feriados se pagan con el monto del día.
 - Nadie cobra dos bonos el mismo día. Está garantizado por el índice único de la sección 6.
 - Una persona con `active = false` que tiene asignaciones dentro del rango consultado **sí
@@ -378,6 +388,9 @@ position_id            uuid fk positions
 note                   text
 settled_in_period_id   uuid fk periods null    -- ver sección 7
 settled_amount         int null                -- monto liquidado, congelado al cierre
+late                   boolean not null default false
+late_notified          boolean null            -- con o sin aviso; nulo si no hay atraso
+left_early             boolean not null default false
 created_by             uuid fk auth.users
 updated_by             uuid fk auth.users
 
@@ -485,6 +498,8 @@ depende de que alguien se acuerde de registrarlo.
 assignment_id, date, employee_id
 previous_position_id, new_position_id
 previous_late, new_late                 -- null en filas anteriores al atraso
+previous_late_notified, new_late_notified
+previous_left_early, new_left_early     -- null en filas anteriores a estas marcas
 changed_by, changed_at
 acknowledged_at, acknowledged_by        -- ver "La lista de revisión", sección 7
 ```
@@ -496,7 +511,11 @@ El trigger registra **los tres movimientos**, no solo los cambios de puesto:
 - Borrado lógico (`deleted_at` pasa de nulo a no nulo): `new_position_id` nulo.
 - Marca de atraso puesta o quitada: el mismo puesto en ambos lados y el atraso distinto.
 
-Una escritura que no cambia ni el puesto ni el atraso no deja fila: es el no-op silencioso de la
+Lo mismo para el aviso del atraso y para la salida temprana (`previous_late_notified`,
+`new_late_notified`, `previous_left_early`, `new_left_early`, nulos en filas anteriores a esas
+marcas).
+
+Una escritura que no cambia ni el puesto ni una marca no deja fila: es el no-op silencioso de la
 sección 10.
 
 "Append-only" tiene una sola excepción, y es acotada: `acknowledged_at` y `acknowledged_by` se
@@ -652,8 +671,10 @@ sea reconocible.
   **abreviatura** del puesto (`positions.abbreviation`). Abajo va el bono de la línea por día, y a
   la derecha el bono de cada persona en el período.
 - **Colores.** Línea de cardas, Packing ACM, otros puestos y ausencias se distinguen por color. Un
-  puesto repetido se pinta fuerte, y el día con aviso lleva una marca en el encabezado. Un atraso
-  se ve tachado; en modo edición se marca o se quita desde el panel de la celda.
+  puesto repetido se pinta fuerte, y el día con aviso lleva una marca en el encabezado. Un día
+  incompleto deja el puesto tal cual y agrega un ícono en la esquina de la celda: un reloj para el
+  atraso y una flecha de salida para la salida temprana. En modo edición se marcan o se quitan
+  desde la sección "Día incompleto" del panel de la celda, que solo aparece en puestos de trabajo.
 - **Panel lateral.** Tocar un día abre su resumen, el mismo de la sección 8.2. Tocar una celda abre
   el puesto, el bono de ese día, la nota y el historial. En modo edición, los puestos se eligen ahí
   con botones agrupados, nunca escribiendo en la celda.

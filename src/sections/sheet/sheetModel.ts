@@ -1,6 +1,8 @@
 import { findDuplicatedPositions } from "@/domain/bonus/duplicates";
 import type { BonusPosition, IsoDate } from "@/domain/bonus/types";
+import { workedFullDay } from "@/domain/bonus/fullDay";
 import type { DailyBonus } from "../bonus/dailyBonuses";
+import { toBonusAssignment } from "../bonus/toBonus";
 import type { Assignment, Employee, Position } from "../day/queries";
 import { fullName } from "../day/queries";
 
@@ -59,7 +61,7 @@ export function buildSheet({ dates, employees, assignments, dailyBonuses, positi
       employee,
       cells: dates.map((date) => {
         const assignment = assignmentByCell.get(cellKey(date, employee.id)) ?? null;
-        const duplicated = assignment !== null && !assignment.late && Boolean(duplicatedByDate.get(date)?.has(assignment.position_id));
+        const duplicated = assignment !== null && workedFullDay(toBonusAssignment(assignment)) && Boolean(duplicatedByDate.get(date)?.has(assignment.position_id));
         return { date, assignment, duplicated };
       }),
       total: employeeTotal(dailyBonuses, employee.id),
@@ -94,11 +96,7 @@ function duplicatedPositionsByDate(
       date,
       new Set(
         findDuplicatedPositions(
-          dateAssignments.map((assignment) => ({
-            employeeId: assignment.employee_id,
-            positionId: assignment.position_id,
-            late: assignment.late,
-          })),
+          dateAssignments.map(toBonusAssignment),
           positions,
         ).map((duplicate) => duplicate.positionId),
       ),

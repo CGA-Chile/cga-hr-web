@@ -45,7 +45,7 @@ const SETTINGS: BonusSettings = {
 let nextEmployee = 0;
 function assign(position: BonusPosition): BonusAssignment {
   nextEmployee += 1;
-  return { employeeId: `employee-${nextEmployee}`, positionId: position.id, late: false };
+  return { employeeId: `employee-${nextEmployee}`, positionId: position.id, late: false, leftEarly: false };
 }
 
 function calculate(assignments: BonusAssignment[], settings: BonusSettings = SETTINGS) {
@@ -329,7 +329,7 @@ describe("a late arrival is on the sheet but not on the line", () => {
     const person = late(RIETER);
 
     expect(calculate([person]).perEmployee).toEqual([
-      { employeeId: person.employeeId, positionId: RIETER.id, amount: 0, late: true },
+      { employeeId: person.employeeId, positionId: RIETER.id, amount: 0, late: true, leftEarly: false },
     ]);
   });
 
@@ -356,5 +356,56 @@ describe("a late arrival is on the sheet but not on the line", () => {
 
     expect(result.scheme).toBe("POSITION_RATE");
     expect(amounts(result)).toEqual([4_000, 0]);
+  });
+});
+
+describe("leaving early is an incomplete day, paid like a late arrival", () => {
+  const leftEarly = (position: BonusPosition): BonusAssignment => ({ ...assign(position), leftEarly: true });
+
+  it("case 22 — under POSITION_RATE earns nothing, and the position's rate is not passed to anyone", () => {
+    const result = calculate([leftEarly(RIETER), assign(ACM)]);
+
+    expect(amounts(result)).toEqual([0, 4_000]);
+    expect(result.total).toBe(4_000);
+  });
+
+  it("case 23 — under EQUAL_SHARE earns nothing and does not count toward n", () => {
+    const result = calculate([
+      leftEarly(RIETER),
+      assign(ACM),
+      assign(ENCAJADOR_ACM),
+      assign(ALIMENTADOR_RIETER),
+      assign(PACKING_ACM),
+      assign(PACKING_ACM),
+      assign(PACKING_ACM),
+    ]);
+
+    expect(amounts(result)).toEqual([0, 2_500, 2_500, 2_500, 2_500, 2_500, 2_500]);
+  });
+
+  it("case 24 — does not count as an occupant: whoever covered the position is paid without a duplicate mark", () => {
+    const result = calculate([leftEarly(RIETER), assign(RIETER)]);
+
+    expect(amounts(result)).toEqual([0, 4_000]);
+    expect(result.anomalies).toEqual([]);
+  });
+
+  it("case 25 — on a day-rate date earns nothing either", () => {
+    const result = calculateDailyBonus({
+      assignments: [leftEarly(BODEGA), assign(BODEGA)],
+      positions: POSITIONS,
+      settings: SETTINGS,
+      dayRate: 10_000,
+    });
+
+    expect(amounts(result)).toEqual([0, 10_000]);
+  });
+
+  it("is listed with its mark, so the summary can say why the amount is zero", () => {
+    const person = { ...leftEarly(RIETER), late: true };
+
+    expect(calculate([person]).perEmployee).toEqual([
+      { employeeId: person.employeeId, positionId: RIETER.id, amount: 0, late: true, leftEarly: true },
+    ]);
   });
 });

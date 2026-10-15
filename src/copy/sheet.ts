@@ -21,6 +21,7 @@ export const sheetCopy = {
   legendAbsence: "Ausencias",
   legendDuplicated: "Puesto repetido",
   legendLate: "Atraso (sin bono)",
+  legendLeftEarly: "Salida temprana (sin bono)",
   hint: "Toca un día para ver su resumen; toca una celda para ver o cambiar el puesto.",
 
   /** Sunday first, as Date.getUTCDay counts. */
@@ -42,11 +43,21 @@ export const sheetCopy = {
   position: "Puesto",
   dayBonus: "Bono ese día",
   noBonus: "Sin bono",
-  lateBonus: "Sin bono: llegó atrasado",
-  markLate: "Marcar atraso",
-  unmarkLate: "Quitar atraso",
-  lateHint: "Con atraso sigue en su puesto, pero ese día no recibe bono ni cuenta para el reparto.",
-  lateLabel: "atrasado",
+  incompleteBonus: (late: boolean, leftEarly: boolean) =>
+    late && leftEarly
+      ? "Sin bono: atraso y salida temprana"
+      : late
+        ? "Sin bono: llegó atrasado"
+        : "Sin bono: se retiró temprano",
+  attendance: "Asistencia",
+  incompleteTitle: "Día incompleto",
+  incompleteHint:
+    "Sigue en su puesto, pero ese día no recibe bono ni cuenta para el reparto. El bono es solo para quien trabaja el día completo.",
+  lateGroup: "Llegó atrasado",
+  withNotice: "Con aviso",
+  withoutNotice: "Sin aviso",
+  leftEarlyGroup: "Salida",
+  leftEarly: "Se retiró temprano",
   readOnlyCell: "Modo lectura. Aprieta «Editar» para cambiar el puesto.",
   clearPosition: "Vaciar",
   previousDay: "← Día anterior",

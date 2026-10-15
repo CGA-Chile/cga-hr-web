@@ -10,8 +10,10 @@ export type PendingOperation = {
   employeeId: string;
   positionId: string | null;
   note: string | null;
-  /** Undefined leaves the stored mark alone; operations queued before late existed have none. */
+  /** Undefined leaves the stored mark alone; operations queued before a mark existed lack it. */
   late?: boolean;
+  lateNotified?: boolean;
+  leftEarly?: boolean;
   queuedAt: number;
 };
 

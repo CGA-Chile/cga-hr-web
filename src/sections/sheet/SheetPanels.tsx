@@ -13,7 +13,8 @@ import type { PositionGroup } from "../day/positionGroups";
 import { fullName, type Assignment, type CellMovement, type Employee, type Position } from "../day/queries";
 import { CalendarDateForm } from "./CalendarDateForm";
 import { CopyPreviousDay } from "./CopyPreviousDay";
-import { LateToggle } from "./LateToggle";
+import { describeMarks } from "./incompleteDay";
+import { IncompleteDayMarks } from "./IncompleteDayMarks";
 import { sheetPath, type SheetParams } from "./paths";
 import { PeriodEndForm } from "./PeriodEndForm";
 import { PositionPicker } from "./PositionPicker";
@@ -91,6 +92,8 @@ export function CellPanel(props: CellPanelProps) {
   };
   const previous = step(-1);
   const next = step(1);
+  const marks = assignment ? describeMarks(assignment) : null;
+  const incomplete = assignment !== null && (assignment.late || assignment.left_early);
 
   return (
     <Drawer
@@ -106,7 +109,19 @@ export function CellPanel(props: CellPanelProps) {
         {amount !== undefined && (
           <div>
             <dt>{sheetCopy.dayBonus}</dt>
-            <dd>{assignment?.late ? sheetCopy.lateBonus : amount ? formatPesos(amount) : sheetCopy.noBonus}</dd>
+            <dd>
+              {incomplete
+                ? sheetCopy.incompleteBonus(assignment.late, assignment.left_early)
+                : amount
+                  ? formatPesos(amount)
+                  : sheetCopy.noBonus}
+            </dd>
+          </div>
+        )}
+        {marks && (
+          <div className={styles.factWide}>
+            <dt>{sheetCopy.attendance}</dt>
+            <dd className={styles.marked}>{marks}</dd>
           </div>
         )}
       </dl>
@@ -122,13 +137,15 @@ export function CellPanel(props: CellPanelProps) {
             groups={positionGroups}
           />
           {assignment && positionsById.get(assignment.position_id)?.type === "WORK" && (
-            <LateToggle
-              key={`late-${date}`}
+            <IncompleteDayMarks
+              key={`marks-${date}`}
               date={date}
               employeeId={employee.id}
               positionId={assignment.position_id}
               note={assignment.note}
               late={assignment.late}
+              lateNotified={assignment.late_notified}
+              leftEarly={assignment.left_early}
             />
           )}
         </>

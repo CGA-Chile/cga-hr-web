@@ -664,6 +664,22 @@ export type Database = {
         }
         Returns: undefined
       }
+      apply_assignment_range: {
+        Args: {
+          p_dates: string[]
+          p_employee_id: string
+          p_note?: string
+          p_position_id?: string
+        }
+        Returns: {
+          changed_date: string
+          previous_late: boolean
+          previous_late_notified: boolean
+          previous_left_early: boolean
+          previous_note: string
+          previous_position_id: string
+        }[]
+      }
       close_period: {
         Args: {
           p_next_end: string

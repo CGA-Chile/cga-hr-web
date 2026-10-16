@@ -18,8 +18,12 @@ type PendingWrites = {
   sending: boolean;
   online: boolean;
   outcomes: ReadonlyMap<string, Outcome>;
-  enqueue: (operation: Omit<PendingOperation, "opId" | "queuedAt">) => Promise<string>;
+  enqueue: (operation: NewOperation) => Promise<string>;
+  /** Several edits saved together and sent in one replay, in the order given. */
+  enqueueMany: (operations: readonly NewOperation[]) => Promise<string[]>;
 };
+
+type NewOperation = Omit<PendingOperation, "opId" | "queuedAt">;
 
 const PendingWritesContext = createContext<PendingWrites | null>(null);
 const RETRY_EVERY_MS = 15_000;
@@ -76,15 +80,25 @@ export function PendingWritesProvider({ children }: { children: ReactNode }) {
     if (delivered) router.refresh();
   }, [router]);
 
-  const enqueue = useCallback<PendingWrites["enqueue"]>(
-    async (operation) => {
-      const queued = { ...operation, opId: crypto.randomUUID(), queuedAt: Date.now() };
-      await saveOperation(queued);
+  const enqueueMany = useCallback(
+    async (operations: readonly NewOperation[]) => {
+      const queuedAt = Date.now();
+      const queued = operations.map((operation, index) => ({
+        ...operation,
+        opId: crypto.randomUUID(),
+        queuedAt: queuedAt + index,
+      }));
+      for (const operation of queued) await saveOperation(operation);
       setPending(await listOperations());
       void flush();
-      return queued.opId;
+      return queued.map((operation) => operation.opId);
     },
     [flush],
+  );
+
+  const enqueue = useCallback<PendingWrites["enqueue"]>(
+    async (operation) => (await enqueueMany([operation]))[0],
+    [enqueueMany],
   );
 
   useEffect(() => {
@@ -104,7 +118,7 @@ export function PendingWritesProvider({ children }: { children: ReactNode }) {
   }, [flush]);
 
   return (
-    <PendingWritesContext.Provider value={{ pending, sending, online, outcomes, enqueue }}>
+    <PendingWritesContext.Provider value={{ pending, sending, online, outcomes, enqueue, enqueueMany }}>
       {children}
     </PendingWritesContext.Provider>
   );

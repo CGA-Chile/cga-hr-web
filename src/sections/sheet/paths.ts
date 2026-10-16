@@ -10,10 +10,12 @@ export type SheetParams = {
   date?: IsoDate | null;
   employeeId?: string | null;
   endPanel?: boolean;
+  /** The range panel, which starts from the open cell's person and date when there is one. */
+  range?: boolean;
 };
 
 /** The sheet's URL. Like the day view, edit mode and the open panel live in the query string. */
-export function sheetPath({ start, week, editing, date, employeeId, endPanel }: SheetParams = {}): string {
+export function sheetPath({ start, week, editing, date, employeeId, endPanel, range }: SheetParams = {}): string {
   const query = new URLSearchParams();
   if (start) query.set("desde", start);
   if (week) query.set("semana", week);
@@ -21,6 +23,7 @@ export function sheetPath({ start, week, editing, date, employeeId, endPanel }: 
   if (date) query.set("dia", date);
   if (date && employeeId) query.set("persona", employeeId);
   if (endPanel) query.set("panel", "cierre");
+  if (range) query.set("rango", "1");
   const search = query.toString();
   return `/planilla${search ? `?${search}` : ""}`;
 }

@@ -15,24 +15,35 @@ export function readCellSelection(query: Query, range: DateRange): CellSelection
   return { date, employeeId };
 }
 
-type SheetChanges = { cell?: CellSelection | null; editing?: boolean };
+type SheetChanges = { cell?: CellSelection | null; editing?: boolean; range?: boolean };
 
 /**
- * The sheet's URL after opening or closing a cell, or switching the mode, computed from the
- * current one so the range, the week and whatever is left untouched survive. Opening a cell
- * closes the period-end panel, as a link to the cell always did.
+ * The sheet's URL after opening or closing a cell or the range panel, or switching the mode,
+ * computed from the current one so the range, the week and whatever is left untouched survive.
+ * Opening a cell or the range panel closes any other panel, as a link to the cell always did.
  */
 export function sheetHrefFor(query: Query, changes: SheetChanges): string {
   const cell =
     changes.cell === undefined ? { date: query.get("dia"), employeeId: query.get("persona") } : changes.cell;
+  const untouched = changes.cell === undefined && changes.range === undefined;
   return sheetPath({
     start: query.get("desde"),
     week: query.get("semana"),
     editing: changes.editing ?? query.get("modo") === "editar",
     date: cell?.date ?? null,
     employeeId: cell?.employeeId ?? null,
-    endPanel: changes.cell === undefined && query.get("panel") === "cierre",
+    endPanel: untouched && query.get("panel") === "cierre",
+    range: changes.range ?? (changes.cell === undefined && query.has("rango")),
   });
+}
+
+export type RangeOpening = { employeeId: string | null; from: IsoDate | null };
+
+/** Whether the range panel is open, and the person and date it starts from, when it came from a cell. */
+export function readRangeOpening(query: Query): RangeOpening | null {
+  if (!query.has("rango")) return null;
+  const date = query.get("dia");
+  return { employeeId: query.get("persona"), from: date && isIsoDate(date) ? date : null };
 }
 
 type ClickLike = Pick<MouseEvent, "button" | "ctrlKey" | "metaKey" | "shiftKey" | "altKey" | "defaultPrevented">;
@@ -61,6 +72,6 @@ export type ServerPanel = { date: IsoDate } | { periodEnd: true };
  * in the browser without asking it, so what the server drew can go stale.
  */
 export function showsServerPanel(query: Query, panel: ServerPanel): boolean {
-  if (query.has("persona")) return false;
+  if (query.has("persona") || query.has("rango")) return false;
   return "date" in panel ? query.get("dia") === panel.date : query.get("panel") === "cierre";
 }

@@ -1,18 +1,21 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, type MouseEvent, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import { groupPositionsForPicker } from "../day/positionGroups";
 import type { Employee, Position } from "../day/queries";
 import { CellPanel } from "./CellPanel";
 import {
   opensInPlace,
   readCellSelection,
+  readRangeOpening,
   sheetHrefFor,
   stepSelection,
   type CellSelection,
   type DateRange,
 } from "./cellSelection";
+import { RangeDoneNotice } from "./RangeDoneNotice";
+import { RangePanel, type RangeDone } from "./RangePanel";
 import { cellKey, findPanelCell, type PanelCells } from "./sheetModel";
 
 type CellPanelHostProps = {
@@ -22,6 +25,8 @@ type CellPanelHostProps = {
   employees: readonly Pick<Employee, "id" | "first_name" | "last_name">[];
   cells: PanelCells;
   positions: readonly Position[];
+  /** The admin may change a paid date, as with a single cell; the range panel previews it so. */
+  mayChangePaid: boolean;
   children: ReactNode;
 };
 
@@ -31,20 +36,36 @@ type CellPanelHostProps = {
  * syncs with useSearchParams without a server render. A modified or middle click, or a page
  * without JavaScript, follows the link as before.
  */
-export function CellPanelHost({ range, editing, employees, cells, positions, children }: CellPanelHostProps) {
+export function CellPanelHost(props: CellPanelHostProps) {
+  const { range, editing, employees, cells, positions, children } = props;
+  const router = useRouter();
   const query = useSearchParams();
-  const selection = readCellSelection(query, range);
+  // The range panel writes, so it opens only in edit mode, and over the cell it came from.
+  const rangeOpening = editing ? readRangeOpening(query) : null;
+  const selection = rangeOpening ? null : readCellSelection(query, range);
   const employee = selection ? employees.find((candidate) => candidate.id === selection.employeeId) : undefined;
   const open = selection && employee ? selection : null;
+  // Numbered, so a second range with the same message gets a fresh notice and its own undo.
+  const [done, setDone] = useState<{ result: RangeDone; count: number } | null>(null);
 
   const positionsById = useMemo(() => new Map(positions.map((position) => [position.id, position])), [positions]);
   const positionGroups = useMemo(() => groupPositionsForPicker(positions), [positions]);
 
   const close = useCallback(() => {
-    window.history.pushState(null, "", sheetHrefFor(new URLSearchParams(window.location.search), { cell: null }));
+    window.history.pushState(
+      null,
+      "",
+      sheetHrefFor(new URLSearchParams(window.location.search), { cell: null, range: false }),
+    );
   }, []);
 
-  const isOpen = open !== null;
+  const applied = (result: RangeDone) => {
+    setDone((previous) => ({ result, count: (previous?.count ?? 0) + 1 }));
+    close();
+    router.refresh();
+  };
+
+  const isOpen = open !== null || rangeOpening !== null;
   useEffect(() => {
     if (!isOpen) return;
     // Escape while typing a note belongs to the field: closing would drop an unsaved note.
@@ -85,10 +106,26 @@ export function CellPanelHost({ range, editing, employees, cells, positions, chi
             previousHref={stepHref(-1)}
             nextHref={stepHref(1)}
             freshness={cells}
+            rangeHref={editing ? sheetHrefFor(query, { range: true }) : null}
             onClose={close}
           />
         </>
       )}
+      {rangeOpening && (
+        <RangePanel
+          key={query.toString()}
+          opening={rangeOpening}
+          employees={employees}
+          positionsById={positionsById}
+          positionGroups={positionGroups}
+          mayChangePaid={props.mayChangePaid}
+          end={range.end}
+          freshness={cells}
+          onClose={close}
+          onApplied={applied}
+        />
+      )}
+      {done && <RangeDoneNotice key={done.count} done={done.result} onDismiss={() => setDone(null)} />}
     </div>
   );
 }

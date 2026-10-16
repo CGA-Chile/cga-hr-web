@@ -123,6 +123,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
             employees={sheet.rows.map(({ employee: { id, first_name, last_name } }) => ({ id, first_name, last_name }))}
             cells={buildPanelCells(sheet.rows, showAmounts ? dailyBonuses : null)}
             positions={positions}
+            mayChangePaid={profile?.role === "admin"}
           >
             <SheetGrid
               sheet={sheet}

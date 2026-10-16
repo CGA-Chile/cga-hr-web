@@ -258,3 +258,229 @@
 .markLabel svg {
   color: var(--color-warning);
 }
+
+/* The range panel. */
+.dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.lengths {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.chip {
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-background);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.cancel {
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-background);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.preview .heading {
+  margin-bottom: 0;
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.summary [data-strong] {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.summary [data-muted] {
+  color: var(--color-text-muted);
+}
+
+.tiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One date: what it holds now, and under it what it will hold. */
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 2.75rem;
+  padding: 6px 4px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-background);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+}
+
+.tile[data-change="REPLACE"],
+.tile[data-change="CLEAR"] {
+  border-color: var(--color-warning);
+}
+
+.tile[data-change="FILL"],
+.tile[data-change="NOTE"] {
+  border-color: var(--color-accent);
+}
+
+.tile[data-change="SAME"],
+.tile[data-change="PAID"] {
+  border-width: 1px;
+  opacity: 0.6;
+}
+
+.tile[data-after-end] {
+  border-style: dashed;
+}
+
+.tileWeekday {
+  color: var(--color-text-muted);
+}
+
+.tileDay {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.tileBefore {
+  color: var(--color-text-muted);
+}
+
+.tile[data-change="REPLACE"] .tileBefore,
+.tile[data-change="CLEAR"] .tileBefore {
+  color: var(--color-warning);
+  text-decoration: line-through;
+}
+
+.tileAfter {
+  padding: 0 4px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.tileAfter[data-tone="LINE"] {
+  background: var(--color-accent-surface);
+  color: var(--color-accent);
+}
+
+.tileAfter[data-tone="TRIGGER"] {
+  background: var(--color-warning-surface);
+  color: var(--color-warning);
+}
+
+.tileAfter[data-tone="ABSENCE"] {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.rangeLink {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius);
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.fromCell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.fromCell .heading {
+  margin: 0;
+}
+
+/* What a range just did, with the way back. Above the sheet, below any drawer. */
+.notice {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  left: var(--space-4);
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--color-text);
+  color: var(--color-background);
+  font-size: 0.875rem;
+}
+
+.notice p {
+  flex: 1 1 18rem;
+  margin: 0;
+}
+
+.notice button {
+  min-height: 2.75rem;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-background);
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}

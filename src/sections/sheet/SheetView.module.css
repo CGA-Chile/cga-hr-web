@@ -95,6 +95,24 @@
   text-decoration: none;
 }
 
+.modeActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.rangeLink {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius);
+  background: var(--color-accent);
+  color: var(--color-on-strong);
+  font-weight: 600;
+  text-decoration: none;
+}
+
 .legend {
   display: flex;
   flex-wrap: wrap;

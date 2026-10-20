@@ -54,6 +54,28 @@ export function PositionForm({ id, defaults, doneHref }: PositionFormProps) {
           {formState.errors.triggersEqualShare.message}
         </p>
       )}
+      <label className={styles.check}>
+        <input type="checkbox" {...register("productionBonus")} />
+        {copy.productionBonus}
+      </label>
+      <label className={styles.check}>
+        <input type="checkbox" {...register("complianceBonus")} />
+        {copy.complianceBonus}
+      </label>
+      {formState.errors.complianceBonus && (
+        <p role="alert" className={styles.alert}>
+          {formState.errors.complianceBonus.message}
+        </p>
+      )}
+      <label className={styles.check}>
+        <input type="checkbox" {...register("complianceStrike")} />
+        {copy.complianceStrike}
+      </label>
+      {formState.errors.complianceStrike && (
+        <p role="alert" className={styles.alert}>
+          {formState.errors.complianceStrike.message}
+        </p>
+      )}
       <FormField label={copy.displayOrder} hint={copy.displayOrderHint} error={formState.errors.displayOrder?.message}>
         <input type="number" inputMode="numeric" {...register("displayOrder")} />
       </FormField>

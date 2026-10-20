@@ -63,6 +63,9 @@ export async function savePosition(id: string | null, input: PositionValues): Pr
     type: parsed.data.type,
     bonus_eligible: parsed.data.bonusEligible,
     triggers_equal_share: parsed.data.triggersEqualShare,
+    production_bonus: parsed.data.productionBonus,
+    compliance_bonus: parsed.data.complianceBonus,
+    compliance_strike: parsed.data.complianceStrike,
     display_order: parsed.data.displayOrder,
     active: parsed.data.active,
   };
@@ -70,7 +73,7 @@ export async function savePosition(id: string | null, input: PositionValues): Pr
   const { error } = id
     ? await supabase.from("positions").update(row).eq("id", id)
     : await supabase.from("positions").insert(row);
-  if (error?.code === "23514") return { message: adminCopy.positions.triggerNeedsBonus };
+  if (error?.code === "23514") return { message: adminCopy.positions.flagsDoNotFit };
   if (error) return { message: messageFor(error.code, adminCopy.positions.duplicateCode) };
 
   revalidatePath(ADMIN_PATH);
@@ -90,6 +93,10 @@ export async function createRateVersion(input: RateVersionValues): Promise<Admin
     p_saturday_day_rate: parsed.data.saturdayDayRate,
     p_sunday_day_rate: parsed.data.sundayDayRate,
     p_holiday_day_rate: parsed.data.holidayDayRate,
+    p_production_amount: parsed.data.productionAmount,
+    p_compliance_amount: parsed.data.complianceAmount,
+    p_strike_deduction: parsed.data.strikeDeduction,
+    p_strike_limit: parsed.data.strikeLimit,
   });
   if (error?.code === "23514") return { message: adminCopy.rates.mustStartLater };
   if (error) return { message: messageFor(error.code, adminCopy.unavailable) };

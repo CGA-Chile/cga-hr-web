@@ -22,12 +22,23 @@ export const positionSchema = z
     type: z.enum(["WORK", "ABSENCE"]),
     bonusEligible: z.boolean(),
     triggersEqualShare: z.boolean(),
+    productionBonus: z.boolean(),
+    complianceBonus: z.boolean(),
+    complianceStrike: z.boolean(),
     displayOrder: z.coerce.number<string>().int(),
     active: z.boolean(),
   })
   .refine((position) => !position.triggersEqualShare || position.bonusEligible, {
     message: adminCopy.positions.triggerNeedsBonus,
     path: ["triggersEqualShare"],
+  })
+  .refine((position) => position.type === "WORK" || (!position.productionBonus && !position.complianceBonus), {
+    message: adminCopy.positions.periodBonusNeedsWork,
+    path: ["complianceBonus"],
+  })
+  .refine((position) => position.type === "ABSENCE" || !position.complianceStrike, {
+    message: adminCopy.positions.strikeNeedsAbsence,
+    path: ["complianceStrike"],
   });
 export type PositionInput = z.input<typeof positionSchema>;
 export type PositionValues = z.output<typeof positionSchema>;
@@ -39,6 +50,10 @@ export const rateVersionSchema = z.object({
   saturdayDayRate: pesos,
   sundayDayRate: pesos,
   holidayDayRate: pesos,
+  productionAmount: pesos,
+  complianceAmount: pesos,
+  strikeDeduction: pesos,
+  strikeLimit: z.coerce.number<string>().int(adminCopy.rates.invalidCount).positive(adminCopy.rates.invalidCount),
   rates: z.record(z.string(), pesos),
 });
 export type RateVersionInput = z.input<typeof rateVersionSchema>;

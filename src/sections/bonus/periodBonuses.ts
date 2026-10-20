@@ -67,12 +67,17 @@ function toAmounts(row: AmountColumns): PeriodBonusAmounts | null {
   };
 }
 
+/** The reprimands of a period, keyed by employee, with their notes. */
+export async function loadReprimands(supabase: ServerSupabase, periodId: string): Promise<Map<string, string | null>> {
+  const rows = orThrow(
+    await supabase.from("reprimands").select("employee_id, note").eq("period_id", periodId).is("deleted_at", null),
+  );
+  return new Map(rows.map((row) => [row.employee_id, row.note]));
+}
+
 /** Who has a reprimand in the period. */
 export async function loadReprimanded(supabase: ServerSupabase, periodId: string): Promise<Set<string>> {
-  const rows = orThrow(
-    await supabase.from("reprimands").select("employee_id").eq("period_id", periodId).is("deleted_at", null),
-  );
-  return new Set(rows.map((row) => row.employee_id));
+  return new Set((await loadReprimands(supabase, periodId)).keys());
 }
 
 /**

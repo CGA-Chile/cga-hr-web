@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { isWorkingDay } from "@/domain/bonus/dayRate";
 import { countWorkingDays } from "@/domain/periodBonus/calculatePeriodBonuses";
+import type { Json } from "@/types/database";
 import { addDays } from "@/utils/chileDate";
 import {
   appendPeriod,
@@ -42,6 +43,35 @@ function termsOf(period: TestPeriod) {
 
 function nextAfter(period: TestPeriod) {
   return { p_next_name: `Next ${period.endDate}`, p_next_end: addDays(period.endDate, 30) };
+}
+
+/**
+ * Closes the way the app does: the period's own plan plus every day closed periods still owe, so a
+ * day one test enters late never blocks the next close. The carry-over rows themselves are not
+ * checked by the database, so none are sent.
+ */
+async function closeWithBonuses(
+  period: TestPeriod,
+  settlements: readonly Json[],
+  stamps: readonly { assignment_id: string; position_id: string; bonus: string }[],
+  terms = termsOf(period),
+) {
+  const owed = unwrap(
+    await service.from("period_bonus_owed_days").select("assignment_id, position_id, bonus").lte("date", period.endDate),
+  );
+  return admin.rpc("close_period", {
+    ...nextAfter(period),
+    p_period_id: period.id,
+    p_settlements: [],
+    p_period_bonuses: {
+      terms,
+      settlements: [...settlements],
+      stamps: [
+        ...stamps,
+        ...owed.map((day) => ({ assignment_id: day.assignment_id, position_id: day.position_id, bonus: day.bonus })),
+      ],
+    },
+  });
 }
 
 async function assign(date: string, positionId: string, employeeId?: string) {
@@ -168,12 +198,7 @@ describe("close_period with the period bonuses", () => {
   it("freezes the terms, writes the settlement rows and stamps each counted day", async () => {
     const { period, day, settlements, stamps } = await periodWithOneDay();
 
-    const closed = await admin.rpc("close_period", {
-      ...nextAfter(period),
-      p_period_id: period.id,
-      p_settlements: [],
-      p_period_bonuses: { terms: termsOf(period), settlements, stamps },
-    });
+    const closed = await closeWithBonuses(period, settlements, stamps);
 
     expect(closed.error).toBeNull();
     expect(await stampsOf(day.id)).toEqual({
@@ -195,52 +220,27 @@ describe("close_period with the period bonuses", () => {
   it("refuses a plan that misses a counted day, and writes nothing", async () => {
     const { period, day, settlements, stamps } = await periodWithOneDay();
 
-    const closed = await admin.rpc("close_period", {
-      ...nextAfter(period),
-      p_period_id: period.id,
-      p_settlements: [],
-      p_period_bonuses: { terms: termsOf(period), settlements, stamps: stamps.slice(1) },
-    });
+    const closed = await closeWithBonuses(period, settlements, stamps.slice(1));
 
     expect(closed.error?.code).toBe("40001");
     expect(await stampsOf(day.id)).toEqual({ production_settled_in_period_id: null, compliance_settled_in_period_id: null });
     expect(unwrap(await service.from("period_bonus_settlements").select("id").eq("period_id", period.id))).toEqual([]);
-    await admin.rpc("close_period", {
-      ...nextAfter(period),
-      p_period_id: period.id,
-      p_settlements: [],
-      p_period_bonuses: { terms: termsOf(period), settlements, stamps },
-    });
+    expect((await closeWithBonuses(period, settlements, stamps)).error).toBeNull();
   });
 
   it("refuses a divisor the database does not count the same way", async () => {
     const { period, settlements, stamps } = await periodWithOneDay();
     const wrong = { ...termsOf(period), working_days: termsOf(period).working_days + 1 };
 
-    const closed = await admin.rpc("close_period", {
-      ...nextAfter(period),
-      p_period_id: period.id,
-      p_settlements: [],
-      p_period_bonuses: { terms: wrong, settlements, stamps },
-    });
+    const closed = await closeWithBonuses(period, settlements, stamps, wrong);
 
     expect(closed.error?.code).toBe("40001");
-    await admin.rpc("close_period", {
-      ...nextAfter(period),
-      p_period_id: period.id,
-      p_settlements: [],
-      p_period_bonuses: { terms: termsOf(period), settlements, stamps },
-    });
+    expect((await closeWithBonuses(period, settlements, stamps)).error).toBeNull();
   });
 
   it("keeps what it froze: terms, stamps and rows", async () => {
     const { period, day, settlements, stamps } = await periodWithOneDay();
-    await admin.rpc("close_period", {
-      ...nextAfter(period),
-      p_period_id: period.id,
-      p_settlements: [],
-      p_period_bonuses: { terms: termsOf(period), settlements, stamps },
-    });
+    expect((await closeWithBonuses(period, settlements, stamps)).error).toBeNull();
 
     expect((await service.from("periods").update({ working_days: 1 }).eq("id", period.id)).error).not.toBeNull();
     expect(
@@ -253,12 +253,7 @@ describe("close_period with the period bonuses", () => {
 
   it("turns a later change to a day it counted into a review item", async () => {
     const { period, day, settlements, stamps } = await periodWithOneDay();
-    await admin.rpc("close_period", {
-      ...nextAfter(period),
-      p_period_id: period.id,
-      p_settlements: [],
-      p_period_bonuses: { terms: termsOf(period), settlements, stamps },
-    });
+    expect((await closeWithBonuses(period, settlements, stamps)).error).toBeNull();
 
     unwrap(await service.from("assignments").update({ late: true }).eq("id", day.id).select("id"));
 
@@ -270,12 +265,7 @@ describe("close_period with the period bonuses", () => {
 describe("period_bonus_owed_days", () => {
   it("lists a working day entered after its period closed, and not a weekend one", async () => {
     const { period, day, settlements, stamps } = await periodWithOneDay();
-    await admin.rpc("close_period", {
-      ...nextAfter(period),
-      p_period_id: period.id,
-      p_settlements: [],
-      p_period_bonuses: { terms: termsOf(period), settlements, stamps },
-    });
+    expect((await closeWithBonuses(period, settlements, stamps)).error).toBeNull();
     let saturday = period.startDate;
     while (new Date(`${saturday}T00:00:00Z`).getUTCDay() !== 6) saturday = addDays(saturday, 1);
     const late = await assign(workingDayFrom(addDays(firstWorkingDay(period), 1)), day.position_id, day.employee_id);
@@ -292,5 +282,31 @@ describe("period_bonus_owed_days", () => {
       { assignment_id: late.id, origin_period_id: period.id, bonus: "COMPLIANCE" },
       { assignment_id: late.id, origin_period_id: period.id, bonus: "PRODUCTION" },
     ]);
+  });
+});
+
+describe("each day counts once per person", () => {
+  it("does not owe a counted day again after its cell was cleared and entered anew", async () => {
+    const { period, day, settlements, stamps } = await periodWithOneDay();
+    expect((await closeWithBonuses(period, settlements, stamps)).error).toBeNull();
+    unwrap(await service.from("assignments").update({ deleted_at: new Date().toISOString() }).eq("id", day.id).select("id"));
+    const reentered = await assign(firstWorkingDay(period), day.position_id, day.employee_id);
+
+    const owed = unwrap(await admin.from("period_bonus_owed_days").select("assignment_id").eq("assignment_id", reentered.id));
+
+    expect(owed).toEqual([]);
+  });
+
+  it("turns a late mark on a closed Saturday into a review item", async () => {
+    const { period, day, settlements, stamps } = await periodWithOneDay();
+    let saturday = period.startDate;
+    while (new Date(`${saturday}T00:00:00Z`).getUTCDay() !== 6) saturday = addDays(saturday, 1);
+    const weekend = await assign(saturday, day.position_id, day.employee_id);
+    expect((await closeWithBonuses(period, settlements, stamps)).error).toBeNull();
+
+    unwrap(await service.from("assignments").update({ late: true }).eq("id", weekend.id).select("id"));
+
+    const items = unwrap(await editor.from("review_items").select("period_id").eq("assignment_id", weekend.id));
+    expect(items).toEqual([{ period_id: period.id }]);
   });
 });

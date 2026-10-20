@@ -794,7 +794,9 @@ leen de la misma tabla y se expresan como una sola regla. Una fila de `assignmen
 - su fecha cae dentro de un período cerrado, la fila es posterior al `closed_at` de ese período, y
   el puesto anterior o el nuevo es uno que ese día se paga (bonificable, o cualquier puesto de
   trabajo en un día de monto del día) o que cuenta para los bonos del período (un puesto de
-  producción o de cumplimiento en un día hábil, o una Falta sin aviso), en un período con términos.
+  producción o de cumplimiento en un día hábil, o una Falta sin aviso), en un período con términos;
+- su fecha cae dentro de un período cerrado con términos, la fila es posterior a su cierre, y cambia la
+  marca de atraso, en cualquier día: un atraso es un incumplimiento también en sábado.
 
 Los cambios de feriado o de monto del día de una fecha cerrada también son ítems de revisión: la
 fila de `calendar_date_history` cuenta cuando es posterior al `closed_at` del período cerrado que

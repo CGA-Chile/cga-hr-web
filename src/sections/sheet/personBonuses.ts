@@ -1,8 +1,20 @@
 import type { IsoDate } from "@/domain/bonus/types";
-import { calculatePeriodBonuses } from "@/domain/periodBonus/calculatePeriodBonuses";
-import type { Calendar, PeriodBonusAmounts, PeriodBonusAssignment, PeriodBonusPosition } from "@/domain/periodBonus/types";
+import { calculatePeriodBonuses, emptyTally } from "@/domain/periodBonus/calculatePeriodBonuses";
+import type {
+  Calendar,
+  EmployeePeriodBonus,
+  PeriodBonusAmounts,
+  PeriodBonusAssignment,
+  PeriodBonusPosition,
+} from "@/domain/periodBonus/types";
 import type { DailyBonus } from "@/sections/bonus/dailyBonuses";
-import type { PersonBonuses } from "./PersonPanel";
+
+/** What a person earned in the range shown. The period bonuses are null when the period pays none. */
+export type PersonBonuses = {
+  carding: number;
+  dayRate: number;
+  period: (EmployeePeriodBonus & { workingDays: number }) | null;
+};
 
 type PersonBonusesInput = {
   employeeId: string;
@@ -40,11 +52,8 @@ export function personBonuses(input: PersonBonusesInput): PersonBonuses {
     reprimanded: input.reprimanded,
   });
   const own = result.perEmployee.find((entry) => entry.employeeId === input.employeeId) ?? {
-    employeeId: input.employeeId,
-    productionDays: 0,
-    complianceDays: 0,
-    strikes: 0,
-    reprimanded: input.reprimanded.has(input.employeeId),
+    ...emptyTally(input.employeeId),
+    reprimanded: false,
     production: 0,
     compliance: 0,
   };

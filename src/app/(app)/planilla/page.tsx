@@ -87,6 +87,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
       showAmounts && period ? loadReprimands(supabase, period.id) : new Map<string, string | null>(),
     ]);
   const inRange = assignments.filter((assignment) => assignment.date >= start);
+  const reprimanded = new Set(reprimands.keys());
   const bonusPositions = positions.map(toBonusPosition);
   const sheet = buildSheet({
     dates: datesOf(start, end),
@@ -146,7 +147,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
               today={today}
               holidays={holidays}
               showAmounts={showAmounts}
-              reprimanded={new Set(reprimands.keys())}
+              reprimanded={reprimanded}
             />
           </CellPanelHost>
         }
@@ -196,7 +197,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
               })),
               positions: periodBonusPositions,
               calendar,
-              reprimanded: new Set(reprimands.keys()),
+              reprimanded,
             })}
           />
         </ServerPanelGate>

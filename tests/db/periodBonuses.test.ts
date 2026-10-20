@@ -294,3 +294,39 @@ describe("period_bonus_owed_days", () => {
     ]);
   });
 });
+
+describe("each day counts once per person", () => {
+  it("does not owe a counted day again after its cell was cleared and entered anew", async () => {
+    const { period, day, settlements, stamps } = await periodWithOneDay();
+    await admin.rpc("close_period", {
+      ...nextAfter(period),
+      p_period_id: period.id,
+      p_settlements: [],
+      p_period_bonuses: { terms: termsOf(period), settlements, stamps },
+    });
+    unwrap(await service.from("assignments").update({ deleted_at: new Date().toISOString() }).eq("id", day.id).select("id"));
+    const reentered = await assign(firstWorkingDay(period), day.position_id, day.employee_id);
+
+    const owed = unwrap(await admin.from("period_bonus_owed_days").select("assignment_id").eq("assignment_id", reentered.id));
+
+    expect(owed).toEqual([]);
+  });
+
+  it("turns a late mark on a closed Saturday into a review item", async () => {
+    const { period, day, settlements, stamps } = await periodWithOneDay();
+    let saturday = period.startDate;
+    while (new Date(`${saturday}T00:00:00Z`).getUTCDay() !== 6) saturday = addDays(saturday, 1);
+    const weekend = await assign(saturday, day.position_id, day.employee_id);
+    await admin.rpc("close_period", {
+      ...nextAfter(period),
+      p_period_id: period.id,
+      p_settlements: [],
+      p_period_bonuses: { terms: termsOf(period), settlements, stamps },
+    });
+
+    unwrap(await service.from("assignments").update({ late: true }).eq("id", weekend.id).select("id"));
+
+    const items = unwrap(await editor.from("review_items").select("period_id").eq("assignment_id", weekend.id));
+    expect(items).toEqual([{ period_id: period.id }]);
+  });
+});

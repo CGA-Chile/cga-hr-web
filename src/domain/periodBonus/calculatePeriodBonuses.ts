@@ -106,7 +106,8 @@ export function tallyEmployees(
   return tallies;
 }
 
-function emptyTally(employeeId: string): EmployeeTally {
+/** An employee with no day and no strike in the period. */
+export function emptyTally(employeeId: string): EmployeeTally {
   return { employeeId, productionDays: 0, complianceDays: 0, strikes: 0 };
 }
 

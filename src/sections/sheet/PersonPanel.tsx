@@ -2,20 +2,13 @@ import Link from "next/link";
 import { Drawer } from "@/components/Drawer";
 import { dayCopy } from "@/copy/day";
 import { sheetCopy } from "@/copy/sheet";
-import type { EmployeePeriodBonus } from "@/domain/periodBonus/types";
 import type { Period } from "@/sections/periods/queries";
 import { formatDayMonth } from "@/utils/chileDate";
 import { formatPesos } from "@/utils/money";
 import { sheetPath, type SheetParams } from "./paths";
+import type { PersonBonuses } from "./personBonuses";
 import { ReprimandForm } from "./ReprimandForm";
 import styles from "./SheetPanels.module.css";
-
-/** What a person earned in the range shown. The period bonuses are null when the period pays none. */
-export type PersonBonuses = {
-  carding: number;
-  dayRate: number;
-  period: (EmployeePeriodBonus & { workingDays: number }) | null;
-};
 
 type PersonPanelProps = {
   employeeId: string;
@@ -66,17 +59,22 @@ export function PersonPanel({ employeeId, name, params, period, bonuses, reprima
                     {copy.production} · {copy.estimated}
                   </dt>
                   <dd>{formatPesos(bonuses.period.production)}</dd>
-                  <p className={styles.muted}>{copy.days(bonuses.period.productionDays, bonuses.period.workingDays)}</p>
+                  <dd className={styles.factHint}>
+                    {copy.days(bonuses.period.productionDays, bonuses.period.workingDays)}
+                  </dd>
                 </div>
                 <div>
                   <dt>
                     {copy.compliance} · {copy.estimated}
                   </dt>
                   <dd>{formatPesos(bonuses.period.compliance)}</dd>
-                  <p className={styles.muted}>
+                  <dd className={styles.factHint}>
                     {copy.days(bonuses.period.complianceDays, bonuses.period.workingDays)}
-                    {bonuses.period.strikes > 0 && ` · ${copy.strikes(bonuses.period.strikes)}`}
-                  </p>
+                  </dd>
+                </div>
+                <div className={styles.factWide}>
+                  <dt>{copy.strikesTitle}</dt>
+                  <dd>{copy.strikes(bonuses.period.strikes)}</dd>
                 </div>
               </>
             )}

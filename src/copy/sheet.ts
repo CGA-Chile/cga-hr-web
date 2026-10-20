@@ -171,7 +171,8 @@ export const sheetCopy = {
     estimatedHint: (end: string) =>
       `Producción y cumplimiento se calculan con la fecha de cierre actual (${end}) y quedan fijos al cerrar el período.`,
     days: (attended: number, working: number) => `${attended} de ${working} días hábiles`,
-    strikes: (count: number) => (count === 1 ? "1 incumplimiento" : `${count} incumplimientos`),
+    strikesTitle: "Incumplimientos (atrasos y faltas sin aviso)",
+    strikes: (count: number) => (count === 0 ? "Ninguno" : count === 1 ? "1 incumplimiento" : `${count} incumplimientos`),
     noPeriodBonuses: "Este período no tiene bono de producción ni de cumplimiento.",
     noPeriod: "Estos días todavía no tienen período. Los bonos aparecen cuando RRHH lo crea al cerrar el anterior.",
     closed: "Este período está cerrado. Lo que se pagó está en el reporte del cierre.",

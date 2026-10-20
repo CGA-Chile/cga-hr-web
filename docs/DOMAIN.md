@@ -26,7 +26,8 @@ cambia día a día y hoy vive en una planilla de Google Sheets con forma de matr
 por persona, una columna por día, el nombre del puesto escrito en la celda.
 
 Los trabajadores de la línea de cardas (Rieter + ACM) reciben un **bono diario** que se paga a
-fin de mes. RRHH consolida ese bono en una planilla mensual que envía al family office para
+fin de mes. Además, casi todo el personal recibe dos **bonos del período**, producción y
+cumplimiento, que se reparten por día hábil asistido (sección 5b). RRHH consolida ese bono en una planilla mensual que envía al family office para
 que gestione los pagos.
 
 Hasta hace poco el bono tenía tarifa fija por puesto y calcularlo era contar apariciones en la
@@ -48,8 +49,8 @@ a errores que hay que corregirle a los usuarios.
 Explícito para evitar deriva: el dominio invita a construir un módulo de RRHH completo, y no
 es lo que se está pidiendo.
 
-- Cualquier otro bono: producción, cumplimiento, camión, limpieza, turno noche. El monto del día
-  de sábados, domingos y feriados sí está dentro (sección 5).
+- Cualquier otro bono: camión, limpieza, turno noche. El monto del día de sábados, domingos y
+  feriados está dentro (sección 5), y los bonos de producción y cumplimiento también (sección 5b).
 - Horas extras y control de horario. El atraso y la salida temprana sí están dentro, solo como
   marcas que quitan el bono del día (sección 5).
 - Integración con software de remuneraciones, ERP o cualquier sistema externo.
@@ -66,13 +67,14 @@ reales están en el documento interno y en el seed; acá se describen por rol.
 |---|---|---|
 | Encargado de la asignación | `editor` | Registra la asignación diaria. Uso principal. |
 | Supervisor de producción | `supervisor` | Ayuda a registrar la asignación y marca atrasos y salidas tempranas. **No ve montos.** |
-| RRHH | `editor` | Consulta, corrige y exporta el reporte del cierre. Ingresa la fecha de término del período abierto. |
+| RRHH | `editor` | Consulta, corrige y exporta el reporte del cierre. Ingresa la fecha de término del período abierto y registra las amonestaciones. |
 | Administrador | `admin` | Todo lo anterior + personas, puestos, tarifas y cierres. |
 
 El `supervisor` escribe asignaciones, atrasos y salidas tempranas igual que un editor, y ve la planilla, la vista del
 día y los días con avisos, pero sin una sola cifra: ni totales, ni bono por persona, ni tarifas.
 De los avisos ve los puestos repetidos, que es lo que puede corregir. No entra a cierres, reporte,
-revisión ni administración, no cambia la fecha de cierre y no marca feriados. La base de datos le
+revisión ni administración, no cambia la fecha de cierre, no marca feriados y no ve ni registra
+amonestaciones. La base de datos le
 niega las tarifas, la configuración y las validaciones de exceso; ver `docs/adr/0013`.
 
 **Restricción de diseño:** varios usuarios tienen alfabetización digital limitada. Interfaz
@@ -156,6 +158,8 @@ Truncamiento hacia abajo, al peso, para no pasarse del tope por redondeo. El tru
 puede dejar el total apenas bajo el tope; es correcto y esperado.
 
 ### DAY_RATE — sábados, domingos y feriados
+
+En pantalla se llama **Bono día no hábil**.
 
 Todos los que **trabajaron** ese día ganan el mismo monto fijo, sin importar el puesto ni si es de
 la línea de cardas: bodega gana lo mismo que el operario de la Rieter. Trabajó quien tiene un
@@ -298,6 +302,100 @@ visualmente separados: confundirlos cambia el bono de todo el equipo de la líne
 
 ---
 
+## 5b. Bonos del período: producción y cumplimiento
+
+Dos bonos que no son diarios: cada uno es un monto **por período**, repartido en partes iguales
+entre los días hábiles. Se informan separados del bono de cardas y del bono día no hábil, y
+separados entre sí. Ver `docs/adr/0016`.
+
+Van en `src/domain/periodBonus/`, con las mismas reglas que el cálculo diario: funciones puras,
+montos enteros, truncamiento hacia abajo, ningún monto en el código.
+
+### Día hábil y divisor
+
+**Día hábil** es un lunes a viernes que no es feriado ni tiene un monto del día fijado por RRHH. Es
+la misma regla que decide el `DAY_RATE`, mirada desde el otro lado: un día que se paga como día no
+hábil no cuenta en el divisor. Si la planta no operó un día hábil, RRHH lo marca como feriado y sale
+del divisor.
+
+El divisor es la cantidad de días hábiles del período, el mismo para todos. Como depende de la
+fecha de término, que RRHH puede mover hasta el cierre, los montos de estos bonos son estimados
+mientras el período está abierto.
+
+**Asistió** quien tiene ese día hábil un puesto que no es ausencia. A diferencia de "trabajó"
+(sección 5), un día incompleto **sí** cuenta: el atraso y la salida temprana quitan el bono del día,
+no el del período.
+
+### Producción
+
+```
+producción = floor( montoProducción × díasEnPuestoDeProducción / díasHábiles )
+```
+
+Solo suman los días hábiles asistidos en un **puesto de producción** (`positions.production_bonus`):
+hoy todos los puestos de trabajo menos Bodega, Mantención y Supervisor. Quien estuvo 19 días en
+Bodega y 1 en la Rieter cobra la parte de ese único día. Multiplicar antes de dividir hace que quien
+asistió todos los días hábiles cobre exactamente el monto, sin perder pesos por redondeo.
+
+### Cumplimiento
+
+```
+bruto        = floor( montoCumplimiento × díasEnPuestoDeCumplimiento / díasHábiles )
+cumplimiento = incumplimientos >= límite ? 0 : max( 0, bruto − incumplimientos × descuento )
+```
+
+- **Puesto de cumplimiento** (`positions.compliance_bonus`): hoy todos los de trabajo menos
+  Mantención y Supervisor. Bodega gana cumplimiento aunque no gane producción.
+- **Incumplimiento:** cada atraso, con o sin aviso, y cada Falta sin aviso
+  (`positions.compliance_strike`). Cuenta en cualquier día del período, sábado incluido: si RRHH no
+  quiere castigar un atraso, no lo marca. La salida temprana y la Falta con aviso no son
+  incumplimientos; la falta con aviso solo pierde su parte del día.
+- El descuento es sobre lo ganado, nunca deja el bono bajo cero, y al llegar al límite el bono es 0.
+
+### Amonestación
+
+Una carta de amonestación entregada en el período, por cualquier motivo, deja **los dos** bonos en 0
+para esa persona en ese período. Se registra por persona y por período, con una nota opcional. La
+registran RRHH y el admin mientras el período está abierto. No afecta el bono de cardas ni el bono
+día no hábil.
+
+### Vigencia de los montos
+
+Los cuatro parámetros (monto de producción, monto de cumplimiento, descuento por incumplimiento y
+límite de incumplimientos) viven en `bonus_settings`, juntos o ninguno. Un período usa la vigencia en
+vigor **en su fecha de término**, así que un cambio de monto alcanza a todo el período abierto. Una
+vigencia sin estos parámetros es anterior a la regla, y bajo ella el período no paga estos bonos.
+
+### Casos de prueba obligatorios
+
+Valores de ejemplo: producción 21.000, cumplimiento 12.600, descuento 1.500, límite 3.
+
+| # | Escenario | Esperado |
+|---|---|---|
+| P1 | 21 días hábiles, asiste los 21 en RIETER | producción 21.000 · cumplimiento 12.600 |
+| P2 | 21 días hábiles, asiste 20 | producción 20.000 · cumplimiento 12.000 |
+| P3 | 22 días hábiles, asiste los 22 | producción 21.000, sin pérdida por redondeo |
+| P4 | 22 días hábiles, asiste 21 | producción 20.045 (truncado) |
+| P5 | 19 días en BODEGA y 1 en RIETER, de 20 | producción 1.050 · cumplimiento 12.600 |
+| P6 | Todo el período en MANTENCION | producción 0 · cumplimiento 0 |
+| P7 | Sábado en RIETER | no suma días ni cuenta en el divisor |
+| P8 | Feriado en día hábil | fuera del divisor |
+| P9 | Día hábil con monto del día fijado por RRHH | fuera del divisor |
+| P10 | Un atraso, asiste todos los días | cumplimiento 12.600 − 1.500; producción completa |
+| P11 | Un atraso y una Falta sin aviso | dos descuentos; el día de la falta no suma |
+| P12 | Tres incumplimientos | cumplimiento 0; producción no cambia |
+| P13 | Descuento mayor que lo ganado | cumplimiento 0, nunca negativo |
+| P14 | Salida temprana | el día suma, sin descuento |
+| P15 | Falta con aviso | el día no suma, sin descuento |
+| P16 | Atraso un sábado | descuenta |
+| P17 | Amonestación | producción 0 · cumplimiento 0 |
+| P18 | Período sin días hábiles | 0, sin dividir por cero |
+| P19 | Arrastre: día hábil ingresado tarde en un período cerrado | total recalculado con sus montos congelados, menos lo ya pagado |
+| P20 | Arrastre con un incumplimiento ingresado tarde | no descuenta: se usan los incumplimientos congelados |
+| P21 | Arrastre de un período con amonestación | 0 |
+
+---
+
 ## 6. Modelo de datos
 
 PostgreSQL sobre Supabase. Nombres en inglés (ver `CLAUDE.md`). El proceso para introducir
@@ -355,10 +453,16 @@ abbreviation          text not null           -- 'RIE', 'PACM', ...: lo que mues
 type                  text not null           -- 'WORK' | 'ABSENCE'
 bonus_eligible        boolean not null default false
 triggers_equal_share  boolean not null default false
+production_bonus      boolean not null default false   -- suma días al bono de producción
+compliance_bonus      boolean not null default false   -- suma días al bono de cumplimiento
+compliance_strike     boolean not null default false   -- la ausencia es un incumplimiento (Falta sin aviso)
 display_order         int not null
 active                boolean not null default true
 
 check (not triggers_equal_share or bonus_eligible)
+check (not production_bonus or type = 'WORK')
+check (not compliance_bonus or type = 'WORK')
+check (not compliance_strike or type = 'ABSENCE')
 ```
 
 El `check` prohíbe la única combinación sin sentido: un puesto que cambie cómo se paga toda la
@@ -391,6 +495,8 @@ settled_amount         int null                -- monto liquidado, congelado al 
 late                   boolean not null default false
 late_notified          boolean null            -- con o sin aviso; nulo si no hay atraso
 left_early             boolean not null default false
+production_settled_in_period_id  uuid fk periods null   -- el cierre que contó el día para producción
+compliance_settled_in_period_id  uuid fk periods null   -- ídem para cumplimiento
 created_by             uuid fk auth.users
 updated_by             uuid fk auth.users
 
@@ -414,6 +520,10 @@ max_amount_per_person   int not null
 saturday_day_rate       int null            -- los tres juntos, o ninguno
 sunday_day_rate         int null
 holiday_day_rate        int null
+production_amount       int null            -- los cuatro juntos, o ninguno (sección 5b)
+compliance_amount       int null
+strike_deduction        int null
+strike_limit            int null
 ```
 
 ### calendar_dates
@@ -450,6 +560,10 @@ closed_at     timestamptz
 closed_by     uuid fk auth.users
 ```
 
+Al cerrar, el período congela los términos de sus bonos del período, si tenía: `working_days`,
+`production_amount`, `compliance_amount`, `strike_deduction` y `strike_limit`. Nulos en un período
+abierto y en uno cerrado sin esos bonos.
+
 Períodos contiguos, sin huecos ni traslapes. Al crear uno, `start_date` se precarga con
 `end_date` del anterior + 1 día y no es editable; `end_date` sí, mientras el período esté abierto
 y ningún otro lo siga. Ver sección 7.
@@ -467,6 +581,39 @@ create extension if not exists btree_gist;
 alter table periods add constraint periods_no_overlap
   exclude using gist (daterange(start_date, end_date, '[]') with &&)
   where (deleted_at is null);
+```
+
+### reprimands
+
+Una amonestación: una persona, un período. Quitarla es borrarla lógicamente, así queda el rastro de
+quién la puso y quién la quitó. Solo RRHH y el admin la leen o la escriben, y solo mientras el
+período está abierto.
+
+```
+period_id     uuid fk periods
+employee_id   uuid fk employees
+note          text
+created_by    uuid fk auth.users
+deleted_by    uuid fk auth.users null
+
+unique (period_id, employee_id) where deleted_at is null
+```
+
+### period_bonus_settlements
+
+Append-only, escrita solo por `close_period`. Una fila por cierre, período de origen, persona y
+bono. El período de origen es el que contiene los días; es distinto del que cierra cuando la fila
+es un arrastre.
+
+```
+period_id          uuid fk periods      -- el cierre que la liquidó
+origin_period_id   uuid fk periods      -- el período al que pertenecen los días
+employee_id        uuid fk employees
+bonus              text                 -- 'PRODUCTION' | 'COMPLIANCE'
+days               int                  -- días que esta fila contó
+strikes            int                  -- incumplimientos congelados del período de origen
+reprimanded        boolean
+amount             int
 ```
 
 ### cap_overrides
@@ -579,6 +726,22 @@ siguiente. Eso se modela con liquidación diferida:
   pagado no se reescribe. Lo garantiza un trigger: una vez estampados, `settled_in_period_id` y
   `settled_amount` no cambian, ni siquiera para el `admin`.
 
+### Los bonos del período al cerrar
+
+- Cerrar el período P congela sus términos y escribe, por persona, una fila de producción y una de
+  cumplimiento en `period_bonus_settlements`, y estampa cada asignación que contó.
+- **Arrastre.** Un día hábil asistido de un período cerrado O que se ingresa tarde no tiene estampa,
+  y el cierre siguiente lo recoge. Paga con los términos congelados de O: se recalcula el total de O
+  con los días ya liquidados más los nuevos, y se paga la diferencia con lo ya liquidado, nunca
+  menos de 0. Los incumplimientos y la amonestación son los congelados al cerrar O: lo que se marca
+  después no descuenta, y aparece en la lista de revisión.
+- Un período cerrado sin términos (anterior a estos bonos) nunca paga producción ni cumplimiento,
+  ni siquiera como arrastre.
+- La amonestación es del período al que pertenece el día: un arrastre de un período sin amonestación
+  se paga aunque el período que cierra la tenga.
+- Editar una asignación contada solo para estos bonos sigue abierto para RRHH; solo la estampa del
+  bono de cardas la restringe al admin. El cambio aparece en la lista de revisión.
+
 Editar una asignación ya liquidada queda restringido al rol `admin` vía RLS, y el cambio
 aparece en una lista de revisión para RRHH.
 
@@ -630,7 +793,8 @@ leen de la misma tabla y se expresan como una sola regla. Una fila de `assignmen
 - su asignación está liquidada y la fila es posterior al `closed_at` del período que la liquidó;
 - su fecha cae dentro de un período cerrado, la fila es posterior al `closed_at` de ese período, y
   el puesto anterior o el nuevo es uno que ese día se paga (bonificable, o cualquier puesto de
-  trabajo en un día de monto del día).
+  trabajo en un día de monto del día) o que cuenta para los bonos del período (un puesto de
+  producción o de cumplimiento en un día hábil, o una Falta sin aviso), en un período con términos.
 
 Los cambios de feriado o de monto del día de una fecha cerrada también son ítems de revisión: la
 fila de `calendar_date_history` cuenta cuando es posterior al `closed_at` del período cerrado que
@@ -697,6 +861,11 @@ sea reconocible.
   cada día a como estaba.
 - **Fecha de cierre.** Desde la planilla, RRHH cambia la fecha de término del período abierto. Ver
   sección 7.
+- **Panel de la persona.** Tocar el nombre abre el panel de la persona: sus bonos del período hasta
+  ahora, separados en bono de cardas, bono día no hábil, producción y cumplimiento, con los dos
+  últimos rotulados como estimados hasta el cierre, y los incumplimientos. En modo edición, RRHH y
+  el admin marcan ahí la amonestación del período, con una nota. El nombre de una persona amonestada
+  lleva una marca. El supervisor no ve montos ni amonestaciones.
 - **Feriados.** Domingos y feriados van sombreados. En modo edición, el resumen del día deja a RRHH
   marcar el feriado y fijar el monto del día para esa fecha. Si la fecha ya está en un período
   cerrado, el cambio queda como ítem de revisión.
@@ -761,13 +930,17 @@ La compuerta de cierre (sección 7) es la red de seguridad de esta lista, no su 
 ### 8.3 Reporte del cierre
 
 - Por defecto propone el cierre del mes en curso; el rango se puede ajustar.
-- Tabla: persona, RUT, días con bono, monto del período, arrastre, total.
-- Detalle expandible por persona: días, puesto, esquema y monto.
-- Exportación a XLSX y CSV con las mismas columnas, para pegar en la planilla mensual.
+- **Resumen:** trabajador, RUT, bono cardas, bono día no hábil, bono de producción, bono de
+  cumplimiento y total. Cada bono incluye su arrastre.
+- **Detalle**, para RRHH: por persona, los días del bono de cardas y del día no hábil (puesto,
+  esquema, monto, arrastre), y por bono del período los días, el divisor, los incumplimientos, la
+  amonestación y la parte que es arrastre.
+- Exportación a XLSX y CSV con las columnas del Resumen y nada más: es lo que necesita contabilidad.
 
 ### 8.4 Administración
 
-Solo `admin`: personas, catálogo de puestos, tarifas (nueva vigencia), períodos e historial
+Solo `admin`: personas, catálogo de puestos (con las marcas de producción, cumplimiento e
+incumplimiento), tarifas y montos de los bonos del período (nueva vigencia), períodos e historial
 completo.
 
 La **bandeja de revisión** no está acá: la trabaja RRHH, que tiene rol `editor`. Es visible para

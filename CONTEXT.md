@@ -16,7 +16,7 @@ Which of the three formulas a given date is paid under: `POSITION_RATE`, `EQUAL_
 `DAY_RATE`. Derived from the date and its assignments, never stored and never set by hand.
 _Avoid_: mode, type, variant
 
-**Day rate** _(monto del día)_:
+**Day rate** _(bono día no hábil)_:
 The scheme for Saturdays, Sundays and holidays, and the amount it pays. Everyone who worked
 that date earns the same fixed amount, whatever their position and whether or not it is on the
 carding line. Position rates, scheme triggers and the daily cap play no part. The amount has a
@@ -77,6 +77,54 @@ the anomalies so it can fix them, with any figures left out.
 **Rate-bearing position** _(puesto de tarifa)_:
 One of the bonus-eligible positions that has an amount under `POSITION_RATE`. Distinguished
 from the scheme trigger, which is bonus-eligible but deliberately has no rate.
+
+## The period's bonuses
+
+Two bonuses are paid per period rather than per day, each a period amount spread over the
+working days. They are distinct from the carding-line bonus and the day rate, and every report
+keeps the four apart.
+
+**Working day** _(día hábil)_:
+A Monday to Friday that is not paid under the day rate: not a holiday, and not a date HR gave its
+own day rate. The working days of a period are the divisor of both
+period bonuses, the same for every employee, so a day not attended is a share not earned.
+_Avoid_: business day, weekday, attended day
+
+**Attended** _(asistió)_:
+Assigned on a working day to a position that is not an absence. Unlike _worked_, an incomplete day
+still counts as attended: arriving late or leaving early costs the daily bonus, not the period's.
+_Avoid_: worked, present
+
+**Production bonus** _(bono de producción)_:
+A period amount paid for each working day attended on a production position: the period amount
+times those days, divided by the period's working days, truncated. Attending every working day
+earns exactly the period amount. A day on any other position earns no share.
+_Avoid_: productivity bonus, monthly bonus
+
+**Production position** _(puesto de producción)_:
+A position whose working days earn the production bonus. Carried as data; every work position is
+one except Bodega, Mantención and Supervisor.
+
+**Compliance bonus** _(bono de cumplimiento)_:
+A period amount earned the same way as the production bonus, over compliance positions, less a
+fixed deduction for each strike in the period. Never below zero, and zero once the strikes reach
+the limit.
+_Avoid_: attendance bonus, punctuality bonus
+
+**Compliance position** _(puesto de cumplimiento)_:
+A position whose working days earn the compliance bonus. Carried as data, separately from the
+production position; every work position is one except Mantención and Supervisor.
+
+**Strike** _(incumplimiento)_:
+A late arrival, with or without notice, or a Falta sin aviso. Each one deducts from the compliance
+bonus earned. Leaving early and Falta con aviso are not strikes.
+_Avoid_: falta, penalty, demerit
+
+**Reprimand** _(amonestación)_:
+A letter of reprimand given to an employee during a period, for any reason. Recorded per employee
+and per period, it voids both period bonuses for that period, including days carried over into a
+later one.
+_Avoid_: warning, sanction
 
 ## Things that are wrong, and things that were wrong
 

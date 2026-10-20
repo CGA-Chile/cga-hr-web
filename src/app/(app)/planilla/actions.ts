@@ -75,3 +75,30 @@ export async function setCalendarDate(
   revalidatePath("/planilla");
   redirect(doneHref.startsWith("/planilla") ? doneHref : "/planilla");
 }
+
+export type ReprimandState = { message: string } | null;
+
+/**
+ * Records or removes an employee's reprimand in a period, with its note. The database decides who
+ * may and when: HR and the admin, while the period is open.
+ */
+export async function setReprimand(
+  periodId: string,
+  employeeId: string,
+  doneHref: string,
+  _previous: ReprimandState,
+  formData: FormData,
+): Promise<ReprimandState> {
+  const note = z.string().trim().max(500).safeParse(formData.get("note") ?? "");
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("set_reprimand", {
+    p_period_id: periodId,
+    p_employee_id: employeeId,
+    p_reprimanded: formData.get("reprimanded") === "on",
+    p_note: note.success ? note.data : "",
+  });
+  if (error) return { message: error.code === "42501" ? sheetCopy.person.reprimandNoPermission : sheetCopy.unavailable };
+
+  revalidatePath("/planilla");
+  redirect(doneHref.startsWith("/planilla") ? doneHref : "/planilla");
+}

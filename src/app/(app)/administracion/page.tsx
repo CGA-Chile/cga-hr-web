@@ -102,6 +102,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               saturdayDayRate: String(current?.saturday_day_rate ?? ""),
               sundayDayRate: String(current?.sunday_day_rate ?? ""),
               holidayDayRate: String(current?.holiday_day_rate ?? ""),
+              productionAmount: String(current?.production_amount ?? ""),
+              complianceAmount: String(current?.compliance_amount ?? ""),
+              strikeDeduction: String(current?.strike_deduction ?? ""),
+              strikeLimit: String(current?.strike_limit ?? ""),
               rates: Object.fromEntries(
                 rateBearing.map((p) => [p.id, String(current?.rates.find((r) => r.position_id === p.id)?.amount ?? "")]),
               ),
@@ -150,6 +154,9 @@ function PositionDrawer({ position, doneHref }: { position: AdminPosition | null
           type: position?.type === "ABSENCE" ? "ABSENCE" : "WORK",
           bonusEligible: position?.bonus_eligible ?? false,
           triggersEqualShare: position?.triggers_equal_share ?? false,
+          productionBonus: position?.production_bonus ?? false,
+          complianceBonus: position?.compliance_bonus ?? false,
+          complianceStrike: position?.compliance_strike ?? false,
           displayOrder: String(position?.display_order ?? 300),
           active: position?.active ?? true,
         }}

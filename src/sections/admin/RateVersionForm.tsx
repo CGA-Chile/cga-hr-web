@@ -57,6 +57,19 @@ export function RateVersionForm({ positions, triggerNames, defaults, doneHref }:
       <FormField label={copy.holidayDayRate} error={formState.errors.holidayDayRate?.message}>
         <input type="number" inputMode="numeric" {...register("holidayDayRate")} />
       </FormField>
+      <p className={styles.muted}>{copy.periodBonusesHint}</p>
+      <FormField label={copy.productionAmount} error={formState.errors.productionAmount?.message}>
+        <input type="number" inputMode="numeric" {...register("productionAmount")} />
+      </FormField>
+      <FormField label={copy.complianceAmount} error={formState.errors.complianceAmount?.message}>
+        <input type="number" inputMode="numeric" {...register("complianceAmount")} />
+      </FormField>
+      <FormField label={copy.strikeDeduction} error={formState.errors.strikeDeduction?.message}>
+        <input type="number" inputMode="numeric" {...register("strikeDeduction")} />
+      </FormField>
+      <FormField label={copy.strikeLimit} hint={copy.strikeLimitHint} error={formState.errors.strikeLimit?.message}>
+        <input type="number" inputMode="numeric" {...register("strikeLimit")} />
+      </FormField>
       {serverError && (
         <p role="alert" className={styles.alert}>
           {serverError}

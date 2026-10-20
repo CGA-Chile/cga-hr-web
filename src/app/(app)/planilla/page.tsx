@@ -5,6 +5,7 @@ import { findDuplicatedPositions } from "@/domain/bonus/duplicates";
 import { DailySummary } from "@/sections/bonus/DailySummary";
 import { DuplicateSummary } from "@/sections/bonus/DuplicateSummary";
 import { loadCalendar, loadDailyBonuses, loadSettingsVersions } from "@/sections/bonus/dailyBonuses";
+import { loadPeriodBonusAmounts, loadPeriodBonusPositions, loadReprimands } from "@/sections/bonus/periodBonuses";
 import { toBonusAssignment, toBonusPosition } from "@/sections/bonus/toBonus";
 import { loadDuplicateDates } from "@/sections/bonus/duplicateDates";
 import { fullName, loadPositions, loadRangeRows } from "@/sections/day/queries";
@@ -15,6 +16,8 @@ import { SheetGrid } from "@/sections/sheet/SheetGrid";
 import { CellPanelHost } from "@/sections/sheet/CellPanelHost";
 import { buildPanelCells, buildSheet, copyFromPreviousDate } from "@/sections/sheet/sheetModel";
 import { ServerPanelGate } from "@/sections/sheet/ServerPanelGate";
+import { PersonPanel } from "@/sections/sheet/PersonPanel";
+import { personBonuses } from "@/sections/sheet/personBonuses";
 import { DayPanel, PeriodEndPanel } from "@/sections/sheet/SheetPanels";
 import { datesOf, resolveSheetRanges, resolveWeek } from "@/sections/sheet/sheetRange";
 import { SheetView } from "@/sections/sheet/SheetView";
@@ -34,6 +37,7 @@ type SheetPageProps = {
     dia?: SearchParam;
     persona?: SearchParam;
     panel?: SearchParam;
+    trabajador?: SearchParam;
   }>;
 };
 
@@ -67,10 +71,12 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
     editing: single(query.modo) === "editar",
     date: panelDate,
     endPanel: !cellOpen && single(query.panel) === "cierre" && ranges.current.endMovable && showAmounts,
+    person: !cellOpen && showAmounts ? single(query.trabajador) : null,
   };
+  const period = ranges.current.period;
 
   // A role without amounts gets no calculation at all: the database would refuse it the rates.
-  const [positions, { employees, assignments }, dailyBonuses, anomalousDateCount, calendar, versions] =
+  const [positions, { employees, assignments }, dailyBonuses, anomalousDateCount, calendar, versions, reprimands] =
     await Promise.all([
       loadPositions(supabase),
       loadRangeRows(supabase, addDays(start, -LOOK_BACK_DAYS), end),
@@ -78,8 +84,10 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
       (showAmounts ? loadAnomalousDates(supabase) : loadDuplicateDates(supabase)).then((dates) => dates.length),
       loadCalendar(supabase, start, end),
       showAmounts ? loadSettingsVersions(supabase) : [],
+      showAmounts && period ? loadReprimands(supabase, period.id) : new Map<string, string | null>(),
     ]);
   const inRange = assignments.filter((assignment) => assignment.date >= start);
+  const reprimanded = new Set(reprimands.keys());
   const bonusPositions = positions.map(toBonusPosition);
   const sheet = buildSheet({
     dates: datesOf(start, end),
@@ -106,6 +114,12 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
       ? (dayRateOn(params.date, panelSettings, { holiday: panelCalendar?.holiday ?? false, dayRate: null })?.amount ??
         null)
       : null;
+  // Only the person panel needs the period bonuses, and only while the period is open: a closed one
+  // points to the report, where the frozen amounts are.
+  const [periodBonusAmounts, periodBonusPositions] =
+    params.person && period?.status === "OPEN"
+      ? await Promise.all([loadPeriodBonusAmounts(supabase, period.end_date), loadPeriodBonusPositions(supabase)])
+      : [null, []];
 
   return (
     <SheetAbbreviations entries={positions.map((position) => [position.id, position.abbreviation])}>
@@ -133,6 +147,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
               today={today}
               holidays={holidays}
               showAmounts={showAmounts}
+              reprimanded={reprimanded}
             />
           </CellPanelHost>
         }
@@ -157,6 +172,33 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
           calendar={panelCalendar}
           dayRateFallback={dayRateFallback}
           canManageCalendar={showAmounts}
+          />
+        </ServerPanelGate>
+      )}
+      {params.person && namesById.has(params.person) && (
+        <ServerPanelGate panel={{ person: params.person }}>
+          <PersonPanel
+            employeeId={params.person}
+            name={namesById.get(params.person) ?? ""}
+            params={params}
+            period={period}
+            reprimand={reprimands.has(params.person) ? { note: reprimands.get(params.person) ?? null } : null}
+            bonuses={personBonuses({
+              employeeId: params.person,
+              startDate: start,
+              endDate: end,
+              dailyBonuses,
+              amounts: periodBonusAmounts,
+              assignments: inRange.map((assignment) => ({
+                employeeId: assignment.employee_id,
+                date: assignment.date,
+                positionId: assignment.position_id,
+                late: assignment.late,
+              })),
+              positions: periodBonusPositions,
+              calendar,
+              reprimanded,
+            })}
           />
         </ServerPanelGate>
       )}

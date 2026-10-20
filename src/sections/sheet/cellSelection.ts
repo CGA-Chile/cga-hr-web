@@ -64,7 +64,7 @@ function inRange(date: IsoDate, range: DateRange): boolean {
   return date >= range.start && date <= range.end;
 }
 
-export type ServerPanel = { date: IsoDate } | { periodEnd: true };
+export type ServerPanel = { date: IsoDate } | { periodEnd: true } | { person: string };
 
 /**
  * Whether a panel the server rendered is still the one the URL asks for. The server renders the
@@ -73,5 +73,6 @@ export type ServerPanel = { date: IsoDate } | { periodEnd: true };
  */
 export function showsServerPanel(query: Query, panel: ServerPanel): boolean {
   if (query.has("persona") || query.has("rango")) return false;
+  if ("person" in panel) return query.get("trabajador") === panel.person;
   return "date" in panel ? query.get("dia") === panel.date : query.get("panel") === "cierre";
 }

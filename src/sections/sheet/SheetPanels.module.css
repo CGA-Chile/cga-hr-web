@@ -222,6 +222,12 @@
   font-weight: 600;
 }
 
+.facts .factHint {
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
 .factWide {
   grid-column: 1 / -1;
 }

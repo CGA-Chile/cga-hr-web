@@ -132,4 +132,10 @@ describe("showsServerPanel", () => {
     expect(showsServerPanel(new URLSearchParams("panel=cierre"), { periodEnd: true })).toBe(true);
     expect(showsServerPanel(new URLSearchParams("dia=2026-10-03&persona=ana"), { periodEnd: true })).toBe(false);
   });
+
+  it("shows the person panel for that person until a cell opens over it", () => {
+    expect(showsServerPanel(new URLSearchParams("trabajador=ana"), { person: "ana" })).toBe(true);
+    expect(showsServerPanel(new URLSearchParams("trabajador=bruno"), { person: "ana" })).toBe(false);
+    expect(showsServerPanel(new URLSearchParams("dia=2026-10-03&persona=ana"), { person: "ana" })).toBe(false);
+  });
 });

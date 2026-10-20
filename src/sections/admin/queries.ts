@@ -5,11 +5,33 @@ type Tables = Database["public"]["Tables"];
 export type AdminEmployee = Pick<Tables["employees"]["Row"], "id" | "first_name" | "last_name" | "national_id" | "active">;
 export type AdminPosition = Pick<
   Tables["positions"]["Row"],
-  "id" | "code" | "name" | "abbreviation" | "type" | "bonus_eligible" | "triggers_equal_share" | "display_order" | "active"
+  | "id"
+  | "code"
+  | "name"
+  | "abbreviation"
+  | "type"
+  | "bonus_eligible"
+  | "triggers_equal_share"
+  | "production_bonus"
+  | "compliance_bonus"
+  | "compliance_strike"
+  | "display_order"
+  | "active"
 >;
 export type RateVersion = Pick<
   Tables["bonus_settings"]["Row"],
-  "id" | "effective_from" | "effective_to" | "daily_cap" | "max_amount_per_person" | "saturday_day_rate" | "sunday_day_rate" | "holiday_day_rate"
+    | "id"
+  | "effective_from"
+  | "effective_to"
+  | "daily_cap"
+  | "max_amount_per_person"
+  | "saturday_day_rate"
+  | "sunday_day_rate"
+  | "holiday_day_rate"
+  | "production_amount"
+  | "compliance_amount"
+  | "strike_deduction"
+  | "strike_limit"
 > & { rates: { position_id: string; amount: number }[] };
 
 export async function loadAdminEmployees(supabase: ServerSupabase): Promise<AdminEmployee[]> {
@@ -25,7 +47,9 @@ export async function loadAdminPositions(supabase: ServerSupabase): Promise<Admi
   return orThrow(
     await supabase
       .from("positions")
-      .select("id, code, name, abbreviation, type, bonus_eligible, triggers_equal_share, display_order, active")
+      .select(
+        "id, code, name, abbreviation, type, bonus_eligible, triggers_equal_share, production_bonus, compliance_bonus, compliance_strike, display_order, active",
+      )
       .is("deleted_at", null)
       .order("display_order"),
   );
@@ -37,7 +61,7 @@ export async function loadRateVersions(supabase: ServerSupabase): Promise<RateVe
     await supabase
       .from("bonus_settings")
       .select(
-        "id, effective_from, effective_to, daily_cap, max_amount_per_person, saturday_day_rate, sunday_day_rate, holiday_day_rate, bonus_position_rates(position_id, amount, deleted_at)",
+        "id, effective_from, effective_to, daily_cap, max_amount_per_person, saturday_day_rate, sunday_day_rate, holiday_day_rate, production_amount, compliance_amount, strike_deduction, strike_limit, bonus_position_rates(position_id, amount, deleted_at)",
       )
       .is("deleted_at", null)
       .order("effective_from", { ascending: false }),

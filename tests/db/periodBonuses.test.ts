@@ -26,10 +26,14 @@ beforeAll(async () => {
 // Fictional amounts, never production's.
 const AMOUNTS = { production_amount: 21_000, compliance_amount: 12_600, strike_deduction: 1_500, strike_limit: 3 };
 
-function firstWorkingDay(period: TestPeriod): string {
-  let date = period.startDate;
+function workingDayFrom(start: string): string {
+  let date = start;
   while (!isWorkingDay(date, undefined)) date = addDays(date, 1);
   return date;
+}
+
+function firstWorkingDay(period: TestPeriod): string {
+  return workingDayFrom(period.startDate);
 }
 
 function termsOf(period: TestPeriod) {
@@ -260,5 +264,33 @@ describe("close_period with the period bonuses", () => {
 
     const items = unwrap(await editor.from("review_items").select("period_id").eq("assignment_id", day.id));
     expect(items).toEqual([{ period_id: period.id }]);
+  });
+});
+
+describe("period_bonus_owed_days", () => {
+  it("lists a working day entered after its period closed, and not a weekend one", async () => {
+    const { period, day, settlements, stamps } = await periodWithOneDay();
+    await admin.rpc("close_period", {
+      ...nextAfter(period),
+      p_period_id: period.id,
+      p_settlements: [],
+      p_period_bonuses: { terms: termsOf(period), settlements, stamps },
+    });
+    let saturday = period.startDate;
+    while (new Date(`${saturday}T00:00:00Z`).getUTCDay() !== 6) saturday = addDays(saturday, 1);
+    const late = await assign(workingDayFrom(addDays(firstWorkingDay(period), 1)), day.position_id, day.employee_id);
+    const weekend = await assign(saturday, day.position_id, day.employee_id);
+
+    const owed = unwrap(
+      await admin
+        .from("period_bonus_owed_days")
+        .select("assignment_id, origin_period_id, bonus")
+        .in("assignment_id", [day.id, late.id, weekend.id]),
+    );
+
+    expect(owed.sort((a, b) => String(a.bonus).localeCompare(String(b.bonus)))).toEqual([
+      { assignment_id: late.id, origin_period_id: period.id, bonus: "COMPLIANCE" },
+      { assignment_id: late.id, origin_period_id: period.id, bonus: "PRODUCTION" },
+    ]);
   });
 });

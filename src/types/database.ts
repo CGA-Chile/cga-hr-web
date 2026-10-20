@@ -137,6 +137,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "assignment_history_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["assignment_id"]
+          },
+          {
             foreignKeyName: "assignment_history_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
@@ -222,6 +229,13 @@ export type Database = {
             foreignKeyName: "assignments_compliance_settled_in_period_id_fkey"
             columns: ["compliance_settled_in_period_id"]
             isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
+          },
+          {
+            foreignKeyName: "assignments_compliance_settled_in_period_id_fkey"
+            columns: ["compliance_settled_in_period_id"]
+            isOneToOne: false
             referencedRelation: "periods"
             referencedColumns: ["id"]
           },
@@ -243,8 +257,22 @@ export type Database = {
             foreignKeyName: "assignments_production_settled_in_period_id_fkey"
             columns: ["production_settled_in_period_id"]
             isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
+          },
+          {
+            foreignKeyName: "assignments_production_settled_in_period_id_fkey"
+            columns: ["production_settled_in_period_id"]
+            isOneToOne: false
             referencedRelation: "periods"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_settled_in_period_id_fkey"
+            columns: ["settled_in_period_id"]
+            isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
           },
           {
             foreignKeyName: "assignments_settled_in_period_id_fkey"
@@ -488,6 +516,13 @@ export type Database = {
             foreignKeyName: "cap_overrides_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
+          },
+          {
+            foreignKeyName: "cap_overrides_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
             referencedRelation: "periods"
             referencedColumns: ["id"]
           },
@@ -581,8 +616,22 @@ export type Database = {
             foreignKeyName: "period_bonus_settlements_origin_period_id_fkey"
             columns: ["origin_period_id"]
             isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
+          },
+          {
+            foreignKeyName: "period_bonus_settlements_origin_period_id_fkey"
+            columns: ["origin_period_id"]
+            isOneToOne: false
             referencedRelation: "periods"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "period_bonus_settlements_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
           },
           {
             foreignKeyName: "period_bonus_settlements_period_id_fkey"
@@ -774,6 +823,13 @@ export type Database = {
             foreignKeyName: "reprimands_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
+          },
+          {
+            foreignKeyName: "reprimands_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
             referencedRelation: "periods"
             referencedColumns: ["id"]
           },
@@ -781,6 +837,33 @@ export type Database = {
       }
     }
     Views: {
+      period_bonus_owed_days: {
+        Row: {
+          assignment_id: string | null
+          bonus: string | null
+          date: string | null
+          employee_id: string | null
+          late: boolean | null
+          origin_period_id: string | null
+          position_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_history: {
         Row: {
           acknowledged_at: string | null

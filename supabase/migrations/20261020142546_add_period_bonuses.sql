@@ -13,6 +13,7 @@
 -- 7. private.is_working_day, the SQL copy of isWorkingDay, and what counts for each bonus.
 -- 8. close_period freezes the terms, writes the rows and stamps, and refuses on any drift.
 -- 9. The review list covers changes that matter to the period bonuses of a closed period.
+-- 10. period_bonus_owed_days: what closed periods still owe, for the next close to pay.
 
 -- 1 -------------------------------------------------------------------------------------------
 
@@ -559,3 +560,32 @@ join public.periods closed
  and history.date between closed.start_date and closed.end_date
  and history.changed_at > closed.closed_at
 where history.deleted_at is null;
+
+-- 10 ------------------------------------------------------------------------------------------
+
+-- The days a closed period still owes for a bonus: attended on a position that earns it, in a
+-- period that froze terms, and never counted by a close. What the next close pays as carry-over.
+-- Filtered here, with the same rule the close checks, so the app never has to read every
+-- weekend and absence that will never be stamped.
+create view public.period_bonus_owed_days with (security_invoker = true) as
+select
+  assignment.id        as assignment_id,
+  assignment.date,
+  assignment.employee_id,
+  assignment.position_id,
+  assignment.late,
+  origin.id            as origin_period_id,
+  bonus.kind           as bonus
+from public.assignments assignment
+join public.periods origin
+  on assignment.date between origin.start_date and origin.end_date
+ and origin.deleted_at is null
+ and origin.status = 'CLOSED'
+ and origin.working_days is not null
+cross join (values ('PRODUCTION'), ('COMPLIANCE')) as bonus (kind)
+where assignment.deleted_at is null
+  and case bonus.kind
+        when 'PRODUCTION' then assignment.production_settled_in_period_id
+        else assignment.compliance_settled_in_period_id
+      end is null
+  and private.counts_for_period_bonus(assignment.date, assignment.position_id, bonus.kind);

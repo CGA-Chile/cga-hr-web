@@ -56,6 +56,9 @@ export function PositionsTable({ positions, editHref }: { positions: readonly Ad
           <th scope="col">{copy.type}</th>
           <th scope="col">{copy.bonusEligible}</th>
           <th scope="col">{copy.triggersEqualShare}</th>
+          <th scope="col">{copy.productionBonusShort}</th>
+          <th scope="col">{copy.complianceBonusShort}</th>
+          <th scope="col">{copy.complianceStrikeShort}</th>
           <th scope="col">{copy.active}</th>
           <th scope="col" />
         </tr>
@@ -70,6 +73,9 @@ export function PositionsTable({ positions, editHref }: { positions: readonly Ad
             <td>{position.type === "ABSENCE" ? copy.types.ABSENCE : copy.types.WORK}</td>
             <td>{yesNo(position.bonus_eligible)}</td>
             <td>{yesNo(position.triggers_equal_share)}</td>
+            <td>{yesNo(position.production_bonus)}</td>
+            <td>{yesNo(position.compliance_bonus)}</td>
+            <td>{yesNo(position.compliance_strike)}</td>
             <td>{yesNo(position.active)}</td>
             <td className={styles.actions}>
               <Link href={editHref(position.id)} scroll={false} className={styles.link}>
@@ -130,6 +136,30 @@ export function RateVersions({ versions, positionName }: { versions: readonly Ra
                 <tr>
                   <td>{copy.holidayDayRate}</td>
                   <td>{formatPesos(version.holiday_day_rate)}</td>
+                </tr>
+              )}
+              {version.production_amount !== null && (
+                <tr>
+                  <td>{copy.productionAmount}</td>
+                  <td>{formatPesos(version.production_amount)}</td>
+                </tr>
+              )}
+              {version.compliance_amount !== null && (
+                <tr>
+                  <td>{copy.complianceAmount}</td>
+                  <td>{formatPesos(version.compliance_amount)}</td>
+                </tr>
+              )}
+              {version.strike_deduction !== null && (
+                <tr>
+                  <td>{copy.strikeDeduction}</td>
+                  <td>{formatPesos(version.strike_deduction)}</td>
+                </tr>
+              )}
+              {version.strike_limit !== null && (
+                <tr>
+                  <td>{copy.strikeLimit}</td>
+                  <td>{version.strike_limit}</td>
                 </tr>
               )}
             </tbody>

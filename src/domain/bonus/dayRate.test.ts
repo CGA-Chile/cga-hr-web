@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayRateOn } from "./dayRate";
+import { dayRateOn, isWorkingDay } from "./dayRate";
 import type { BonusSettings } from "./types";
 
 // Fictional amounts, distinct per kind so each test shows which default was picked.
@@ -56,5 +56,24 @@ describe("which dates are paid under the day rate", () => {
   it("under settings that predate the day rate, weekends and holidays pay like any other day", () => {
     expect(dayRateOn(SATURDAY, BEFORE_DAY_RATES, undefined)).toBeNull();
     expect(dayRateOn(THURSDAY, BEFORE_DAY_RATES, { holiday: true, dayRate: null })).toBeNull();
+  });
+});
+
+describe("which dates are working days", () => {
+  it("an ordinary weekday is", () => {
+    expect(isWorkingDay(THURSDAY, undefined)).toBe(true);
+  });
+
+  it("a Saturday and a Sunday are not", () => {
+    expect(isWorkingDay(SATURDAY, undefined)).toBe(false);
+    expect(isWorkingDay(SUNDAY, undefined)).toBe(false);
+  });
+
+  it("a weekday holiday is not, whatever the settings say about day rates", () => {
+    expect(isWorkingDay(THURSDAY, { holiday: true, dayRate: null })).toBe(false);
+  });
+
+  it("a weekday HR gave its own day rate is not", () => {
+    expect(isWorkingDay(THURSDAY, { holiday: false, dayRate: 9_000 })).toBe(false);
   });
 });

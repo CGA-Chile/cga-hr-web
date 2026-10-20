@@ -53,7 +53,14 @@ export async function createEmployee(): Promise<string> {
   return row.id;
 }
 
-type PositionFlags = { bonusEligible?: boolean; triggersEqualShare?: boolean; absence?: boolean };
+type PositionFlags = {
+  bonusEligible?: boolean;
+  triggersEqualShare?: boolean;
+  absence?: boolean;
+  productionBonus?: boolean;
+  complianceBonus?: boolean;
+  complianceStrike?: boolean;
+};
 
 export async function createPosition(flags: PositionFlags = {}): Promise<string> {
   const code = `TEST_${randomUUID().slice(0, 8).toUpperCase()}`;
@@ -67,6 +74,9 @@ export async function createPosition(flags: PositionFlags = {}): Promise<string>
         type: flags.absence ? "ABSENCE" : "WORK",
         bonus_eligible: flags.bonusEligible ?? !flags.absence,
         triggers_equal_share: flags.triggersEqualShare ?? false,
+        production_bonus: flags.productionBonus ?? false,
+        compliance_bonus: flags.complianceBonus ?? false,
+        compliance_strike: flags.complianceStrike ?? false,
         display_order: 1000,
       })
       .select("id")

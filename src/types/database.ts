@@ -137,6 +137,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "assignment_history_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["assignment_id"]
+          },
+          {
             foreignKeyName: "assignment_history_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
@@ -161,6 +168,7 @@ export type Database = {
       }
       assignments: {
         Row: {
+          compliance_settled_in_period_id: string | null
           created_at: string
           created_by: string | null
           date: string
@@ -172,12 +180,14 @@ export type Database = {
           left_early: boolean
           note: string | null
           position_id: string
+          production_settled_in_period_id: string | null
           settled_amount: number | null
           settled_in_period_id: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          compliance_settled_in_period_id?: string | null
           created_at?: string
           created_by?: string | null
           date: string
@@ -189,12 +199,14 @@ export type Database = {
           left_early?: boolean
           note?: string | null
           position_id: string
+          production_settled_in_period_id?: string | null
           settled_amount?: number | null
           settled_in_period_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          compliance_settled_in_period_id?: string | null
           created_at?: string
           created_by?: string | null
           date?: string
@@ -206,12 +218,27 @@ export type Database = {
           left_early?: boolean
           note?: string | null
           position_id?: string
+          production_settled_in_period_id?: string | null
           settled_amount?: number | null
           settled_in_period_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "assignments_compliance_settled_in_period_id_fkey"
+            columns: ["compliance_settled_in_period_id"]
+            isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
+          },
+          {
+            foreignKeyName: "assignments_compliance_settled_in_period_id_fkey"
+            columns: ["compliance_settled_in_period_id"]
+            isOneToOne: false
+            referencedRelation: "periods"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "assignments_employee_id_fkey"
             columns: ["employee_id"]
@@ -225,6 +252,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "positions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_production_settled_in_period_id_fkey"
+            columns: ["production_settled_in_period_id"]
+            isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
+          },
+          {
+            foreignKeyName: "assignments_production_settled_in_period_id_fkey"
+            columns: ["production_settled_in_period_id"]
+            isOneToOne: false
+            referencedRelation: "periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_settled_in_period_id_fkey"
+            columns: ["settled_in_period_id"]
+            isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
           },
           {
             foreignKeyName: "assignments_settled_in_period_id_fkey"
@@ -282,6 +330,7 @@ export type Database = {
       }
       bonus_settings: {
         Row: {
+          compliance_amount: number | null
           created_at: string
           daily_cap: number
           deleted_at: string | null
@@ -290,11 +339,15 @@ export type Database = {
           holiday_day_rate: number | null
           id: string
           max_amount_per_person: number
+          production_amount: number | null
           saturday_day_rate: number | null
+          strike_deduction: number | null
+          strike_limit: number | null
           sunday_day_rate: number | null
           updated_at: string
         }
         Insert: {
+          compliance_amount?: number | null
           created_at?: string
           daily_cap: number
           deleted_at?: string | null
@@ -303,11 +356,15 @@ export type Database = {
           holiday_day_rate?: number | null
           id?: string
           max_amount_per_person: number
+          production_amount?: number | null
           saturday_day_rate?: number | null
+          strike_deduction?: number | null
+          strike_limit?: number | null
           sunday_day_rate?: number | null
           updated_at?: string
         }
         Update: {
+          compliance_amount?: number | null
           created_at?: string
           daily_cap?: number
           deleted_at?: string | null
@@ -316,7 +373,10 @@ export type Database = {
           holiday_day_rate?: number | null
           id?: string
           max_amount_per_person?: number
+          production_amount?: number | null
           saturday_day_rate?: number | null
+          strike_deduction?: number | null
+          strike_limit?: number | null
           sunday_day_rate?: number | null
           updated_at?: string
         }
@@ -456,6 +516,13 @@ export type Database = {
             foreignKeyName: "cap_overrides_period_id_fkey"
             columns: ["period_id"]
             isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
+          },
+          {
+            foreignKeyName: "cap_overrides_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
             referencedRelation: "periods"
             referencedColumns: ["id"]
           },
@@ -494,42 +561,138 @@ export type Database = {
         }
         Relationships: []
       }
+      period_bonus_settlements: {
+        Row: {
+          amount: number
+          bonus: string
+          created_at: string
+          days: number
+          deleted_at: string | null
+          employee_id: string
+          id: string
+          origin_period_id: string
+          period_id: string
+          reprimanded: boolean
+          strikes: number
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          bonus: string
+          created_at?: string
+          days: number
+          deleted_at?: string | null
+          employee_id: string
+          id?: string
+          origin_period_id: string
+          period_id: string
+          reprimanded: boolean
+          strikes: number
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bonus?: string
+          created_at?: string
+          days?: number
+          deleted_at?: string | null
+          employee_id?: string
+          id?: string
+          origin_period_id?: string
+          period_id?: string
+          reprimanded?: boolean
+          strikes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "period_bonus_settlements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "period_bonus_settlements_origin_period_id_fkey"
+            columns: ["origin_period_id"]
+            isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
+          },
+          {
+            foreignKeyName: "period_bonus_settlements_origin_period_id_fkey"
+            columns: ["origin_period_id"]
+            isOneToOne: false
+            referencedRelation: "periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "period_bonus_settlements_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
+          },
+          {
+            foreignKeyName: "period_bonus_settlements_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       periods: {
         Row: {
           closed_at: string | null
           closed_by: string | null
+          compliance_amount: number | null
           created_at: string
           deleted_at: string | null
           end_date: string
           id: string
           name: string
+          production_amount: number | null
           start_date: string
           status: string
+          strike_deduction: number | null
+          strike_limit: number | null
           updated_at: string
+          working_days: number | null
         }
         Insert: {
           closed_at?: string | null
           closed_by?: string | null
+          compliance_amount?: number | null
           created_at?: string
           deleted_at?: string | null
           end_date: string
           id?: string
           name: string
+          production_amount?: number | null
           start_date: string
           status?: string
+          strike_deduction?: number | null
+          strike_limit?: number | null
           updated_at?: string
+          working_days?: number | null
         }
         Update: {
           closed_at?: string | null
           closed_by?: string | null
+          compliance_amount?: number | null
           created_at?: string
           deleted_at?: string | null
           end_date?: string
           id?: string
           name?: string
+          production_amount?: number | null
           start_date?: string
           status?: string
+          strike_deduction?: number | null
+          strike_limit?: number | null
           updated_at?: string
+          working_days?: number | null
         }
         Relationships: []
       }
@@ -539,11 +702,14 @@ export type Database = {
           active: boolean
           bonus_eligible: boolean
           code: string
+          compliance_bonus: boolean
+          compliance_strike: boolean
           created_at: string
           deleted_at: string | null
           display_order: number
           id: string
           name: string
+          production_bonus: boolean
           triggers_equal_share: boolean
           type: string
           updated_at: string
@@ -553,11 +719,14 @@ export type Database = {
           active?: boolean
           bonus_eligible?: boolean
           code: string
+          compliance_bonus?: boolean
+          compliance_strike?: boolean
           created_at?: string
           deleted_at?: string | null
           display_order: number
           id?: string
           name: string
+          production_bonus?: boolean
           triggers_equal_share?: boolean
           type: string
           updated_at?: string
@@ -567,11 +736,14 @@ export type Database = {
           active?: boolean
           bonus_eligible?: boolean
           code?: string
+          compliance_bonus?: boolean
+          compliance_strike?: boolean
           created_at?: string
           deleted_at?: string | null
           display_order?: number
           id?: string
           name?: string
+          production_bonus?: boolean
           triggers_equal_share?: boolean
           type?: string
           updated_at?: string
@@ -605,8 +777,93 @@ export type Database = {
         }
         Relationships: []
       }
+      reprimands: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          employee_id: string
+          id: string
+          note: string | null
+          period_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          employee_id: string
+          id?: string
+          note?: string | null
+          period_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          employee_id?: string
+          id?: string
+          note?: string | null
+          period_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reprimands_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reprimands_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
+          },
+          {
+            foreignKeyName: "reprimands_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
+      period_bonus_owed_days: {
+        Row: {
+          assignment_id: string | null
+          bonus: string | null
+          date: string | null
+          employee_id: string | null
+          late: boolean | null
+          origin_period_id: string | null
+          position_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_history: {
         Row: {
           acknowledged_at: string | null
@@ -684,6 +941,7 @@ export type Database = {
         Args: {
           p_next_end: string
           p_next_name: string
+          p_period_bonuses?: Json
           p_period_id: string
           p_settlements: Json
         }
@@ -691,12 +949,16 @@ export type Database = {
       }
       create_bonus_settings_version: {
         Args: {
+          p_compliance_amount?: number
           p_daily_cap: number
           p_effective_from: string
           p_holiday_day_rate: number
           p_max_amount_per_person: number
+          p_production_amount?: number
           p_rates: Json
           p_saturday_day_rate: number
+          p_strike_deduction?: number
+          p_strike_limit?: number
           p_sunday_day_rate: number
         }
         Returns: string
@@ -707,6 +969,15 @@ export type Database = {
       }
       set_period_end: {
         Args: { p_end_date: string; p_period_id: string }
+        Returns: undefined
+      }
+      set_reprimand: {
+        Args: {
+          p_employee_id: string
+          p_note?: string
+          p_period_id: string
+          p_reprimanded: boolean
+        }
         Returns: undefined
       }
     }

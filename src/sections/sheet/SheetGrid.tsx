@@ -3,7 +3,7 @@ import { sheetCopy } from "@/copy/sheet";
 import type { IsoDate } from "@/domain/bonus/types";
 import { addDays, formatLongDate } from "@/utils/chileDate";
 import { formatPesos, formatThousands } from "@/utils/money";
-import { fullName, type Position } from "../day/queries";
+import { fullName, type Employee, type Position } from "../day/queries";
 import { sheetPath, type SheetParams } from "./paths";
 import { describeMarks } from "./incompleteDay";
 import { LateIcon, LeftEarlyIcon } from "./MarkIcons";
@@ -22,8 +22,10 @@ type SheetGridProps = {
   today: IsoDate;
   /** Holidays HR marked: shaded like Sundays, the other dates paid under the day rate. */
   holidays: ReadonlySet<IsoDate>;
-  /** False for a role that never sees amounts: no totals row, no period column. */
+  /** False for a role that never sees amounts: no totals row, no period column, no person panel. */
   showAmounts: boolean;
+  /** Employees with a reprimand in the period: their name carries a mark. Empty for the supervisor. */
+  reprimanded: ReadonlySet<string>;
 };
 
 /**
@@ -31,7 +33,8 @@ type SheetGridProps = {
  * date is a link that opens the side panel; the grid itself never edits. A cell's link is a plain
  * anchor: the cell panel host opens it in the browser, so the open cell is marked there too.
  */
-export function SheetGrid({ sheet, positionsById, params, weekStart, today, holidays, showAmounts }: SheetGridProps) {
+export function SheetGrid(props: SheetGridProps) {
+  const { sheet, positionsById, params, weekStart, today, holidays, showAmounts, reprimanded } = props;
   const weekEnd = addDays(weekStart, 6);
   const outOfWeek = (date: IsoDate) => date < weekStart || date > weekEnd || undefined;
   const selected = (date: IsoDate) => params.date === date || undefined;
@@ -85,10 +88,15 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
           {sheet.rows.map((row) => (
             <tr key={row.employee.id} data-employee={row.employee.id}>
               <th scope="row" className={styles.name}>
-                <span className={styles.fullName}>{fullName(row.employee)}</span>
-                <span className={styles.shortName}>
-                  {row.employee.first_name} {row.employee.last_name.charAt(0)}.
-                </span>
+                <EmployeeName
+                  employee={row.employee}
+                  href={
+                    showAmounts
+                      ? sheetPath({ ...params, date: null, employeeId: null, endPanel: false, person: row.employee.id })
+                      : null
+                  }
+                  reprimanded={reprimanded.has(row.employee.id)}
+                />
               </th>
               {row.cells.map((cell) => {
                 const position = cell.assignment ? positionsById.get(cell.assignment.position_id) : undefined;
@@ -160,6 +168,35 @@ export function SheetGrid({ sheet, positionsById, params, weekStart, today, holi
         )}
       </table>
     </div>
+  );
+}
+
+type EmployeeNameProps = {
+  employee: Pick<Employee, "first_name" | "last_name">;
+  /** The person panel, for a role that sees amounts; null leaves the name as plain text. */
+  href: string | null;
+  reprimanded: boolean;
+};
+
+function EmployeeName({ employee, href, reprimanded }: EmployeeNameProps) {
+  const name = (
+    <>
+      <span className={styles.fullName}>{fullName(employee)}</span>
+      <span className={styles.shortName}>
+        {employee.first_name} {employee.last_name.charAt(0)}.
+      </span>
+      {reprimanded && (
+        <span className={styles.reprimand} title={sheetCopy.person.reprimanded}>
+          {sheetCopy.person.reprimandMark}
+        </span>
+      )}
+    </>
+  );
+  if (!href) return name;
+  return (
+    <Link href={href} scroll={false} className={styles.nameLink} aria-label={sheetCopy.person.openFor(fullName(employee))}>
+      {name}
+    </Link>
   );
 }
 

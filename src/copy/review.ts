@@ -7,7 +7,7 @@ export const reviewCopy = {
   emptyPending: "No hay ítems de revisión pendientes.",
   emptyAcknowledged: "Todavía no hay ítems revisados.",
   movement: (from: string, to: string) => `${from} → ${to}`,
-  calendarHeadline: "Feriado y monto del día",
+  calendarHeadline: "Feriado y bono día no hábil",
   holiday: "feriado",
   notHoliday: "no feriado",
   defaultDayRate: "monto normal",

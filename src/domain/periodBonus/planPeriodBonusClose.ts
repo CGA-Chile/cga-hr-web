@@ -1,16 +1,15 @@
 import { calculatePeriodBonuses, daysCountedBy, periodBonusAmount } from "./calculatePeriodBonuses";
+import { PERIOD_BONUS_KINDS } from "./kind";
 import type {
   ClosedPeriod,
   CountableAssignment,
   PeriodBonusCloseInput,
   PeriodBonusClosePlan,
-  PeriodBonusKind,
   PeriodBonusPosition,
   PeriodBonusSettlement,
   PeriodBonusStamp,
 } from "./types";
 
-const KINDS: readonly PeriodBonusKind[] = ["PRODUCTION", "COMPLIANCE"];
 
 /**
  * Plans what a close settles of the period bonuses (docs/adr/0016):
@@ -53,7 +52,7 @@ function settleOwnPeriod(input: PeriodBonusCloseInput, positionsById: PositionsB
     reprimanded: input.reprimanded,
   });
   const settlements = result.perEmployee.flatMap((entry) =>
-    KINDS.map((bonus) => ({
+    PERIOD_BONUS_KINDS.map((bonus) => ({
       originPeriodId: period.id,
       employeeId: entry.employeeId,
       bonus,
@@ -84,7 +83,7 @@ function settleCarryOver(
   const assignmentsById = new Map(inPeriod.map((assignment) => [assignment.id, assignment]));
   const earlier = input.settled.filter((row) => row.originPeriodId === period.id);
 
-  const settlements = KINDS.flatMap((bonus) => {
+  const settlements = PERIOD_BONUS_KINDS.flatMap((bonus) => {
     const byEmployee = Map.groupBy(
       stamps.filter((stamp) => stamp.bonus === bonus),
       (stamp) => assignmentsById.get(stamp.assignmentId)?.employeeId ?? "",
@@ -115,7 +114,7 @@ function stampsFor(
     const position = positionsById.get(assignment.positionId);
     if (!position) throw new Error(`Assignment references unknown position ${assignment.positionId}`);
     const adds = daysCountedBy(assignment, position, input.calendar);
-    return KINDS.filter((bonus) => adds[bonus] && !assignment.counted[bonus]).map((bonus) => ({
+    return PERIOD_BONUS_KINDS.filter((bonus) => adds[bonus] && !assignment.counted[bonus]).map((bonus) => ({
       assignmentId: assignment.id,
       positionId: assignment.positionId,
       bonus,

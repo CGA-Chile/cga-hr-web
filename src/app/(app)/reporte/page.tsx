@@ -1,15 +1,17 @@
+import Link from "next/link";
 import { reportCopy } from "@/copy/report";
 import { loadPeriods } from "@/sections/periods/queries";
-import { CloseReportView } from "@/sections/report/CloseReportView";
+import { CloseReportView, type ReportView } from "@/sections/report/CloseReportView";
 import { loadReportFor } from "@/sections/report/loadReportFor";
 import styles from "@/sections/report/ReportPage.module.css";
 import { requireAmounts } from "@/utils/supabase/currentProfile";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
 
-type ReportPageProps = { searchParams: Promise<{ cierre?: string | string[] }> };
+type ReportPageProps = { searchParams: Promise<{ cierre?: string | string[]; vista?: string | string[] }> };
 
 export default async function ReportPage({ searchParams }: ReportPageProps) {
-  const { cierre } = await searchParams;
+  const { cierre, vista } = await searchParams;
+  const view: ReportView = vista === "detalle" ? "detail" : "summary";
   const supabase = await createSupabaseServerClient();
   await requireAmounts(supabase);
   const closed = (await loadPeriods(supabase)).filter((period) => period.status === "CLOSED");
@@ -50,7 +52,19 @@ export default async function ReportPage({ searchParams }: ReportPageProps) {
               </a>
             </div>
           </div>
-          <CloseReportView report={loaded.report} />
+          <nav className={styles.views} aria-label={reportCopy.title}>
+            {(["summary", "detail"] as const).map((option) => (
+              <Link
+                key={option}
+                href={`/reporte?cierre=${selectedId}${option === "detail" ? "&vista=detalle" : ""}`}
+                aria-current={option === view ? "page" : undefined}
+                className={option === view ? styles.currentView : styles.view}
+              >
+                {reportCopy.views[option]}
+              </Link>
+            ))}
+          </nav>
+          <CloseReportView report={loaded.report} view={view} />
         </>
       )}
     </main>

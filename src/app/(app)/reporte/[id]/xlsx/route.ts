@@ -1,6 +1,6 @@
 import writeExcelFile from "write-excel-file/node";
 import { reportCopy } from "@/copy/report";
-import { exportTable } from "@/sections/report/exportTable";
+import { exportTable, LEADING_TEXT_COLUMNS } from "@/sections/report/exportTable";
 import { loadReportFor } from "@/sections/report/loadReportFor";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
 
@@ -15,7 +15,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const sheet = [
     header.map((value) => ({ value, fontWeight: "bold" as const })),
     ...body.map((row) =>
-      row.map((value, column) => (column >= 3 && typeof value === "number" ? { value, format: PESOS } : { value })),
+      row.map((value, column) => (column >= LEADING_TEXT_COLUMNS && typeof value === "number" ? { value, format: PESOS } : { value })),
     ),
   ];
   const buffer = await writeExcelFile(sheet).toBuffer();

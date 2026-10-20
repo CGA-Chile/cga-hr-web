@@ -21,9 +21,12 @@ export const periodsCopy = {
   notContiguous: "El cierre tiene que empezar el día siguiente al anterior, sin días sueltos.",
   unavailable: "No se pudo guardar. Revisa la señal y vuelve a intentarlo.",
 
-  periodDays: "Días del período",
+  periodDays: "Bono cardas y día no hábil",
   carryOver: "Arrastre de períodos anteriores",
   carryOverHint: "Días de cierres anteriores que se registraron tarde. Se pagan ahora.",
+  production: "Bono de producción",
+  compliance: "Bono de cumplimiento",
+  includesCarryOver: (amount: string) => `Incluye ${amount} de arrastre.`,
   total: "Total a pagar",
   nothingToSettle: "No hay bonos pendientes hasta esta fecha.",
 

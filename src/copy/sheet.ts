@@ -95,16 +95,16 @@ export const sheetCopy = {
   unavailable: "No se pudo guardar. Revisa la señal y vuelve a intentarlo.",
 
   holidayTag: "Feriado",
-  calendarTitle: "Feriado y monto del día",
+  calendarTitle: "Feriado y bono día no hábil",
   holidayLabel: "Este día es feriado",
-  dayRateLabel: "Monto del día para esta fecha",
+  dayRateLabel: "Bono día no hábil para esta fecha",
   dayRateHint: (fallback: string) => `Déjalo vacío para usar el monto normal${fallback}.`,
   dayRateFallback: (amount: string) => ` (${amount})`,
   saveCalendar: "Guardar",
   savingCalendar: "Guardando…",
   calendarWho: "Lo pueden cambiar RRHH y el administrador.",
   invalidDayRate: "Escribe un monto en pesos, sin puntos, o déjalo vacío.",
-  calendarNoPermission: "Tu usuario no puede marcar feriados ni cambiar el monto del día.",
+  calendarNoPermission: "Tu usuario no puede marcar feriados ni cambiar el bono día no hábil.",
 
   assignRange: "Asignar por rango",
   rangeIntro:

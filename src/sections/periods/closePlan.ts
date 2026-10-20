@@ -1,4 +1,6 @@
 import type { IsoDate } from "@/domain/bonus/types";
+import { planPeriodBonusClose } from "@/domain/periodBonus/planPeriodBonusClose";
+import type { PeriodBonusClosePlan, PeriodBonusKind } from "@/domain/periodBonus/types";
 import { planClose } from "@/domain/settlement/planClose";
 import type { ClosePlan, SettlementDay } from "@/domain/settlement/types";
 import {
@@ -8,6 +10,8 @@ import {
   loadLiveAssignments,
   loadSettingsVersions,
 } from "@/sections/bonus/dailyBonuses";
+import { loadPeriodBonusCloseInput } from "@/sections/bonus/periodBonuses";
+import type { Json } from "@/types/database";
 import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
 import type { Period } from "./queries";
 
@@ -19,6 +23,10 @@ export type LoadedClosePlan = {
   unpricedDates: IsoDate[];
   /** What close_period receives: the plan's entries, keyed back to their assignments. */
   settlements: Settlement[];
+  /** The production and compliance bonuses this close settles, its own and carried over. */
+  periodBonuses: PeriodBonusClosePlan;
+  /** Totals of `periodBonuses` per bonus: the period's own days, and carry-over. */
+  periodBonusTotals: Record<PeriodBonusKind, { period: number; carryOver: number }>;
   canClose: boolean;
 };
 
@@ -29,7 +37,7 @@ export type LoadedClosePlan = {
  * pays: the line on an ordinary date, everyone who worked on a day-rate date.
  */
 export async function loadClosePlan(supabase: ServerSupabase, period: Period): Promise<LoadedClosePlan> {
-  const [unsettled, positions, versions, validations] = await Promise.all([
+  const [unsettled, positions, versions, validations, periodBonusInput] = await Promise.all([
     supabase
       .from("assignments")
       .select("date")
@@ -39,6 +47,7 @@ export async function loadClosePlan(supabase: ServerSupabase, period: Period): P
     loadBonusPositions(supabase),
     loadSettingsVersions(supabase),
     supabase.from("cap_overrides").select("date, approved_amount").eq("period_id", period.id).is("deleted_at", null),
+    loadPeriodBonusCloseInput(supabase, period),
   ]);
   const dateSet = new Set(orThrow(unsettled).map((row) => row.date));
   const dates = [...dateSet].sort();
@@ -81,5 +90,63 @@ export async function loadClosePlan(supabase: ServerSupabase, period: Period): P
     return { assignment_id: id, position_id: entry.positionId, amount: entry.amount };
   });
 
-  return { plan, unpricedDates, settlements, canClose: plan.canClose && unpricedDates.length === 0 };
+  const periodBonuses = planPeriodBonusClose(periodBonusInput);
+
+  return {
+    plan,
+    unpricedDates,
+    settlements,
+    periodBonuses,
+    periodBonusTotals: totalsOf(periodBonuses, period.id),
+    canClose: plan.canClose && unpricedDates.length === 0,
+  };
+}
+
+/** The total a close pays, daily and period bonuses together. */
+export function grandTotal(loaded: LoadedClosePlan): number {
+  const { PRODUCTION, COMPLIANCE } = loaded.periodBonusTotals;
+  return (
+    loaded.plan.periodTotal +
+    loaded.plan.carryOverTotal +
+    PRODUCTION.period +
+    PRODUCTION.carryOver +
+    COMPLIANCE.period +
+    COMPLIANCE.carryOver
+  );
+}
+
+/** close_period's p_period_bonuses, in the database's column names. */
+export function periodBonusArgument(plan: PeriodBonusClosePlan): Json {
+  return {
+    terms: plan.terms && {
+      working_days: plan.terms.workingDays,
+      production_amount: plan.terms.productionAmount,
+      compliance_amount: plan.terms.complianceAmount,
+      strike_deduction: plan.terms.strikeDeduction,
+      strike_limit: plan.terms.strikeLimit,
+    },
+    settlements: plan.settlements.map((row) => ({
+      origin_period_id: row.originPeriodId,
+      employee_id: row.employeeId,
+      bonus: row.bonus,
+      days: row.days,
+      strikes: row.strikes,
+      reprimanded: row.reprimanded,
+      amount: row.amount,
+    })),
+    stamps: plan.stamps.map((stamp) => ({
+      assignment_id: stamp.assignmentId,
+      position_id: stamp.positionId,
+      bonus: stamp.bonus,
+    })),
+  };
+}
+
+function totalsOf(plan: PeriodBonusClosePlan, periodId: string): LoadedClosePlan["periodBonusTotals"] {
+  const totals = { PRODUCTION: { period: 0, carryOver: 0 }, COMPLIANCE: { period: 0, carryOver: 0 } };
+  for (const row of plan.settlements) {
+    if (row.originPeriodId === periodId) totals[row.bonus].period += row.amount;
+    else totals[row.bonus].carryOver += row.amount;
+  }
+  return totals;
 }

@@ -42,3 +42,23 @@
   text-decoration: none;
   cursor: pointer;
 }
+
+.views {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.view,
+.currentView {
+  padding: var(--space-2) 0;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.currentView {
+  border-bottom: 2px solid var(--color-accent);
+  color: var(--color-text);
+  font-weight: 600;
+}

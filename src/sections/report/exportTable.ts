@@ -1,22 +1,26 @@
 import { reportCopy } from "@/copy/report";
-import type { CloseReport } from "./closeReport";
+import { REPORT_BONUSES, type CloseReport } from "./closeReport";
 
 export type ExportCell = string | number;
 
-/** The report as the export sees it: the on-screen columns, one row per person, then totals. */
+/** Columns before the amounts: the person and their RUT. */
+export const LEADING_TEXT_COLUMNS = 2;
+
+/**
+ * The summary as accounting receives it: who, and how much of each bonus, then the total. The
+ * carry-over is already inside each bonus; the breakdown stays in the web view.
+ */
 export function exportTable(report: CloseReport): ExportCell[][] {
   const { columns } = reportCopy;
   return [
-    [columns.person, columns.nationalId, columns.bonusDays, columns.periodAmount, columns.carryOver, columns.total],
+    [columns.person, columns.nationalId, ...REPORT_BONUSES.map((bonus) => columns[bonus]), columns.total],
     ...report.rows.map((row) => [
       row.name,
       row.nationalId ?? "",
-      row.bonusDays,
-      row.periodAmount,
-      row.carryOverAmount,
+      ...REPORT_BONUSES.map((bonus) => row.amounts[bonus]),
       row.total,
     ]),
-    [reportCopy.totals, "", "", report.periodAmount, report.carryOverAmount, report.total],
+    [reportCopy.totals, "", ...REPORT_BONUSES.map((bonus) => report.amounts[bonus]), report.total],
   ];
 }
 
@@ -29,5 +33,5 @@ export function toCsv(table: readonly ExportCell[][]): string {
     const text = String(cell);
     return /[";\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
   };
-  return `\uFEFF${table.map((row) => row.map(escape).join(";")).join("\r\n")}\r\n`;
+  return `﻿${table.map((row) => row.map(escape).join(";")).join("\r\n")}\r\n`;
 }

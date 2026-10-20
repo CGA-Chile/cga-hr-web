@@ -5,7 +5,7 @@ import { describeAnomaly } from "@/sections/bonus/anomalyText";
 import { dayPath } from "@/sections/day/paths";
 import { formatLongDate } from "@/utils/chileDate";
 import { formatPesos } from "@/utils/money";
-import type { LoadedClosePlan } from "./closePlan";
+import { grandTotal, type LoadedClosePlan } from "./closePlan";
 import styles from "./ClosePlanView.module.css";
 
 type ClosePlanViewProps = {
@@ -22,7 +22,7 @@ type ClosePlanViewProps = {
  * names each blocking date and links to it; it never corrects anything itself.
  */
 export function ClosePlanView({ loaded, positionName, closeControl, excessControl }: ClosePlanViewProps) {
-  const { plan, unpricedDates } = loaded;
+  const { plan, unpricedDates, periodBonuses, periodBonusTotals } = loaded;
   const blockingCount = plan.blockingDates.length + unpricedDates.length;
 
   return (
@@ -37,13 +37,19 @@ export function ClosePlanView({ loaded, positionName, closeControl, excessContro
           <dd>{formatPesos(plan.carryOverTotal)}</dd>
           <p className={styles.hint}>{periodsCopy.carryOverHint}</p>
         </div>
+        {periodBonuses.settlements.length > 0 && (
+          <>
+            <PeriodBonusTotal label={periodsCopy.production} totals={periodBonusTotals.PRODUCTION} />
+            <PeriodBonusTotal label={periodsCopy.compliance} totals={periodBonusTotals.COMPLIANCE} />
+          </>
+        )}
         <div className={styles.grandTotal}>
           <dt>{periodsCopy.total}</dt>
-          <dd>{formatPesos(plan.periodTotal + plan.carryOverTotal)}</dd>
+          <dd>{formatPesos(grandTotal(loaded))}</dd>
         </div>
       </dl>
 
-      {plan.toSettle.length === 0 && <p className={styles.hint}>{periodsCopy.nothingToSettle}</p>}
+      {plan.toSettle.length === 0 && periodBonuses.settlements.length === 0 && <p className={styles.hint}>{periodsCopy.nothingToSettle}</p>}
 
       {blockingCount > 0 && (
         <section className={styles.gate}>
@@ -96,6 +102,16 @@ export function ClosePlanView({ loaded, positionName, closeControl, excessContro
 
       {blockingCount === 0 && <div className={styles.close}>{closeControl}</div>}
     </>
+  );
+}
+
+function PeriodBonusTotal({ label, totals }: { label: string; totals: { period: number; carryOver: number } }) {
+  return (
+    <div>
+      <dt>{label}</dt>
+      <dd>{formatPesos(totals.period + totals.carryOver)}</dd>
+      {totals.carryOver > 0 && <p className={styles.hint}>{periodsCopy.includesCarryOver(formatPesos(totals.carryOver))}</p>}
+    </div>
   );
 }
 

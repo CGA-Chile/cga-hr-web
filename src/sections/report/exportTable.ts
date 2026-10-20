@@ -33,5 +33,5 @@ export function toCsv(table: readonly ExportCell[][]): string {
     const text = String(cell);
     return /[";\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
   };
-  return `﻿${table.map((row) => row.map(escape).join(";")).join("\r\n")}\r\n`;
+  return `\uFEFF${table.map((row) => row.map(escape).join(";")).join("\r\n")}\r\n`;
 }

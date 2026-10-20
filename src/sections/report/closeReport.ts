@@ -1,9 +1,9 @@
 import { dayRateOn } from "@/domain/bonus/dayRate";
 import { findSettingsInForce } from "@/domain/bonus/settingsInForce";
 import type { BonusScheme, IsoDate } from "@/domain/bonus/types";
+import { isPeriodBonusKind } from "@/domain/periodBonus/kind";
 import type { PeriodBonusKind } from "@/domain/periodBonus/types";
 import { loadCalendar, loadSettingsVersions } from "@/sections/bonus/dailyBonuses";
-import { isKind } from "@/sections/bonus/periodBonuses";
 import { fullName } from "@/sections/day/queries";
 import type { Period } from "@/sections/periods/queries";
 import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
@@ -194,7 +194,7 @@ async function loadPeriodBonusEntries(supabase: ServerSupabase, period: Period):
       .is("deleted_at", null),
   );
   return rows.flatMap((row) =>
-    isKind(row.bonus)
+    isPeriodBonusKind(row.bonus)
       ? [
           {
             employeeId: row.employee_id,

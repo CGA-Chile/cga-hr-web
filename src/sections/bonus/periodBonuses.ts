@@ -1,4 +1,5 @@
 import type { IsoDate } from "@/domain/bonus/types";
+import { isPeriodBonusKind } from "@/domain/periodBonus/kind";
 import type {
   ClosedPeriod,
   CountableAssignment,
@@ -9,6 +10,7 @@ import type {
   PeriodBonusSettlement,
 } from "@/domain/periodBonus/types";
 import type { Period } from "@/sections/periods/queries";
+import type { Database } from "@/types/database";
 import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
 import { loadCalendar } from "./dailyBonuses";
 
@@ -39,9 +41,17 @@ export async function loadPeriodBonusAmounts(supabase: ServerSupabase, date: Iso
       .is("deleted_at", null),
   );
   if (rows.length > 1) throw new Error(`Expected one bonus settings version in force on ${date}, found ${rows.length}`);
-  const row = rows[0];
+  return rows[0] ? toAmounts(rows[0]) : null;
+}
+
+type AmountColumns = Pick<
+  Database["public"]["Tables"]["bonus_settings"]["Row"],
+  "production_amount" | "compliance_amount" | "strike_deduction" | "strike_limit"
+>;
+
+/** The four amounts travel together, all or none, on settings and on a closed period alike. */
+function toAmounts(row: AmountColumns): PeriodBonusAmounts | null {
   if (
-    !row ||
     row.production_amount === null ||
     row.compliance_amount === null ||
     row.strike_deduction === null ||
@@ -131,15 +141,10 @@ export async function loadPeriodBonusCloseInput(supabase: ServerSupabase, period
   };
 }
 
-type OwedRow = {
-  assignment_id: string | null;
-  date: string | null;
-  employee_id: string | null;
-  position_id: string | null;
-  late: boolean | null;
-  origin_period_id: string | null;
-  bonus: string | null;
-};
+type OwedRow = Pick<
+  Database["public"]["Views"]["period_bonus_owed_days"]["Row"],
+  "assignment_id" | "date" | "employee_id" | "position_id" | "late" | "origin_period_id" | "bonus"
+>;
 
 type OwedDay = {
   assignment: Omit<CountableAssignment, "counted">;
@@ -149,7 +154,7 @@ type OwedDay = {
 
 function toOwedDay(row: OwedRow): OwedDay[] {
   const { assignment_id: id, date, employee_id: employeeId, position_id: positionId, origin_period_id: originPeriodId } = row;
-  if (!id || !date || !employeeId || !positionId || !originPeriodId || !isKind(row.bonus)) return [];
+  if (!id || !date || !employeeId || !positionId || !originPeriodId || !isPeriodBonusKind(row.bonus)) return [];
   return [{ assignment: { id, date, employeeId, positionId, late: row.late ?? false }, originPeriodId, bonus: row.bonus }];
 }
 
@@ -160,25 +165,15 @@ async function loadClosedPeriods(supabase: ServerSupabase, ids: readonly string[
       .select("id, start_date, end_date, working_days, production_amount, compliance_amount, strike_deduction, strike_limit")
       .in("id", ids),
   );
-  return rows.map((row) => ({
-    id: row.id,
-    startDate: row.start_date,
-    endDate: row.end_date,
-    terms:
-      row.working_days !== null &&
-      row.production_amount !== null &&
-      row.compliance_amount !== null &&
-      row.strike_deduction !== null &&
-      row.strike_limit !== null
-        ? {
-            workingDays: row.working_days,
-            productionAmount: row.production_amount,
-            complianceAmount: row.compliance_amount,
-            strikeDeduction: row.strike_deduction,
-            strikeLimit: row.strike_limit,
-          }
-        : null,
-  }));
+  return rows.map((row) => {
+    const amounts = toAmounts(row);
+    return {
+      id: row.id,
+      startDate: row.start_date,
+      endDate: row.end_date,
+      terms: amounts && row.working_days !== null ? { ...amounts, workingDays: row.working_days } : null,
+    };
+  });
 }
 
 async function loadSettlements(supabase: ServerSupabase, originIds: readonly string[]): Promise<PeriodBonusSettlement[]> {
@@ -190,7 +185,7 @@ async function loadSettlements(supabase: ServerSupabase, originIds: readonly str
       .is("deleted_at", null),
   );
   return rows.flatMap((row) =>
-    isKind(row.bonus)
+    isPeriodBonusKind(row.bonus)
       ? [
           {
             originPeriodId: row.origin_period_id,
@@ -204,8 +199,4 @@ async function loadSettlements(supabase: ServerSupabase, originIds: readonly str
         ]
       : [],
   );
-}
-
-export function isKind(value: string | null): value is PeriodBonusKind {
-  return value === "PRODUCTION" || value === "COMPLIANCE";
 }

@@ -3,7 +3,7 @@ import { Fragment } from "react";
 import { sheetCopy } from "@/copy/sheet";
 import type { IsoDate } from "@/domain/bonus/types";
 import { addDays, formatLongDate } from "@/utils/chileDate";
-import { formatPesos, formatThousands } from "@/utils/money";
+import { formatAmount, formatPesos, formatThousands } from "@/utils/money";
 import { fullName, type Employee, type Position } from "../day/queries";
 import { sheetPath, type SheetParams } from "./paths";
 import { describeMarks } from "./incompleteDay";
@@ -253,7 +253,7 @@ function BreakdownRow({ row, kind, params, restDay, outOfWeek }: BreakdownRowPro
                   formatPesos(shown.amount),
                 )}
               >
-                {formatThousands(shown.amount)}
+                {formatAmount(shown.amount)}
               </a>
             )}
           </td>

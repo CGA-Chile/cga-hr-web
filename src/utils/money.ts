@@ -5,6 +5,13 @@ export function formatPesos(amount: number): string {
   return CLP.format(amount);
 }
 
+const GROUPED = new Intl.NumberFormat("es-CL");
+
+/** "2.500": an exact amount without the sign, where a column of them would repeat it. */
+export function formatAmount(amount: number): string {
+  return GROUPED.format(amount);
+}
+
 const THOUSANDS = new Intl.NumberFormat("es-CL", { maximumFractionDigits: 1, roundingMode: "trunc" });
 
 /** "26k", "25,5k": a day's total squeezed into a narrow column. Truncates, never rounds up. */

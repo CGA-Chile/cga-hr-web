@@ -1,8 +1,11 @@
+import { SeverityNumber } from "@opentelemetry/api-logs";
+import { after } from "next/server";
 import writeExcelFile from "write-excel-file/node";
 import { reportCopy } from "@/copy/report";
 import { exportTable, LEADING_TEXT_COLUMNS } from "@/sections/report/exportTable";
 import { loadReportFor } from "@/sections/report/loadReportFor";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
+import { posthogExportLogger, posthogLogProvider } from "@/utils/posthog/exportLogger";
 
 const PESOS = "$#,##0";
 
@@ -19,6 +22,15 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     ),
   ];
   const buffer = await writeExcelFile(sheet).toBuffer();
+
+  posthogExportLogger?.emit({
+    body: "XLSX report export generated",
+    severityNumber: SeverityNumber.INFO,
+    attributes: { "report.format": "xlsx", "report.row_count": body.length },
+  });
+  after(async () => {
+    await posthogLogProvider?.forceFlush();
+  });
 
   return new Response(new Uint8Array(buffer), {
     headers: {

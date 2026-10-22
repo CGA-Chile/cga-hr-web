@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import posthog from "posthog-js";
 import { setPeriodEnd, type PeriodEndState } from "@/app/(app)/planilla/actions";
 import { sheetCopy } from "@/copy/sheet";
 import { addDays, daysInRange, formatDayMonth } from "@/utils/chileDate";
@@ -17,7 +18,7 @@ export function PeriodEndForm({ periodId, start, end, doneHref }: PeriodEndFormP
   );
 
   return (
-    <form action={action} className={styles.form}>
+    <form action={action} onSubmit={() => posthog.capture("period_end_update_submitted")} className={styles.form}>
       <label className={styles.field}>
         <span className={styles.label}>{sheetCopy.startLabel}</span>
         <input type="date" value={start} readOnly className={styles.input} />

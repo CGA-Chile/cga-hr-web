@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import posthog from "posthog-js";
 import { saveEmployee } from "@/app/(app)/administracion/actions";
 import { FormField } from "@/components/FormField";
 import { adminCopy } from "@/copy/admin";
@@ -16,7 +17,11 @@ export function EmployeeForm({ id, defaults, doneHref }: EmployeeFormProps) {
     resolver: zodResolver(employeeSchema),
     defaultValues: defaults,
   });
-  const { serverError, submit } = useServerSubmit((values: EmployeeInput) => saveEmployee(id, values), doneHref);
+  const { serverError, submit } = useServerSubmit(
+    (values: EmployeeInput) => saveEmployee(id, values),
+    doneHref,
+    () => posthog.capture("employee_saved", { operation: id ? "updated" : "created" }),
+  );
   const copy = adminCopy.employees;
 
   return (

@@ -1,5 +1,6 @@
 "use client";
 
+import posthog from "posthog-js";
 import { closePeriod } from "@/app/(app)/cierres/actions";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { periodsCopy } from "@/copy/periods";
@@ -13,7 +14,11 @@ export function CloseButton({ periodId, total }: { periodId: string; total: stri
       confirmLabel={periodsCopy.confirm}
       cancelLabel={periodsCopy.cancel}
       pendingLabel={periodsCopy.closing}
-      onConfirm={() => closePeriod(periodId)}
+      onConfirm={async () => {
+        const result = await closePeriod(periodId);
+        if (!result) posthog.capture("period_closed");
+        return result;
+      }}
     />
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import posthog from "posthog-js";
 import { validateExcess, type ActionState } from "@/app/(app)/cierres/actions";
 import { periodsCopy } from "@/copy/periods";
 import styles from "./Periods.module.css";
@@ -14,7 +15,7 @@ export function ValidateExcessForm({ periodId, date, total }: ValidateExcessForm
   );
 
   return (
-    <form action={action} className={styles.drawerForm}>
+    <form action={action} onSubmit={() => posthog.capture("excess_validation_submitted")} className={styles.drawerForm}>
       <label className={styles.field}>
         <span>{periodsCopy.noteLabel}</span>
         <textarea name="note" rows={3} maxLength={500} className={styles.input} />

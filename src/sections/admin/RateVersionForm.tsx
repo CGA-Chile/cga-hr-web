@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import posthog from "posthog-js";
 import { createRateVersion } from "@/app/(app)/administracion/actions";
 import { FormField } from "@/components/FormField";
 import { adminCopy } from "@/copy/admin";
@@ -23,7 +24,11 @@ export function RateVersionForm({ positions, triggerNames, defaults, doneHref }:
     resolver: zodResolver(rateVersionSchema),
     defaultValues: defaults,
   });
-  const { serverError, submit } = useServerSubmit(createRateVersion, doneHref);
+  const { serverError, submit } = useServerSubmit(
+    createRateVersion,
+    doneHref,
+    () => posthog.capture("rate_version_created"),
+  );
   const copy = adminCopy.rates;
 
   return (

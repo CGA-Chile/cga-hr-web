@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { createSupabaseBrowserClient } from "@/utils/supabase/client";
 import {
@@ -71,6 +72,13 @@ export function PendingWritesProvider({ children }: { children: ReactNode }) {
 
       await removeOperation(operation.opId);
       record(operation.opId, refusal ?? "SAVED");
+      if (!refusal) {
+        posthog.capture("assignment_saved", {
+          assignment_action: operation.positionId ? "assigned" : "cleared",
+          has_note: Boolean(operation.note),
+          has_attendance_mark: Boolean(operation.late || operation.lateNotified || operation.leftEarly),
+        });
+      }
       delivered = true;
     }
 

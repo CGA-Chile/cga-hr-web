@@ -1,14 +1,16 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { sheetCopy } from "@/copy/sheet";
 import type { IsoDate } from "@/domain/bonus/types";
 import { addDays, formatLongDate } from "@/utils/chileDate";
-import { formatPesos, formatThousands } from "@/utils/money";
+import { formatAmount, formatPesos, formatThousands } from "@/utils/money";
 import { fullName, type Employee, type Position } from "../day/queries";
 import { sheetPath, type SheetParams } from "./paths";
 import { describeMarks } from "./incompleteDay";
 import { LateIcon, LeftEarlyIcon } from "./MarkIcons";
 import { SheetCellLabel } from "./SheetCellLabel";
-import { cellKey, toneOf, type Sheet } from "./sheetModel";
+import { BreakdownAllToggle, BreakdownRows, BreakdownToggle, SheetBreakdown } from "./SheetBreakdown";
+import { cellKey, toneOf, type BonusBasis, type Sheet, type SheetRow } from "./sheetModel";
 import styles from "./SheetGrid.module.css";
 
 type SheetGridProps = {
@@ -41,133 +43,224 @@ export function SheetGrid(props: SheetGridProps) {
   const restDay = (date: IsoDate) => dateParts(date).weekday === 0 || holidays.has(date) || undefined;
 
   return (
-    <div className={styles.scroller}>
-      <table className={styles.grid}>
-        <thead>
-          <tr>
-            <th scope="col" className={styles.corner}>
-              {sheetCopy.employeeColumn}
-            </th>
-            {sheet.days.map((day, index) => {
-              const { weekday, dayOfMonth, month } = dateParts(day.date);
-              return (
-                <th
-                  key={day.date}
-                  scope="col"
-                  className={styles.dayHeader}
-                  data-out={outOfWeek(day.date)}
-                  data-rest={restDay(day.date)}
-                  data-selected={selected(day.date)}
-                  data-today={day.date === today || undefined}
-                  data-date={day.date}
-                  aria-current={day.date === today ? "date" : undefined}
-                >
-                  <Link
-                    href={sheetPath({ ...params, date: day.date, employeeId: null, endPanel: false })}
-                    scroll={false}
-                    aria-label={sheetCopy.daySummaryFor(formatLongDate(day.date))}
-                  >
-                    <span className={styles.month}>
-                      {index === 0 || dayOfMonth === 1 ? sheetCopy.monthAbbreviations[month] : ""}
-                    </span>
-                    <span className={styles.weekday}>{sheetCopy.weekdayInitials[weekday]}</span>
-                    <span className={styles.dayNumber}>{dayOfMonth}</span>
-                    {day.flagged && <FlagIcon />}
-                  </Link>
-                </th>
-              );
-            })}
-            {showAmounts && (
-              <th scope="col" className={styles.totalHeader}>
-                {sheetCopy.periodTotal}
+    <SheetBreakdown employeeIds={sheet.rows.map((row) => row.employee.id)}>
+      <div className={styles.scroller}>
+        <table className={styles.grid}>
+          <thead>
+            <tr>
+              <th scope="col" className={styles.corner}>
+                {sheetCopy.employeeColumn}
               </th>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {sheet.rows.map((row) => (
-            <tr key={row.employee.id} data-employee={row.employee.id}>
-              <th scope="row" className={styles.name}>
-                <EmployeeName
-                  employee={row.employee}
-                  href={
-                    showAmounts
-                      ? sheetPath({ ...params, date: null, employeeId: null, endPanel: false, person: row.employee.id })
-                      : null
-                  }
-                  reprimanded={reprimanded.has(row.employee.id)}
-                />
-              </th>
-              {row.cells.map((cell) => {
-                const position = cell.assignment ? positionsById.get(cell.assignment.position_id) : undefined;
-                const marks = cell.assignment ? describeMarks(cell.assignment) : null;
+              {sheet.days.map((day, index) => {
+                const { weekday, dayOfMonth, month } = dateParts(day.date);
                 return (
-                  <td
-                    key={cell.date}
-                    className={styles.cell}
-                    data-tone={position ? toneOf(position) : undefined}
-                    data-duplicated={cell.duplicated || undefined}
-                    data-rest={restDay(cell.date)}
-                    data-out={outOfWeek(cell.date)}
-                    data-cell={cellKey(cell.date, row.employee.id)}
+                  <th
+                    key={day.date}
+                    scope="col"
+                    className={styles.dayHeader}
+                    data-out={outOfWeek(day.date)}
+                    data-rest={restDay(day.date)}
+                    data-selected={selected(day.date)}
+                    data-today={day.date === today || undefined}
+                    data-date={day.date}
+                    aria-current={day.date === today ? "date" : undefined}
                   >
-                    <a
-                      href={sheetPath({ ...params, date: cell.date, employeeId: row.employee.id, endPanel: false })}
-                      data-cell-link
-                      title={marks ? `${position?.name ?? ""} · ${marks}` : position?.name}
-                      aria-label={sheetCopy.cellFor(
-                        fullName(row.employee),
-                        formatLongDate(cell.date),
-                        marks ? `${position?.name ?? ""}, ${marks}` : (position?.name ?? sheetCopy.noPosition),
-                      )}
+                    <Link
+                      href={sheetPath({ ...params, date: day.date, employeeId: null, endPanel: false })}
+                      scroll={false}
+                      aria-label={sheetCopy.daySummaryFor(formatLongDate(day.date))}
                     >
-                      <SheetCellLabel
-                        date={cell.date}
-                        employeeId={row.employee.id}
-                        stored={position?.abbreviation ?? ""}
-                      />
-                      {marks && (
-                        <span className={styles.marks}>
-                          {cell.assignment?.late && <LateIcon />}
-                          {cell.assignment?.left_early && <LeftEarlyIcon />}
-                        </span>
-                      )}
-                    </a>
-                  </td>
+                      <span className={styles.month}>
+                        {index === 0 || dayOfMonth === 1 ? sheetCopy.monthAbbreviations[month] : ""}
+                      </span>
+                      <span className={styles.weekday}>{sheetCopy.weekdayInitials[weekday]}</span>
+                      <span className={styles.dayNumber}>{dayOfMonth}</span>
+                      {day.flagged && <FlagIcon />}
+                    </Link>
+                  </th>
                 );
               })}
-              {showAmounts && <td className={styles.total}>{formatPesos(row.total)}</td>}
+              {showAmounts && (
+                <th scope="col" className={styles.totalHeader}>
+                  <BreakdownAllToggle />
+                  {sheetCopy.periodTotal}
+                </th>
+              )}
             </tr>
-          ))}
-        </tbody>
-        {showAmounts && (
-          <tfoot>
-            <tr>
-              <th scope="row" className={styles.name}>
-                {sheetCopy.dayTotal}
-              </th>
-              {sheet.days.map((day) => (
-                <td
-                  key={day.date}
-                  className={styles.dayTotal}
-                  data-flagged={day.flagged || undefined}
-                  data-out={outOfWeek(day.date)}
-                >
-                  <Link
-                    href={sheetPath({ ...params, date: day.date, employeeId: null, endPanel: false })}
-                    scroll={false}
-                    aria-label={sheetCopy.daySummaryFor(formatLongDate(day.date))}
+          </thead>
+          <tbody>
+            {sheet.rows.map((row) => (
+              <Fragment key={row.employee.id}>
+                <tr data-employee={row.employee.id}>
+                  <th scope="row" className={styles.name}>
+                    <EmployeeName
+                      employee={row.employee}
+                      href={
+                        showAmounts
+                          ? sheetPath({
+                              ...params,
+                              date: null,
+                              employeeId: null,
+                              endPanel: false,
+                              person: row.employee.id,
+                            })
+                          : null
+                      }
+                      reprimanded={reprimanded.has(row.employee.id)}
+                    />
+                  </th>
+                  {row.cells.map((cell) => {
+                    const position = cell.assignment ? positionsById.get(cell.assignment.position_id) : undefined;
+                    const marks = cell.assignment ? describeMarks(cell.assignment) : null;
+                    return (
+                      <td
+                        key={cell.date}
+                        className={styles.cell}
+                        data-tone={position ? toneOf(position) : undefined}
+                        data-duplicated={cell.duplicated || undefined}
+                        data-rest={restDay(cell.date)}
+                        data-out={outOfWeek(cell.date)}
+                        data-cell={cellKey(cell.date, row.employee.id)}
+                      >
+                        <a
+                          href={sheetPath({ ...params, date: cell.date, employeeId: row.employee.id, endPanel: false })}
+                          data-cell-link
+                          title={marks ? `${position?.name ?? ""} · ${marks}` : position?.name}
+                          aria-label={sheetCopy.cellFor(
+                            fullName(row.employee),
+                            formatLongDate(cell.date),
+                            marks ? `${position?.name ?? ""}, ${marks}` : (position?.name ?? sheetCopy.noPosition),
+                          )}
+                        >
+                          <SheetCellLabel
+                            date={cell.date}
+                            employeeId={row.employee.id}
+                            stored={position?.abbreviation ?? ""}
+                          />
+                          {marks && (
+                            <span className={styles.marks}>
+                              {cell.assignment?.late && <LateIcon />}
+                              {cell.assignment?.left_early && <LeftEarlyIcon />}
+                            </span>
+                          )}
+                        </a>
+                      </td>
+                    );
+                  })}
+                  {showAmounts && (
+                    <td className={styles.total}>
+                      <BreakdownToggle employeeId={row.employee.id} name={fullName(row.employee)}>
+                        {formatPesos(row.total)}
+                      </BreakdownToggle>
+                    </td>
+                  )}
+                </tr>
+                {showAmounts && (
+                  <BreakdownRows employeeId={row.employee.id}>
+                    {BREAKDOWN_KINDS.map((kind) => (
+                      <BreakdownRow
+                        key={kind.label}
+                        row={row}
+                        kind={kind}
+                        params={params}
+                        restDay={restDay}
+                        outOfWeek={outOfWeek}
+                      />
+                    ))}
+                  </BreakdownRows>
+                )}
+              </Fragment>
+            ))}
+          </tbody>
+          {showAmounts && (
+            <tfoot>
+              <tr>
+                <th scope="row" className={styles.name}>
+                  {sheetCopy.dayTotal}
+                </th>
+                {sheet.days.map((day) => (
+                  <td
+                    key={day.date}
+                    className={styles.dayTotal}
+                    data-flagged={day.flagged || undefined}
+                    data-out={outOfWeek(day.date)}
                   >
-                    {day.total === null ? "" : formatThousands(day.total)}
-                  </Link>
-                </td>
-              ))}
-              <td className={styles.total}>{formatPesos(sheet.grandTotal)}</td>
-            </tr>
-          </tfoot>
-        )}
-      </table>
-    </div>
+                    <Link
+                      href={sheetPath({ ...params, date: day.date, employeeId: null, endPanel: false })}
+                      scroll={false}
+                      aria-label={sheetCopy.daySummaryFor(formatLongDate(day.date))}
+                    >
+                      {day.total === null ? "" : formatThousands(day.total)}
+                    </Link>
+                  </td>
+                ))}
+                <td className={styles.total}>{formatPesos(sheet.grandTotal)}</td>
+              </tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
+    </SheetBreakdown>
+  );
+}
+
+type BreakdownKind = { label: string; counts: (basis: BonusBasis) => boolean; total: (row: SheetRow) => number };
+
+/** The two daily bonuses, each on its own row under the person, in the same date columns. */
+const BREAKDOWN_KINDS: readonly BreakdownKind[] = [
+  { label: sheetCopy.breakdownCarding, counts: (basis) => basis.scheme !== "DAY_RATE", total: (row) => row.carding },
+  { label: sheetCopy.breakdownDayRate, counts: (basis) => basis.scheme === "DAY_RATE", total: (row) => row.dayRate },
+];
+
+type BreakdownRowProps = {
+  row: SheetRow;
+  kind: BreakdownKind;
+  params: SheetParams;
+  restDay: (date: IsoDate) => true | undefined;
+  outOfWeek: (date: IsoDate) => true | undefined;
+};
+
+/**
+ * One daily bonus for one person, date by date. Each amount opens the same cell panel as the
+ * position above it, where the scheme of that date is explained. A day lost to arriving late or
+ * leaving early shows its zero, faint, because that is the day someone will ask about.
+ */
+function BreakdownRow({ row, kind, params, restDay, outOfWeek }: BreakdownRowProps) {
+  const name = fullName(row.employee);
+  return (
+    <tr className={styles.breakdown}>
+      <th scope="row" className={styles.name}>
+        {kind.label}
+      </th>
+      {row.cells.map(({ date, bonus }) => {
+        const shown = bonus && kind.counts(bonus.basis) ? bonus : null;
+        return (
+          <td
+            key={date}
+            className={styles.breakdownCell}
+            data-rest={restDay(date)}
+            data-out={outOfWeek(date)}
+            data-equal={shown?.basis.scheme === "EQUAL_SHARE" || undefined}
+            data-incomplete={shown?.incomplete || undefined}
+          >
+            {shown && (
+              <a
+                href={sheetPath({ ...params, date, employeeId: row.employee.id, endPanel: false })}
+                data-cell-link
+                aria-label={sheetCopy.breakdownAmount(
+                  `${kind.label}, ${name}`,
+                  formatLongDate(date),
+                  formatPesos(shown.amount),
+                )}
+              >
+                {formatAmount(shown.amount)}
+              </a>
+            )}
+          </td>
+        );
+      })}
+      <td className={styles.total}>{formatPesos(kind.total(row))}</td>
+    </tr>
   );
 }
 
@@ -194,7 +287,12 @@ function EmployeeName({ employee, href, reprimanded }: EmployeeNameProps) {
   );
   if (!href) return name;
   return (
-    <Link href={href} scroll={false} className={styles.nameLink} aria-label={sheetCopy.person.openFor(fullName(employee))}>
+    <Link
+      href={href}
+      scroll={false}
+      className={styles.nameLink}
+      aria-label={sheetCopy.person.openFor(fullName(employee))}
+    >
       {name}
     </Link>
   );

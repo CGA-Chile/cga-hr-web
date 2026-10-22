@@ -25,7 +25,7 @@ import { createSupabaseServerClient } from "@/utils/supabase/server";
 type SearchParam = string | string[] | undefined;
 type DayPageProps = {
   params: Promise<{ fecha: string }>;
-  searchParams: Promise<{ modo?: SearchParam; persona?: SearchParam; celda?: SearchParam }>;
+  searchParams: Promise<{ persona?: SearchParam; celda?: SearchParam }>;
 };
 
 function single(value: SearchParam): string | null {
@@ -36,7 +36,6 @@ export default async function DayPage({ params, searchParams }: DayPageProps) {
   const { fecha } = await params;
   const query = await searchParams;
   if (!isIsoDate(fecha)) notFound();
-  const editing = single(query.modo) === "editar";
   const employeeId = single(query.persona);
   const cellEmployeeId = single(query.celda);
 
@@ -61,9 +60,7 @@ export default async function DayPage({ params, searchParams }: DayPageProps) {
       <DayView
         date={fecha}
         today={todayInChile()}
-        editing={editing}
         rows={rows}
-        positionsById={positionsById}
         positionGroups={groupPositionsForPicker(positions)}
         modifiedEmployeeIds={modifiedEmployeeIds}
         anomalousDateCount={anomalousDateCount}
@@ -88,7 +85,6 @@ export default async function DayPage({ params, searchParams }: DayPageProps) {
       {employeeMonth && (
         <EmployeeDrawer
           date={fecha}
-          editing={editing}
           employee={employeeMonth.employee}
           assignments={employeeMonth.assignments}
           positionsById={positionsById}
@@ -97,7 +93,6 @@ export default async function DayPage({ params, searchParams }: DayPageProps) {
       {cellRow && cellHistory && (
         <CellDrawer
           date={fecha}
-          editing={editing}
           employee={cellRow.employee}
           assignment={cellRow.assignment}
           history={cellHistory}

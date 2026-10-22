@@ -88,7 +88,7 @@ export function PersonPanel({ employeeId, name, params, period, bonuses, reprima
       {period && (
         <section className={styles.section}>
           <h3 className={styles.heading}>{copy.reprimandTitle}</h3>
-          {params.editing && period.status === "OPEN" ? (
+          {period.status === "OPEN" ? (
             <ReprimandForm
               key={employeeId}
               periodId={period.id}

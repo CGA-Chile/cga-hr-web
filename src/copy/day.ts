@@ -4,8 +4,6 @@ export const dayCopy = {
   previousDay: "Día anterior",
   nextDay: "Día siguiente",
   goToDate: "Ir a fecha",
-  edit: "Editar",
-  readModeNotice: "Modo lectura. Aprieta «Editar» para hacer cambios.",
   employeeColumn: "Trabajador",
   positionColumn: "Puesto",
   noEmployees: "No hay trabajadores para mostrar en esta fecha.",
@@ -15,8 +13,7 @@ export const dayCopy = {
   assignmentsOfMonth: (month: string) => `Puestos en ${month}`,
   noAssignmentsInMonth: "Sin puestos registrados este mes.",
 
-  finishEditing: "Terminar edición",
-  editModeNotice: "Modo edición. Cada cambio se guarda al elegir el puesto.",
+  saveNotice: "Cada cambio se guarda al elegir el puesto.",
   noPosition: "— Sin puesto —",
   positionGroups: {
     LINE: "Línea de cardas",
@@ -48,7 +45,6 @@ export const dayCopy = {
   leftEarlySuffix: "(salió temprano)",
   unknownUser: "alguien",
   note: "Nota",
-  noNote: "Sin nota.",
   saveNote: "Guardar nota",
   noteNeedsPosition: "Elige un puesto antes de agregar una nota.",
 } as const;

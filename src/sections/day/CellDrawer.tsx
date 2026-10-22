@@ -10,24 +10,19 @@ import styles from "./CellDrawer.module.css";
 
 type CellDrawerProps = {
   date: IsoDate;
-  editing: boolean;
   employee: Employee;
   assignment: Assignment | null;
   history: readonly CellMovement[];
   positionsById: ReadonlyMap<string, Position>;
 };
 
-/** Who changed this cell, when, and from what to what. Readable in both modes. */
-export function CellDrawer({ date, editing, employee, assignment, history, positionsById }: CellDrawerProps) {
+/** Who changed this cell, when, and from what to what. */
+export function CellDrawer({ date, employee, assignment, history, positionsById }: CellDrawerProps) {
   return (
-    <Drawer
-      title={`${fullName(employee)} · ${formatLongDate(date)}`}
-      closeHref={dayPath(date, { editing })}
-      closeLabel={dayCopy.close}
-    >
+    <Drawer title={`${fullName(employee)} · ${formatLongDate(date)}`} closeHref={dayPath(date)} closeLabel={dayCopy.close}>
       <section className={styles.section}>
         <h3 className={styles.heading}>{dayCopy.note}</h3>
-        <CellNote date={date} employeeId={employee.id} assignment={assignment} editing={editing} />
+        <CellNote date={date} employeeId={employee.id} assignment={assignment} />
       </section>
 
       <section className={styles.section}>

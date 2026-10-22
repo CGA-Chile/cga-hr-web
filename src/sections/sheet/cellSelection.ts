@@ -15,11 +15,10 @@ export function readCellSelection(query: Query, range: DateRange): CellSelection
   return { date, employeeId };
 }
 
-type SheetChanges = { cell?: CellSelection | null; editing?: boolean; range?: boolean };
+type SheetChanges = { cell?: CellSelection | null; range?: boolean };
 
 /**
- * The sheet's URL after opening or closing a cell or the range panel, or switching the mode,
- * computed from the current one so the range, the week and whatever is left untouched survive.
+ * The sheet's URL after opening or closing a cell or the range panel, computed from the current one so the range, the week and whatever is left untouched survive.
  * Opening a cell or the range panel closes any other panel, as a link to the cell always did.
  */
 export function sheetHrefFor(query: Query, changes: SheetChanges): string {
@@ -29,7 +28,6 @@ export function sheetHrefFor(query: Query, changes: SheetChanges): string {
   return sheetPath({
     start: query.get("desde"),
     week: query.get("semana"),
-    editing: changes.editing ?? query.get("modo") === "editar",
     date: cell?.date ?? null,
     employeeId: cell?.employeeId ?? null,
     endPanel: untouched && query.get("panel") === "cierre",

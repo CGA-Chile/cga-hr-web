@@ -5,7 +5,7 @@ import type { MouseEvent } from "react";
 import { sheetCopy } from "@/copy/sheet";
 import { opensInPlace, sheetHrefFor } from "./cellSelection";
 
-/** Opens the range panel in place, as a cell opens, from the edit-mode bar. */
+/** Opens the range panel in place, as a cell opens, from the bar above the sheet. */
 export function RangeLink({ className }: { className: string }) {
   const href = sheetHrefFor(useSearchParams(), { range: true, cell: null });
 

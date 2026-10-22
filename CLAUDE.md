@@ -192,11 +192,10 @@ src/
 
 1. **Web first, adapts to mobile.** The main use is on a computer; the phone has to work well
    but does not drive the design.
-2. **Read mode by default.** Screens open locked; the user presses "Editar" to change anything.
-   This applies to every role, admin included. A misclick here means someone gets paid the
-   wrong amount.
-3. **Read mode is not a reduced version.** It browses previous months, opens the daily summary,
-   the per-employee detail and the change history — identical to edit mode, minus writing.
+2. **Screens open editable.** There is no read mode to unlock. What protects pay is the change
+   history, the admin-only lock on paid days and the close gate, not a toggle. `docs/adr/0017`.
+3. **A write takes a deliberate choice.** On the sheet a click opens a panel and choosing in the
+   panel saves; a click on the grid alone never writes.
 4. **Side drawers, not floating modals**, for creating, editing or showing entity detail. Modal
    dialogs only for destructive confirmations, and a confirmation dialog never contains a form.
 5. **Nothing blocks the user; anomalies are shown, not prevented.** No modal alerts, no

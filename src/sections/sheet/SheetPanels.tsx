@@ -18,18 +18,17 @@ type DayPanelProps = {
   params: SheetParams;
   /** The daily summary, with amounts or, for a role without them, the duplicates only. */
   summary: ReactNode;
-  /** What the column copy would fill; null outside edit mode or with nothing earlier to copy. */
+  /** What the column copy would fill; null with nothing earlier to copy. */
   columnCopy: ColumnCopy | null;
   calendar: CalendarDate | undefined;
   /** The day rate the date would fall back to with no amount set for it, if one is in force. */
   dayRateFallback: number | null;
-  /** HR and the admin mark holidays; the form shows only to them, and only in edit mode. */
+  /** HR and the admin mark holidays; the form shows only to them. */
   canManageCalendar: boolean;
 };
 
 /**
- * The date's summary, the same one the day view shows, plus the column copy and the holiday mark
- * in edit mode.
+ * The date's summary, the same one the day view shows, plus the column copy and the holiday mark.
  */
 export function DayPanel(props: DayPanelProps) {
   const { date, params, summary, columnCopy, calendar, dayRateFallback, canManageCalendar } = props;
@@ -38,7 +37,7 @@ export function DayPanel(props: DayPanelProps) {
       {calendar?.holiday && <p className={styles.tag}>{sheetCopy.holidayTag}</p>}
       {summary}
       {columnCopy && <CopyPreviousDay key={date} date={date} copy={columnCopy} />}
-      {params.editing && canManageCalendar && (
+      {canManageCalendar && (
         <section className={styles.section}>
           <h3 className={styles.heading}>{sheetCopy.calendarTitle}</h3>
           <CalendarDateForm
@@ -51,7 +50,7 @@ export function DayPanel(props: DayPanelProps) {
           />
         </section>
       )}
-      <Link href={dayPath(date, { editing: params.editing })} className={styles.link}>
+      <Link href={dayPath(date)} className={styles.link}>
         {sheetCopy.openDayView}
       </Link>
     </Drawer>

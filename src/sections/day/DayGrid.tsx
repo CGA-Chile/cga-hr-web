@@ -4,20 +4,18 @@ import type { IsoDate } from "@/domain/bonus/types";
 import { EditableCell } from "./EditableCell";
 import { dayPath } from "./paths";
 import type { PositionGroup } from "./positionGroups";
-import { fullName, type DayRow, type Position } from "./queries";
+import { fullName, type DayRow } from "./queries";
 import styles from "./DayGrid.module.css";
 
 type DayGridProps = {
   date: IsoDate;
-  editing: boolean;
   rows: readonly DayRow[];
-  positionsById: ReadonlyMap<string, Position>;
   positionGroups: readonly PositionGroup[];
   modifiedEmployeeIds: ReadonlySet<string>;
 };
 
 /** One row per person, the position in the cell: it reads like the sheet it replaces. */
-export function DayGrid({ date, editing, rows, positionsById, positionGroups, modifiedEmployeeIds }: DayGridProps) {
+export function DayGrid({ date, rows, positionGroups, modifiedEmployeeIds }: DayGridProps) {
   if (rows.length === 0) return <p className={styles.empty}>{dayCopy.noEmployees}</p>;
 
   return (
@@ -37,28 +35,24 @@ export function DayGrid({ date, editing, rows, positionsById, positionGroups, mo
           return (
             <tr key={employee.id} data-modified={modified || undefined}>
               <th scope="row" className={styles.employee}>
-                <Link href={dayPath(date, { editing, employeeId: employee.id })} scroll={false}>
+                <Link href={dayPath(date, { employeeId: employee.id })} scroll={false}>
                   {fullName(employee)}
                 </Link>
                 {!employee.active && <span className={styles.tag}>{dayCopy.inactive}</span>}
               </th>
               <td className={styles.position}>
-                {editing ? (
-                  <EditableCell
-                    date={date}
-                    employeeId={employee.id}
-                    employeeName={fullName(employee)}
-                    positionId={assignment?.position_id ?? null}
-                    note={assignment?.note ?? null}
-                    groups={positionGroups}
-                  />
-                ) : (
-                  (assignment && positionsById.get(assignment.position_id)?.name) ?? ""
-                )}
+                <EditableCell
+                  date={date}
+                  employeeId={employee.id}
+                  employeeName={fullName(employee)}
+                  positionId={assignment?.position_id ?? null}
+                  note={assignment?.note ?? null}
+                  groups={positionGroups}
+                />
                 {modified && <span className={styles.modified}>{dayCopy.modified}</span>}
               </td>
               <td className={styles.historyColumn}>
-                <Link href={dayPath(date, { editing, cellEmployeeId: employee.id })} scroll={false}>
+                <Link href={dayPath(date, { cellEmployeeId: employee.id })} scroll={false}>
                   {dayCopy.historyLink}
                 </Link>
               </td>

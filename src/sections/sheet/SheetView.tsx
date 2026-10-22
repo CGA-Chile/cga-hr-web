@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { anomaliesCopy } from "@/copy/anomalies";
 import { sheetCopy } from "@/copy/sheet";
 import { addDays, formatDayMonth } from "@/utils/chileDate";
-import { EditModeLink } from "./EditModeLink";
 import { LateIcon, LeftEarlyIcon } from "./MarkIcons";
 import { RangeLink } from "./RangeLink";
 import { sheetPath, type SheetParams } from "./paths";
@@ -22,11 +21,10 @@ type SheetViewProps = {
   grid: ReactNode;
 };
 
-/** Opens locked for every role, like the day view: a misclick here pays someone the wrong amount. */
+/** Editable on arrival, like the day view: every change is recorded in the cell's history. */
 export function SheetView({ ranges, week, params, previousName, anomalousDateCount, canChangeEnd, grid }: SheetViewProps) {
   const { current } = ranges;
-  const editing = Boolean(params.editing);
-  const atRange = (start: string) => sheetPath({ start, editing });
+  const atRange = (start: string) => sheetPath({ start });
 
   return (
     <main className={styles.page}>
@@ -58,14 +56,9 @@ export function SheetView({ ranges, week, params, previousName, anomalousDateCou
         </Link>
       </div>
 
-      <div className={styles.modeBar} data-editing={editing || undefined}>
-        <p className={styles.notice}>{editing ? sheetCopy.editModeNotice : sheetCopy.readModeNotice}</p>
-        <div className={styles.modeActions}>
-          {editing && <RangeLink className={styles.rangeLink} />}
-          <EditModeLink editing={editing} className={styles.edit}>
-            {editing ? sheetCopy.finishEditing : sheetCopy.edit}
-          </EditModeLink>
-        </div>
+      <div className={styles.toolbar}>
+        <p className={styles.notice}>{sheetCopy.saveNotice}</p>
+        <RangeLink className={styles.rangeLink} />
       </div>
 
       <ul className={styles.legend}>

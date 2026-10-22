@@ -839,15 +839,14 @@ sea reconocible.
 - **Colores.** Línea de cardas, Packing ACM, otros puestos y ausencias se distinguen por color. Un
   puesto repetido se pinta fuerte, y el día con aviso lleva una marca en el encabezado. Un día
   incompleto deja el puesto tal cual y agrega un ícono en la esquina de la celda: un reloj para el
-  atraso y una flecha de salida para la salida temprana. En modo edición se marcan o se quitan
-  desde la sección "Día incompleto" del panel de la celda, que solo aparece en puestos de trabajo.
+  atraso y una flecha de salida para la salida temprana. Se marcan o se quitan desde la sección
+  "Día incompleto" del panel de la celda, que solo aparece en puestos de trabajo.
 - **Panel lateral.** Tocar un día abre su resumen, el mismo de la sección 8.2. Tocar una celda abre
-  el puesto, el bono de ese día, la nota y el historial. En modo edición, los puestos se eligen ahí
-  con botones agrupados, nunca escribiendo en la celda.
-- **Copiar columna.** En modo edición, el resumen del día ofrece copiar los puestos del último día
+  el puesto, el bono de ese día, la nota y el historial. Los puestos se eligen ahí con botones
+  agrupados, nunca escribiendo en la celda.
+- **Copiar columna.** El resumen del día ofrece copiar los puestos del último día
   anterior que tenga registros. Solo llena celdas vacías: lo ya registrado no se toca.
-- **Asignar por rango.** En modo edición, para licencias, vacaciones o un puesto fijo: una persona,
-  un puesto y un rango de fechas (todos los días, de lunes a viernes o de lunes a sábado). Se abre
+- **Asignar por rango.** Para licencias, vacaciones o un puesto fijo: una persona, un puesto y un rango de fechas (todos los días, de lunes a viernes o de lunes a sábado). Se abre
   con el botón «Asignar por rango» o desde el panel de una celda, que deja puestos la persona y la
   fecha de inicio. Reemplaza lo que haya en esos días:
   - Un día que ya tiene ese puesto queda igual, con sus marcas. Solo cambia su nota si se escribe
@@ -865,10 +864,10 @@ sea reconocible.
   sección 7.
 - **Panel de la persona.** Tocar el nombre abre el panel de la persona: sus bonos del período hasta
   ahora, separados en bono de cardas, bono día no hábil, producción y cumplimiento, con los dos
-  últimos rotulados como estimados hasta el cierre, y los incumplimientos. En modo edición, RRHH y
-  el admin marcan ahí la amonestación del período, con una nota. El nombre de una persona amonestada
+  últimos rotulados como estimados hasta el cierre, y los incumplimientos. Mientras el período está
+  abierto, RRHH y el admin marcan ahí la amonestación del período, con una nota. El nombre de una persona amonestada
   lleva una marca. El supervisor no ve montos ni amonestaciones.
-- **Feriados.** Domingos y feriados van sombreados. En modo edición, el resumen del día deja a RRHH
+- **Feriados.** Domingos y feriados van sombreados. El resumen del día deja a RRHH
   marcar el feriado y fijar el monto del día para esa fecha. Si la fecha ya está en un período
   cerrado, el cambio queda como ítem de revisión.
 - **Celular.** Muestra la misma planilla una semana a la vez, con flechas para pasar de semana, y el
@@ -876,18 +875,19 @@ sea reconocible.
 - **Días sin período.** Después de que termina el último período y antes de que se cierre, la
   planilla muestra los días siguientes con el rango que tendrá el período que el cierre va a
   crear.
-- Abre en modo lectura, igual que la vista del día.
+- Abre lista para editar, igual que la vista del día.
 
 ### 8.1 Vista del día
 
 - Selector de fecha con acceso rápido a hoy y ayer, y navegación libre a cualquier fecha pasada
   para completar registros olvidados.
 - Grilla de personas activas con su puesto del día. En celular colapsa a lista vertical.
-- **Abre en modo lectura.** Hay que apretar "Editar" para modificar algo. Aplica a todos los
-  usuarios sin excepción, incluido el admin. Un misclic acá significa plata mal calculada.
-- **El modo lectura no es una versión recortada.** Permite navegar meses anteriores, ver el
-  resumen del día, abrir el detalle de cada persona y consultar el historial de cambios:
-  exactamente lo mismo que el modo edición, menos escribir.
+- **Abre lista para editar.** Elegir un puesto en la grilla lo guarda. No hay un modo lectura
+  que desbloquear: lo que protege los pagos es que cada cambio queda en el historial, que un día
+  pagado solo lo cambia el admin y que la compuerta de cierre detiene un período con anomalías.
+  Ver `docs/adr/0017`.
+- Permite navegar meses anteriores, ver el resumen del día, abrir el detalle de cada persona y
+  consultar el historial de cambios.
 - Las celdas modificadas quedan marcadas. Al abrir una se ve su historial: quién, cuándo, de
   qué a qué.
 

@@ -26,7 +26,7 @@ import styles from "./SheetPanels.module.css";
 
 /** apply_assignment_range refuses more; a year covers any leave the plant has seen. */
 const MAX_DAYS = 366;
-const LENGTHS = [7, 15, 30];
+const LENGTHS = [7, 15, 21, 30];
 const DAYS: readonly RangeDays[] = ["ALL", "MON_FRI", "MON_SAT"];
 
 export type RangeDone = { employeeId: string; message: string; previous: PreviousDay[] };

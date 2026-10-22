@@ -18,10 +18,7 @@ export const sheetCopy = {
   upcomingFirst: "Todavía no hay períodos",
   changeEnd: "Cambiar fecha de cierre",
 
-  readModeNotice: "Modo lectura. Aprieta «Editar» para hacer cambios.",
-  editModeNotice: "Modo edición. Toca una celda y elige el puesto; se guarda al elegir.",
-  edit: "Editar",
-  finishEditing: "Terminar edición",
+  saveNotice: "Toca una celda y elige el puesto; se guarda al elegir.",
 
   legendLine: "Línea de cardas",
   legendTrigger: "Reparto igualitario (Packing ACM, Mantas Rieter)",
@@ -79,7 +76,6 @@ export const sheetCopy = {
   withoutNotice: "Sin aviso",
   leftEarlyGroup: "Salida",
   leftEarly: "Se retiró temprano",
-  readOnlyCell: "Modo lectura. Aprieta «Editar» para cambiar el puesto.",
   historyLoading: "Cargando cambios…",
   historyFailed: "No se pudieron cargar los cambios. Revisa la señal y vuelve a abrir la celda.",
   clearPosition: "Vaciar",

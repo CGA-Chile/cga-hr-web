@@ -7,14 +7,10 @@ type CellNoteProps = {
   date: string;
   employeeId: string;
   assignment: Pick<Assignment, "position_id" | "note"> | null;
-  editing: boolean;
 };
 
-/** A cell's note: a form in edit mode when there is a position to attach it to, text otherwise. */
-export function CellNote({ date, employeeId, assignment, editing }: CellNoteProps) {
-  if (editing && assignment) {
-    return <NoteForm date={date} employeeId={employeeId} positionId={assignment.position_id} note={assignment.note} />;
-  }
-  if (editing) return <p className={styles.muted}>{dayCopy.noteNeedsPosition}</p>;
-  return <p className={assignment?.note ? undefined : styles.muted}>{assignment?.note ?? dayCopy.noNote}</p>;
+/** A cell's note: a form when there is a position to attach it to. */
+export function CellNote({ date, employeeId, assignment }: CellNoteProps) {
+  if (!assignment) return <p className={styles.muted}>{dayCopy.noteNeedsPosition}</p>;
+  return <NoteForm date={date} employeeId={employeeId} positionId={assignment.position_id} note={assignment.note} />;
 }

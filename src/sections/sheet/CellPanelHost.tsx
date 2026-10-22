@@ -20,7 +20,6 @@ import { cellKey, findPanelCell, type PanelCells } from "./sheetModel";
 
 type CellPanelHostProps = {
   range: DateRange;
-  editing: boolean;
   /** Names only: the RUT never leaves the server for this. */
   employees: readonly Pick<Employee, "id" | "first_name" | "last_name">[];
   cells: PanelCells;
@@ -37,11 +36,11 @@ type CellPanelHostProps = {
  * without JavaScript, follows the link as before.
  */
 export function CellPanelHost(props: CellPanelHostProps) {
-  const { range, editing, employees, cells, positions, children } = props;
+  const { range, employees, cells, positions, children } = props;
   const router = useRouter();
   const query = useSearchParams();
-  // The range panel writes, so it opens only in edit mode, and over the cell it came from.
-  const rangeOpening = editing ? readRangeOpening(query) : null;
+  // The range panel opens over the cell it came from.
+  const rangeOpening = readRangeOpening(query);
   const selection = rangeOpening ? null : readCellSelection(query, range);
   const employee = selection ? employees.find((candidate) => candidate.id === selection.employeeId) : undefined;
   const open = selection && employee ? selection : null;
@@ -98,7 +97,6 @@ export function CellPanelHost(props: CellPanelHostProps) {
           <CellPanel
             key={cellKey(open.date, open.employeeId)}
             selection={open}
-            editing={editing}
             employee={employee}
             {...findPanelCell(cells, open)}
             positionsById={positionsById}
@@ -106,7 +104,7 @@ export function CellPanelHost(props: CellPanelHostProps) {
             previousHref={stepHref(-1)}
             nextHref={stepHref(1)}
             freshness={cells}
-            rangeHref={editing ? sheetHrefFor(query, { range: true }) : null}
+            rangeHref={sheetHrefFor(query, { range: true })}
             onClose={close}
           />
         </>

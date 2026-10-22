@@ -19,7 +19,6 @@ import styles from "./SheetPanels.module.css";
 
 type CellPanelProps = {
   selection: CellSelection;
-  editing: boolean;
   employee: Pick<Employee, "first_name" | "last_name">;
   assignment: PanelAssignment | null;
   /** Undefined for a role that never sees amounts: the bonus fact is left out. */
@@ -29,19 +28,19 @@ type CellPanelProps = {
   /** The arrows' targets along the row, or null at the edge of the range. */
   previousHref: string | null;
   nextHref: string | null;
-  /** Opens the range panel from this cell; null in read mode. */
-  rangeHref: string | null;
+  /** Opens the range panel from this cell. */
+  rangeHref: string;
   /** Changes with every server render, so the history is read again after an edit lands. */
   freshness: unknown;
   onClose: () => void;
 };
 
 /**
- * One person on one date: what they did and earned, the picker in edit mode, the note and the
+ * One person on one date: what they did and earned, the picker, the note and the
  * history. Everything but the history comes with the sheet, so it opens without a server render.
  */
 export function CellPanel(props: CellPanelProps) {
-  const { selection, editing, employee, assignment, bonus, positionsById, positionGroups } = props;
+  const { selection, employee, assignment, bonus, positionsById, positionGroups } = props;
   const { date, employeeId } = selection;
   const marks = assignment ? describeMarks(assignment) : null;
   const incomplete = assignment !== null && (assignment.late || assignment.left_early);
@@ -79,39 +78,31 @@ export function CellPanel(props: CellPanelProps) {
         )}
       </dl>
 
-      {editing ? (
-        <>
-          <PositionPicker
-            date={date}
-            employeeId={employeeId}
-            positionId={assignment?.position_id ?? null}
-            note={assignment?.note ?? null}
-            groups={positionGroups}
-          />
-          {assignment && positionsById.get(assignment.position_id)?.type === "WORK" && (
-            <IncompleteDayMarks
-              date={date}
-              employeeId={employeeId}
-              positionId={assignment.position_id}
-              note={assignment.note}
-              late={assignment.late}
-              lateNotified={assignment.late_notified}
-              leftEarly={assignment.left_early}
-            />
-          )}
-          {props.rangeHref && (
-            <section className={styles.fromCell}>
-              <h3 className={styles.heading}>{sheetCopy.fromCellTitle}</h3>
-              <p className={styles.muted}>{sheetCopy.fromCellHint}</p>
-              <a href={props.rangeHref} data-cell-link className={styles.rangeLink}>
-                {sheetCopy.fromCellButton}
-              </a>
-            </section>
-          )}
-        </>
-      ) : (
-        <p className={styles.muted}>{sheetCopy.readOnlyCell}</p>
+      <PositionPicker
+        date={date}
+        employeeId={employeeId}
+        positionId={assignment?.position_id ?? null}
+        note={assignment?.note ?? null}
+        groups={positionGroups}
+      />
+      {assignment && positionsById.get(assignment.position_id)?.type === "WORK" && (
+        <IncompleteDayMarks
+          date={date}
+          employeeId={employeeId}
+          positionId={assignment.position_id}
+          note={assignment.note}
+          late={assignment.late}
+          lateNotified={assignment.late_notified}
+          leftEarly={assignment.left_early}
+        />
       )}
+      <section className={styles.fromCell}>
+        <h3 className={styles.heading}>{sheetCopy.fromCellTitle}</h3>
+        <p className={styles.muted}>{sheetCopy.fromCellHint}</p>
+        <a href={props.rangeHref} data-cell-link className={styles.rangeLink}>
+          {sheetCopy.fromCellButton}
+        </a>
+      </section>
 
       <nav className={styles.steps}>
         {props.previousHref ? (
@@ -130,7 +121,7 @@ export function CellPanel(props: CellPanelProps) {
 
       <section className={styles.section}>
         <h3 className={styles.heading}>{dayCopy.note}</h3>
-        <CellNote date={date} employeeId={employeeId} assignment={assignment} editing={editing} />
+        <CellNote date={date} employeeId={employeeId} assignment={assignment} />
       </section>
       <section className={styles.section}>
         <h3 className={styles.heading}>{dayCopy.history}</h3>

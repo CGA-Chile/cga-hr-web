@@ -33,7 +33,6 @@ type SheetPageProps = {
   searchParams: Promise<{
     desde?: SearchParam;
     semana?: SearchParam;
-    modo?: SearchParam;
     dia?: SearchParam;
     persona?: SearchParam;
     panel?: SearchParam;
@@ -68,7 +67,6 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
   const params: SheetParams = {
     start,
     week: date(query.semana) ? week.start : null,
-    editing: single(query.modo) === "editar",
     date: panelDate,
     endPanel: !cellOpen && single(query.panel) === "cierre" && ranges.current.endMovable && showAmounts,
     person: !cellOpen && showAmounts ? single(query.trabajador) : null,
@@ -133,7 +131,6 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
         grid={
           <CellPanelHost
             range={{ start, end }}
-            editing={Boolean(params.editing)}
             employees={sheet.rows.map(({ employee: { id, first_name, last_name } }) => ({ id, first_name, last_name }))}
             cells={buildPanelCells(sheet.rows, showAmounts)}
             positions={positions}
@@ -168,7 +165,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
               <DuplicateSummary duplicates={panelDuplicates} positionName={(id) => positionsById.get(id)?.name ?? ""} />
             )
           }
-          columnCopy={params.editing ? copyFromPreviousDate(params.date, sheet.rows, assignments) : null}
+          columnCopy={copyFromPreviousDate(params.date, sheet.rows, assignments)}
           calendar={panelCalendar}
           dayRateFallback={dayRateFallback}
           canManageCalendar={showAmounts}

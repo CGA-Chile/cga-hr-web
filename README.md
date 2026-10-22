@@ -42,8 +42,9 @@ users have been spotting wrong totals on a spreadsheet for years; hiding the sym
 away the only error detection that already works.
 See [ADR 0004](docs/adr/0004-daily-cap-applies-only-to-equal-share.md).
 
-**Every screen opens read-only.** You press "Editar" to change anything, admin included. A
-misclick costs someone money.
+**Screens open editable, and every change is recorded.** There is no read mode to unlock: the
+change history, the admin-only lock on paid days and the close gate protect pay instead.
+See [ADR 0017](docs/adr/0017-screens-open-editable.md).
 
 **Soft delete everywhere, and every unique index is partial** (`WHERE deleted_at IS NULL`).
 Without that, deleting and re-creating the same day's assignment collides with the constraint.

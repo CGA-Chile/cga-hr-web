@@ -1,5 +1,5 @@
 import { findDuplicatedPositions } from "@/domain/bonus/duplicates";
-import type { BonusPosition, IsoDate } from "@/domain/bonus/types";
+import type { BonusPosition, BonusScheme, EmployeeBonus, IsoDate } from "@/domain/bonus/types";
 import { workedFullDay } from "@/domain/bonus/fullDay";
 import type { DailyBonus } from "../bonus/dailyBonuses";
 import { toBonusAssignment } from "../bonus/toBonus";
@@ -9,14 +9,24 @@ import { fullName } from "../day/queries";
 /** How a cell is coloured: the carding line, its scheme trigger, any other job, or an absence. */
 export type CellTone = "LINE" | "TRIGGER" | "OTHER" | "ABSENCE";
 
+/** Why a date paid what it did, for the cell panel to explain and the breakdown to colour. */
+export type BonusBasis =
+  { scheme: "POSITION_RATE" } | { scheme: "EQUAL_SHARE"; sharedBy: number } | { scheme: "DAY_RATE" };
+
+/** One person's daily bonus on one date. Incomplete: listed at zero for arriving late or leaving early. */
+export type CellBonus = { amount: number; incomplete: boolean; basis: BonusBasis };
+
 export type SheetCell = {
   date: IsoDate;
   assignment: Assignment | null;
   /** The position has more than one occupant this date: the duplicate the close gate stops on. */
   duplicated: boolean;
+  /** Null when the date pays this person nothing, or for a role that never sees amounts. */
+  bonus: CellBonus | null;
 };
 
-export type SheetRow = { employee: Employee; cells: SheetCell[]; total: number };
+/** The total is both daily bonuses together; the breakdown under the row shows each apart. */
+export type SheetRow = { employee: Employee; cells: SheetCell[]; total: number; carding: number; dayRate: number };
 
 export type SheetDay = {
   date: IsoDate;
@@ -57,15 +67,17 @@ export function buildSheet({ dates, employees, assignments, dailyBonuses, positi
   const rows = employees
     .filter((employee) => employee.active || withAssignments.has(employee.id))
     .sort((a, b) => fullName(a).localeCompare(fullName(b), "es"))
-    .map((employee) => ({
-      employee,
-      cells: dates.map((date) => {
+    .map((employee) => {
+      const cells = dates.map((date) => {
         const assignment = assignmentByCell.get(cellKey(date, employee.id)) ?? null;
         const duplicated = assignment !== null && workedFullDay(toBonusAssignment(assignment)) && Boolean(duplicatedByDate.get(date)?.has(assignment.position_id));
-        return { date, assignment, duplicated };
-      }),
-      total: employeeTotal(dailyBonuses, employee.id),
-    }));
+        const dailyBonus = bonusByDate.get(date);
+        return { date, assignment, duplicated, bonus: dailyBonus ? cellBonus(dailyBonus, employee.id) : null };
+      });
+      const carding = sumBonuses(cells, (basis) => basis.scheme !== "DAY_RATE");
+      const dayRate = sumBonuses(cells, (basis) => basis.scheme === "DAY_RATE");
+      return { employee, cells, total: carding + dayRate, carding, dayRate };
+    });
 
   const days = dates.map((date) => {
     const bonus = bonusByDate.get(date);
@@ -105,12 +117,24 @@ function duplicatedPositionsByDate(
   );
 }
 
-function employeeTotal(dailyBonuses: readonly DailyBonus[], employeeId: string): number {
-  return dailyBonuses.reduce(
-    (sum, bonus) =>
-      sum + (bonus.result?.perEmployee.find((entry) => entry.employeeId === employeeId)?.amount ?? 0),
-    0,
-  );
+function cellBonus({ result }: DailyBonus, employeeId: string): CellBonus | null {
+  const entry = result?.perEmployee.find((candidate) => candidate.employeeId === employeeId);
+  if (!result || !entry) return null;
+  return { amount: entry.amount, incomplete: !isComplete(entry), basis: basisOf(result.scheme, result.perEmployee) };
+}
+
+/** Equal share is split among those who worked the full day; the rest are listed at zero. */
+function basisOf(scheme: BonusScheme, perEmployee: readonly EmployeeBonus[]): BonusBasis {
+  if (scheme === "EQUAL_SHARE") return { scheme, sharedBy: perEmployee.filter(isComplete).length };
+  return { scheme };
+}
+
+function isComplete(entry: EmployeeBonus): boolean {
+  return !entry.late && !entry.leftEarly;
+}
+
+function sumBonuses(cells: readonly SheetCell[], counts: (basis: BonusBasis) => boolean): number {
+  return cells.reduce((sum, { bonus }) => sum + (bonus && counts(bonus.basis) ? bonus.amount : 0), 0);
 }
 
 export type ColumnCopy = { from: IsoDate; cells: { employeeId: string; positionId: string }[] };
@@ -143,38 +167,34 @@ export function copyFromPreviousDate(
 }
 
 export type PanelAssignment = Pick<Assignment, "position_id" | "note" | "late" | "late_notified" | "left_early">;
-type PanelCell = { assignment: PanelAssignment; amount?: number | null };
+type PanelCell = { assignment: PanelAssignment; bonus?: CellBonus | null };
 export type PanelCells = { amounts: boolean; byCell: Record<string, PanelCell> };
 
 /**
  * What the cell panel shows, for every filled cell on the sheet, so it opens in the browser
- * without asking the server. Null bonuses mean a role that never sees amounts: the amount is
- * left out of the payload, not hidden in the browser.
+ * without asking the server. For a role that never sees amounts the bonus is left out of the
+ * payload, not hidden in the browser.
  */
-export function buildPanelCells(rows: readonly Pick<SheetRow, "employee" | "cells">[], dailyBonuses: readonly DailyBonus[] | null): PanelCells {
-  const amountOn = (date: IsoDate, employeeId: string) =>
-    dailyBonuses?.find((bonus) => bonus.date === date)?.result?.perEmployee.find((entry) => entry.employeeId === employeeId)
-      ?.amount ?? null;
-
+export function buildPanelCells(rows: readonly Pick<SheetRow, "employee" | "cells">[], amounts: boolean): PanelCells {
   const byCell: Record<string, PanelCell> = {};
   for (const { employee, cells } of rows) {
-    for (const { date, assignment } of cells) {
+    for (const { date, assignment, bonus } of cells) {
       if (!assignment) continue;
       const { position_id, note, late, late_notified, left_early } = assignment;
       byCell[cellKey(date, employee.id)] = {
         assignment: { position_id, note, late, late_notified, left_early },
-        ...(dailyBonuses && { amount: amountOn(date, employee.id) }),
+        ...(amounts && { bonus }),
       };
     }
   }
-  return { amounts: dailyBonuses !== null, byCell };
+  return { amounts, byCell };
 }
 
 export function findPanelCell(
   cells: PanelCells,
   { date, employeeId }: { date: IsoDate; employeeId: string },
-): { assignment: PanelAssignment | null; amount: number | null | undefined } {
+): { assignment: PanelAssignment | null; bonus: CellBonus | null | undefined } {
   const cell = cells.byCell[cellKey(date, employeeId)];
-  const emptyAmount = cells.amounts ? null : undefined;
-  return { assignment: cell?.assignment ?? null, amount: cell ? cell.amount : emptyAmount };
+  const emptyBonus = cells.amounts ? null : undefined;
+  return { assignment: cell?.assignment ?? null, bonus: cell ? cell.bonus : emptyBonus };
 }

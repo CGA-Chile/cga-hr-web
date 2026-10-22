@@ -51,6 +51,19 @@ export const sheetCopy = {
   position: "Puesto",
   dayBonus: "Bono ese día",
   noBonus: "Sin bono",
+  basisTitle: "Cómo se calcula",
+  basisPositionRate: "Tarifa por puesto: cada puesto de la línea gana su tarifa.",
+  basisEqualShare: (count: number) =>
+    `Reparto igualitario: la línea se reparte en partes iguales entre ${count === 1 ? "1 persona" : `${count} personas`}.`,
+  basisDayRate: "Bono día no hábil: todos los que trabajaron ganan lo mismo, sin importar el puesto.",
+
+  breakdownCarding: "Cardas",
+  breakdownDayRate: "Día no hábil",
+  breakdownOpenAll: "Abrir todos",
+  breakdownCloseAll: "Cerrar todos",
+  breakdownShow: (name: string) => `Ver el detalle del bono de ${name}`,
+  breakdownHide: (name: string) => `Ocultar el detalle del bono de ${name}`,
+  breakdownAmount: (bonus: string, date: string, amount: string) => `${bonus}, ${date}: ${amount}`,
   incompleteBonus: (late: boolean, leftEarly: boolean) =>
     late && leftEarly
       ? "Sin bono: atraso y salida temprana"

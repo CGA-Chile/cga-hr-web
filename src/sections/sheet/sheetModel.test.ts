@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { BonusPosition, BonusSettingsVersion, DailyBonusResult } from "@/domain/bonus/types";
 import type { DailyBonus } from "../bonus/dailyBonuses";
 import type { Assignment, Employee } from "../day/queries";
-import { buildPanelCells, buildSheet, copyFromPreviousDate, findPanelCell, toneOf } from "./sheetModel";
+import { buildPanelCells, buildSheet, copyFromPreviousDate, findPanelCell, toneOf, type CellBonus } from "./sheetModel";
 
 const SETTINGS: BonusSettingsVersion = {
   effectiveFrom: "2026-01-01",
@@ -18,7 +18,17 @@ function employee(id: string, firstName: string, active = true): Employee {
 }
 
 function assignment(date: string, employeeId: string, positionId: string): Assignment {
-  return { id: `${date}-${employeeId}`, date, employee_id: employeeId, position_id: positionId, note: null, settled_in_period_id: null, late: false, late_notified: null, left_early: false };
+  return {
+    id: `${date}-${employeeId}`,
+    date,
+    employee_id: employeeId,
+    position_id: positionId,
+    note: null,
+    settled_in_period_id: null,
+    late: false,
+    late_notified: null,
+    left_early: false,
+  };
 }
 
 function bonus(date: string, result: DailyBonusResult): DailyBonus {
@@ -108,6 +118,70 @@ describe("buildSheet", () => {
 
     expect(withoutAmounts.rows.flatMap((row) => row.cells.map((cell) => cell.duplicated))).toEqual([true, true]);
     expect(withoutAmounts.days).toEqual([{ date: "2026-09-01", total: null, flagged: true }]);
+    expect(withoutAmounts.rows.flatMap((row) => row.cells.map((cell) => cell.bonus))).toEqual([null, null]);
+  });
+});
+
+describe("the breakdown under each row", () => {
+  const sheet = buildSheet({
+    dates: ["2026-09-04", "2026-09-05", "2026-09-07"],
+    employees: [ana, bruno],
+    assignments: [
+      assignment("2026-09-04", "ana", "RIE"),
+      assignment("2026-09-04", "bruno", "ACM"),
+      assignment("2026-09-05", "ana", "BOD"),
+      assignment("2026-09-07", "ana", "RIE"),
+      assignment("2026-09-07", "bruno", "ACM"),
+    ],
+    dailyBonuses: [
+      bonus("2026-09-04", {
+        scheme: "EQUAL_SHARE",
+        perEmployee: [
+          { employeeId: "ana", positionId: "RIE", amount: 300, late: false, leftEarly: false },
+          { employeeId: "bruno", positionId: "ACM", amount: 0, late: true, leftEarly: false },
+        ],
+        total: 300,
+        anomalies: [],
+      }),
+      bonus("2026-09-05", {
+        scheme: "DAY_RATE",
+        perEmployee: [{ employeeId: "ana", positionId: "BOD", amount: 900, late: false, leftEarly: false }],
+        total: 900,
+        anomalies: [],
+      }),
+      bonus("2026-09-07", {
+        scheme: "POSITION_RATE",
+        perEmployee: [
+          { employeeId: "ana", positionId: "RIE", amount: 200, late: false, leftEarly: false },
+          { employeeId: "bruno", positionId: "ACM", amount: 150, late: false, leftEarly: false },
+        ],
+        total: 350,
+        anomalies: [],
+      }),
+    ],
+    positions: POSITIONS,
+  });
+  const [anaRow, brunoRow] = sheet.rows;
+
+  it("splits each person's total into the carding line and the day rate, which add up to it", () => {
+    expect(anaRow).toMatchObject({ carding: 500, dayRate: 900, total: 1_400 });
+    expect(brunoRow).toMatchObject({ carding: 150, dayRate: 0, total: 150 });
+  });
+
+  it("gives each date the amount and the scheme that paid it", () => {
+    expect(anaRow.cells.map((cell) => cell.bonus)).toEqual([
+      { amount: 300, incomplete: false, basis: { scheme: "EQUAL_SHARE", sharedBy: 1 } },
+      { amount: 900, incomplete: false, basis: { scheme: "DAY_RATE" } },
+      { amount: 200, incomplete: false, basis: { scheme: "POSITION_RATE" } },
+    ]);
+  });
+
+  it("keeps a day lost to arriving late as an incomplete zero, left out of those sharing", () => {
+    expect(brunoRow.cells.map((cell) => cell.bonus)).toEqual([
+      { amount: 0, incomplete: true, basis: { scheme: "EQUAL_SHARE", sharedBy: 1 } },
+      null,
+      { amount: 150, incomplete: false, basis: { scheme: "POSITION_RATE" } },
+    ]);
   });
 });
 
@@ -147,20 +221,19 @@ describe("copyFromPreviousDate", () => {
 
 describe("panel cells", () => {
   const late = { ...assignment("2026-09-01", "ana", "RIE"), note: "Llegó 9:15", late: true, late_notified: true };
+  const lateBonus: CellBonus = { amount: 0, incomplete: true, basis: { scheme: "POSITION_RATE" } };
   const rows = [
-    { employee: ana, cells: [{ date: "2026-09-01", assignment: late, duplicated: false }, { date: "2026-09-02", assignment: null, duplicated: false }] },
-  ];
-  const dailyBonuses = [
-    bonus("2026-09-01", {
-      scheme: "POSITION_RATE",
-      perEmployee: [{ employeeId: "ana", positionId: "RIE", amount: 0, late: true, leftEarly: false }],
-      total: 0,
-      anomalies: [],
-    }),
+    {
+      employee: ana,
+      cells: [
+        { date: "2026-09-01", assignment: late, duplicated: false, bonus: lateBonus },
+        { date: "2026-09-02", assignment: null, duplicated: false, bonus: null },
+      ],
+    },
   ];
 
   it("hands the panel what the cell holds: position, note and marks", () => {
-    const cells = buildPanelCells(rows, dailyBonuses);
+    const cells = buildPanelCells(rows, true);
     expect(findPanelCell(cells, { date: "2026-09-01", employeeId: "ana" }).assignment).toEqual({
       position_id: "RIE",
       note: "Llegó 9:15",
@@ -170,16 +243,16 @@ describe("panel cells", () => {
     });
   });
 
-  it("gives an amount to a role that sees them, and null to an empty cell", () => {
-    const cells = buildPanelCells(rows, dailyBonuses);
-    expect(findPanelCell(cells, { date: "2026-09-01", employeeId: "ana" }).amount).toBe(0);
-    expect(findPanelCell(cells, { date: "2026-09-02", employeeId: "ana" })).toEqual({ assignment: null, amount: null });
+  it("gives the bonus to a role that sees amounts, and null to an empty cell", () => {
+    const cells = buildPanelCells(rows, true);
+    expect(findPanelCell(cells, { date: "2026-09-01", employeeId: "ana" }).bonus).toEqual(lateBonus);
+    expect(findPanelCell(cells, { date: "2026-09-02", employeeId: "ana" })).toEqual({ assignment: null, bonus: null });
   });
 
-  it("leaves the amount out entirely for a role that never sees one", () => {
-    const cells = buildPanelCells(rows, null);
-    expect(findPanelCell(cells, { date: "2026-09-01", employeeId: "ana" }).amount).toBeUndefined();
-    expect(findPanelCell(cells, { date: "2026-09-02", employeeId: "ana" }).amount).toBeUndefined();
+  it("leaves the bonus out entirely for a role that never sees one", () => {
+    const cells = buildPanelCells(rows, false);
+    expect(findPanelCell(cells, { date: "2026-09-01", employeeId: "ana" }).bonus).toBeUndefined();
+    expect(findPanelCell(cells, { date: "2026-09-02", employeeId: "ana" }).bonus).toBeUndefined();
     expect(JSON.stringify(cells)).not.toContain('"amount"');
   });
 });

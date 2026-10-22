@@ -220,6 +220,100 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The row's total opens its breakdown: the amount stays where it was, with a chevron beside it. */
+.breakdownToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.breakdownToggle:hover .breakdownAmount {
+  text-decoration: underline;
+}
+
+.chevron {
+  flex: none;
+  color: var(--color-text-muted);
+  transition: transform 0.15s;
+}
+
+.breakdownToggle[aria-expanded="true"] .chevron {
+  transform: rotate(90deg);
+}
+
+.breakdownAll {
+  display: block;
+  margin: 0 0 var(--space-1) auto;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-background);
+  color: var(--color-accent);
+  font: inherit;
+  font-size: 0.6875rem;
+  cursor: pointer;
+}
+
+/* The breakdown under a person: quieter than the sheet, in the same date columns. */
+.grid .breakdown th,
+.grid .breakdown td {
+  background: var(--color-surface);
+}
+
+.grid .breakdown .name {
+  padding-left: var(--space-6);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+/* Lined up with the totals above, which end before their chevron. */
+.grid .breakdown .total,
+.grid tfoot .total {
+  padding-right: calc(var(--space-3) + 12px + var(--space-1));
+}
+
+.grid .breakdown .total {
+  color: var(--color-text-muted);
+}
+
+.breakdownCell a {
+  width: 3rem;
+  height: 1.75rem;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.breakdownCell a:hover {
+  box-shadow: inset 0 0 0 1px var(--color-text-muted);
+}
+
+.breakdownCell[data-equal] a {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.breakdownCell[data-incomplete] a {
+  color: var(--color-text-muted);
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition: none;
+  }
+}
+
 .grid tfoot .dayTotal[data-flagged] {
   background: var(--color-warning-surface);
   color: var(--color-warning);
@@ -269,7 +363,8 @@
   }
 
   .grid .total,
-  .grid .totalHeader {
+  .grid .totalHeader,
+  .grid .breakdown {
     display: none;
   }
 }

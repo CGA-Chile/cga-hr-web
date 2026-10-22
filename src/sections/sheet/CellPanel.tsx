@@ -14,7 +14,7 @@ import type { CellSelection } from "./cellSelection";
 import { describeMarks } from "./incompleteDay";
 import { IncompleteDayMarks } from "./IncompleteDayMarks";
 import { PositionPicker } from "./PositionPicker";
-import type { PanelAssignment } from "./sheetModel";
+import type { BonusBasis, CellBonus, PanelAssignment } from "./sheetModel";
 import styles from "./SheetPanels.module.css";
 
 type CellPanelProps = {
@@ -23,7 +23,7 @@ type CellPanelProps = {
   employee: Pick<Employee, "first_name" | "last_name">;
   assignment: PanelAssignment | null;
   /** Undefined for a role that never sees amounts: the bonus fact is left out. */
-  amount: number | null | undefined;
+  bonus: CellBonus | null | undefined;
   positionsById: ReadonlyMap<string, Position>;
   positionGroups: readonly PositionGroup[];
   /** The arrows' targets along the row, or null at the edge of the range. */
@@ -41,7 +41,7 @@ type CellPanelProps = {
  * history. Everything but the history comes with the sheet, so it opens without a server render.
  */
 export function CellPanel(props: CellPanelProps) {
-  const { selection, editing, employee, assignment, amount, positionsById, positionGroups } = props;
+  const { selection, editing, employee, assignment, bonus, positionsById, positionGroups } = props;
   const { date, employeeId } = selection;
   const marks = assignment ? describeMarks(assignment) : null;
   const incomplete = assignment !== null && (assignment.late || assignment.left_early);
@@ -53,18 +53,24 @@ export function CellPanel(props: CellPanelProps) {
           <dt>{sheetCopy.position}</dt>
           <dd>{assignment ? (positionsById.get(assignment.position_id)?.name ?? "") : sheetCopy.noPosition}</dd>
         </div>
-        {amount !== undefined && (
+        {bonus !== undefined && (
           <div>
             <dt>{sheetCopy.dayBonus}</dt>
             <dd>
               {incomplete
                 ? sheetCopy.incompleteBonus(assignment.late, assignment.left_early)
-                : amount
-                  ? formatPesos(amount)
+                : bonus?.amount
+                  ? formatPesos(bonus.amount)
                   : sheetCopy.noBonus}
             </dd>
           </div>
         )}
+        {bonus?.amount ? (
+          <div className={styles.factWide}>
+            <dt>{sheetCopy.basisTitle}</dt>
+            <dd>{describeBasis(bonus.basis)}</dd>
+          </div>
+        ) : null}
         {marks && (
           <div className={styles.factWide}>
             <dt>{sheetCopy.attendance}</dt>
@@ -132,6 +138,11 @@ export function CellPanel(props: CellPanelProps) {
       </section>
     </Drawer>
   );
+}
+
+function describeBasis(basis: BonusBasis): string {
+  if (basis.scheme === "EQUAL_SHARE") return sheetCopy.basisEqualShare(basis.sharedBy);
+  return basis.scheme === "DAY_RATE" ? sheetCopy.basisDayRate : sheetCopy.basisPositionRate;
 }
 
 type HistoryProps = Pick<CellPanelProps, "selection" | "positionsById" | "freshness">;

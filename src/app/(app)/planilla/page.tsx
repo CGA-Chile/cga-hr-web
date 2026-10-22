@@ -135,7 +135,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
             range={{ start, end }}
             editing={Boolean(params.editing)}
             employees={sheet.rows.map(({ employee: { id, first_name, last_name } }) => ({ id, first_name, last_name }))}
-            cells={buildPanelCells(sheet.rows, showAmounts ? dailyBonuses : null)}
+            cells={buildPanelCells(sheet.rows, showAmounts)}
             positions={positions}
             mayChangePaid={profile?.role === "admin"}
           >

@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { signOut } from "@/app/(app)/actions";
 import { appCopy } from "@/copy/app";
-import { authCopy } from "@/copy/auth";
 import { roleSeesAmounts, type AppRole } from "@/utils/supabase/currentProfile";
+import { SignOutButton } from "./SignOutButton";
 import { SyncStatus } from "./SyncStatus";
 import styles from "./AppHeader.module.css";
 
@@ -29,11 +28,7 @@ export function AppHeader({ role }: { role: AppRole | null }) {
       </nav>
       <div className={styles.actions}>
         <SyncStatus />
-        <form action={signOut}>
-        <button type="submit" className={styles.signOut}>
-          {authCopy.signOut}
-        </button>
-        </form>
+        <SignOutButton />
       </div>
     </header>
   );

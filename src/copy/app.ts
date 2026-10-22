@@ -7,4 +7,7 @@ export const appCopy = {
   navReport: "Reporte",
   navReview: "Revisión",
   navAdmin: "Administración",
+  errorTitle: "Ha ocurrido un error",
+  errorBody: "No pudimos cargar esta página. Inténtalo de nuevo.",
+  errorRetry: "Reintentar",
 } as const;

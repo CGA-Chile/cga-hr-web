@@ -7,7 +7,11 @@ import { useState } from "react";
  * Sends a form's values to a Server Action. On success it goes to `doneHref` (closing the
  * drawer that holds the form); on refusal it keeps the form open with the server's message.
  */
-export function useServerSubmit<T>(action: (values: T) => Promise<{ message: string } | null>, doneHref: string) {
+export function useServerSubmit<T>(
+  action: (values: T) => Promise<{ message: string } | null>,
+  doneHref: string,
+  onSuccess?: () => void,
+) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -17,6 +21,7 @@ export function useServerSubmit<T>(action: (values: T) => Promise<{ message: str
       setServerError(result.message);
       return;
     }
+    onSuccess?.();
     router.push(doneHref, { scroll: false });
   }
 

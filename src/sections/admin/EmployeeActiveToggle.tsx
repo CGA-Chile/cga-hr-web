@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import posthog from "posthog-js";
 import { setEmployeeActive } from "@/app/(app)/administracion/actions";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { adminCopy } from "@/copy/admin";
@@ -17,7 +18,12 @@ export function EmployeeActiveToggle({ id, name, active }: { id: string; name: s
         type="button"
         className={styles.button}
         disabled={pending}
-        onClick={() => startTransition(async () => void (await setEmployeeActive(id, true)))}
+        onClick={() =>
+          startTransition(async () => {
+            const result = await setEmployeeActive(id, true);
+            if (!result) posthog.capture("employee_active_status_updated", { active: true });
+          })
+        }
       >
         {copy.reactivate}
       </button>
@@ -31,7 +37,11 @@ export function EmployeeActiveToggle({ id, name, active }: { id: string; name: s
       confirmLabel={copy.deactivateConfirm}
       cancelLabel={adminCopy.cancel}
       pendingLabel={copy.deactivating}
-      onConfirm={() => setEmployeeActive(id, false)}
+      onConfirm={async () => {
+        const result = await setEmployeeActive(id, false);
+        if (!result) posthog.capture("employee_active_status_updated", { active: false });
+        return result;
+      }}
     />
   );
 }

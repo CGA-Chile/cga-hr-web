@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import posthog from "posthog-js";
 import { setReprimand, type ReprimandState } from "@/app/(app)/planilla/actions";
 import { sheetCopy } from "@/copy/sheet";
 import styles from "./SheetPanels.module.css";
@@ -22,7 +23,7 @@ export function ReprimandForm({ periodId, employeeId, reprimanded, note, doneHre
   );
 
   return (
-    <form action={action} className={styles.form}>
+    <form action={action} onSubmit={() => posthog.capture("reprimand_update_submitted")} className={styles.form}>
       <label className={styles.check}>
         <input type="checkbox" name="reprimanded" defaultChecked={reprimanded} />
         {copy.reprimandLabel}

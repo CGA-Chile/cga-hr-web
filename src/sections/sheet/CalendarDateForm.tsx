@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import posthog from "posthog-js";
 import { setCalendarDate, type CalendarDateState } from "@/app/(app)/planilla/actions";
 import { sheetCopy } from "@/copy/sheet";
 import { formatPesos } from "@/utils/money";
@@ -24,7 +25,7 @@ export function CalendarDateForm({ date, holiday, dayRate, fallback, doneHref }:
   );
 
   return (
-    <form action={action} className={styles.form}>
+    <form action={action} onSubmit={() => posthog.capture("calendar_date_update_submitted")} className={styles.form}>
       <label className={styles.check}>
         <input type="checkbox" name="holiday" defaultChecked={holiday} />
         {sheetCopy.holidayLabel}

@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import posthog from "posthog-js";
 import { savePosition } from "@/app/(app)/administracion/actions";
 import { FormField } from "@/components/FormField";
 import { adminCopy } from "@/copy/admin";
@@ -21,7 +22,11 @@ export function PositionForm({ id, defaults, doneHref }: PositionFormProps) {
     resolver: zodResolver(positionSchema),
     defaultValues: defaults,
   });
-  const { serverError, submit } = useServerSubmit((values: PositionValues) => savePosition(id, values), doneHref);
+  const { serverError, submit } = useServerSubmit(
+    (values: PositionValues) => savePosition(id, values),
+    doneHref,
+    () => posthog.capture("position_saved", { operation: id ? "updated" : "created" }),
+  );
   const copy = adminCopy.positions;
 
   return (

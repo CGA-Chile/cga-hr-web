@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import posthog from "posthog-js";
 import { Drawer } from "@/components/Drawer";
 import type { IsoDate } from "@/domain/bonus/types";
 import { dayCopy } from "@/copy/day";
@@ -108,6 +109,12 @@ export function RangePanel(props: RangePanelProps) {
       p_note: noteToWrite ?? undefined,
     });
     if (error) return setStatus(error.code === "42501" ? "NO_PERMISSION" : "FAILED");
+
+    posthog.capture("assignment_range_applied", {
+      assignment_action: positionId ? "assigned" : "cleared",
+      changed_days: data.length,
+      day_selection: days.toLowerCase(),
+    });
 
     const name = fullName(employee);
     const [first, last] = [formatDayMonth(from), formatDayMonth(to)];

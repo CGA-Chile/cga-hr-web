@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import posthog from "posthog-js";
 import { createPeriod, type ActionState } from "@/app/(app)/cierres/actions";
 import { periodsCopy } from "@/copy/periods";
 import styles from "./Periods.module.css";
@@ -16,7 +17,7 @@ export function NewPeriodForm({ start, proposedEnd, proposedName }: NewPeriodFor
   const [state, action, pending] = useActionState<ActionState, FormData>(createPeriod, null);
 
   return (
-    <form action={action} className={styles.form}>
+    <form action={action} onSubmit={() => posthog.capture("period_creation_submitted")} className={styles.form}>
       <h2 className={styles.subtitle}>{periodsCopy.newTitle}</h2>
       <label className={styles.field}>
         <span>{periodsCopy.startLabel}</span>

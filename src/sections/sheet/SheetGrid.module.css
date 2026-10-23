@@ -76,6 +76,7 @@
 }
 
 .dayHeader a {
+  position: relative;
   flex-direction: column;
   justify-content: flex-end;
   width: 3rem;
@@ -118,6 +119,16 @@
 
 .flag {
   color: var(--color-warning);
+}
+
+/* A date whose amount HR fixed over the rates' default. In the text colour, not the warning one:
+   it is a decision, not a mistake. The anomaly flag keeps the bottom of the header. */
+.fixedDayRate {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  color: var(--color-text);
 }
 
 .cell a {

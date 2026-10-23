@@ -7,7 +7,7 @@ import { formatAmount, formatPesos, formatThousands } from "@/utils/money";
 import { fullName, type Employee, type Position } from "../day/queries";
 import { sheetPath, type SheetParams } from "./paths";
 import { describeMarks } from "./incompleteDay";
-import { LateIcon, LeftEarlyIcon } from "./MarkIcons";
+import { FixedDayRateIcon, LateIcon, LeftEarlyIcon } from "./MarkIcons";
 import { SheetCellLabel } from "./SheetCellLabel";
 import { BreakdownAllToggle, BreakdownRows, BreakdownToggle, SheetBreakdown } from "./SheetBreakdown";
 import { cellKey, toneOf, type BonusBasis, type Sheet, type SheetRow } from "./sheetModel";
@@ -24,6 +24,8 @@ type SheetGridProps = {
   today: IsoDate;
   /** Holidays HR marked: shaded like Sundays, the other dates paid under the day rate. */
   holidays: ReadonlySet<IsoDate>;
+  /** The amount HR fixed for a date, over the rates' default: its header carries a mark. Empty for the supervisor. */
+  fixedDayRates: ReadonlyMap<IsoDate, number>;
   /** False for a role that never sees amounts: no totals row, no period column, no person panel. */
   showAmounts: boolean;
   /** Employees with a reprimand in the period: their name carries a mark. Empty for the supervisor. */
@@ -36,7 +38,7 @@ type SheetGridProps = {
  * anchor: the cell panel host opens it in the browser, so the open cell is marked there too.
  */
 export function SheetGrid(props: SheetGridProps) {
-  const { sheet, positionsById, params, weekStart, today, holidays, showAmounts, reprimanded } = props;
+  const { sheet, positionsById, params, weekStart, today, holidays, fixedDayRates, showAmounts, reprimanded } = props;
   const weekEnd = addDays(weekStart, 6);
   const outOfWeek = (date: IsoDate) => date < weekStart || date > weekEnd || undefined;
   const selected = (date: IsoDate) => params.date === date || undefined;
@@ -54,6 +56,8 @@ export function SheetGrid(props: SheetGridProps) {
               </th>
               {sheet.days.map((day, index) => {
                 const { weekday, dayOfMonth, month } = dateParts(day.date);
+                const fixedDayRate = fixedDayRates.get(day.date);
+                const longDate = formatLongDate(day.date);
                 return (
                   <th
                     key={day.date}
@@ -70,8 +74,20 @@ export function SheetGrid(props: SheetGridProps) {
                     <Link
                       href={sheetPath({ ...params, date: day.date, employeeId: null, endPanel: false })}
                       scroll={false}
-                      aria-label={sheetCopy.daySummaryFor(formatLongDate(day.date))}
+                      title={
+                        fixedDayRate === undefined ? undefined : sheetCopy.fixedDayRate(formatPesos(fixedDayRate))
+                      }
+                      aria-label={
+                        fixedDayRate === undefined
+                          ? sheetCopy.daySummaryFor(longDate)
+                          : sheetCopy.daySummaryWithFixedRate(longDate, formatPesos(fixedDayRate))
+                      }
                     >
+                      {fixedDayRate !== undefined && (
+                        <span className={styles.fixedDayRate}>
+                          <FixedDayRateIcon />
+                        </span>
+                      )}
                       <span className={styles.month}>
                         {index === 0 || dayOfMonth === 1 ? sheetCopy.monthAbbreviations[month] : ""}
                       </span>

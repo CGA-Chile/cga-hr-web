@@ -44,6 +44,8 @@ export const sheetCopy = {
   noPosition: "Sin puesto",
   pending: "Por enviar",
   flagged: "Día con aviso",
+  fixedDayRate: (amount: string) => `Monto del día fijado: ${amount}`,
+  daySummaryWithFixedRate: (date: string, amount: string) => `Resumen del ${date}. Monto del día fijado: ${amount}`,
 
   previousWeek: "Semana anterior",
   nextWeek: "Semana siguiente",

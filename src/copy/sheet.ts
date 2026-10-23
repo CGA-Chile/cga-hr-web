@@ -25,12 +25,16 @@ export const sheetCopy = {
   legendOther: "Otros puestos",
   legendAbsence: "Ausencias",
   legendDuplicated: "Puesto repetido",
+  legendSaturday: "Sábado",
+  legendRestDay: "Domingo o feriado",
   legendLate: "Atraso (sin bono)",
   legendLeftEarly: "Salida temprana (sin bono)",
   hint: "Toca un día para ver su resumen; toca una celda para ver o cambiar el puesto.",
 
   /** Sunday first, as Date.getUTCDay counts. */
   weekdayInitials: ["D", "L", "M", "M", "J", "V", "S"],
+  /** The sheet's date headers: the weekend spelled out, so it reads apart from the weekdays. */
+  weekdayHeaders: ["Dom", "L", "M", "M", "J", "V", "Sáb"],
   monthAbbreviations: ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"],
   employeeColumn: "Trabajador",
   periodTotal: "Bono del período",

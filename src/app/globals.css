@@ -9,6 +9,9 @@
   --color-warning-surface: #fdf4e3;
   --color-accent-surface: #e8eff5;
   --color-on-strong: #ffffff;
+  --color-saturday-header: #eeeeeb;
+  --color-rest-header: #e2e2de;
+  --color-week-rule: #a8a8a3;
 
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 

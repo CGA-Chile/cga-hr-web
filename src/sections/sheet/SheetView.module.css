@@ -125,6 +125,14 @@
   background: var(--color-surface);
 }
 
+.legend [data-tone="SATURDAY"]::before {
+  background: var(--color-saturday-header);
+}
+
+.legend [data-tone="REST"]::before {
+  background: var(--color-rest-header);
+}
+
 .legend [data-tone="MARK"]::before {
   display: none;
 }

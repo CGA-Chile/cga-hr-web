@@ -41,6 +41,7 @@ export function SheetGrid(props: SheetGridProps) {
   const outOfWeek = (date: IsoDate) => date < weekStart || date > weekEnd || undefined;
   const selected = (date: IsoDate) => params.date === date || undefined;
   const restDay = (date: IsoDate) => dateParts(date).weekday === 0 || holidays.has(date) || undefined;
+  const weekdayOf = (date: IsoDate) => dateParts(date).weekday;
 
   return (
     <SheetBreakdown employeeIds={sheet.rows.map((row) => row.employee.id)}>
@@ -60,6 +61,7 @@ export function SheetGrid(props: SheetGridProps) {
                     className={styles.dayHeader}
                     data-out={outOfWeek(day.date)}
                     data-rest={restDay(day.date)}
+                    data-weekday={weekday}
                     data-selected={selected(day.date)}
                     data-today={day.date === today || undefined}
                     data-date={day.date}
@@ -73,7 +75,7 @@ export function SheetGrid(props: SheetGridProps) {
                       <span className={styles.month}>
                         {index === 0 || dayOfMonth === 1 ? sheetCopy.monthAbbreviations[month] : ""}
                       </span>
-                      <span className={styles.weekday}>{sheetCopy.weekdayInitials[weekday]}</span>
+                      <span className={styles.weekday}>{sheetCopy.weekdayHeaders[weekday]}</span>
                       <span className={styles.dayNumber}>{dayOfMonth}</span>
                       {day.flagged && <FlagIcon />}
                     </Link>
@@ -119,6 +121,7 @@ export function SheetGrid(props: SheetGridProps) {
                         data-tone={position ? toneOf(position) : undefined}
                         data-duplicated={cell.duplicated || undefined}
                         data-rest={restDay(cell.date)}
+                        data-weekday={weekdayOf(cell.date)}
                         data-out={outOfWeek(cell.date)}
                         data-cell={cellKey(cell.date, row.employee.id)}
                       >
@@ -164,6 +167,7 @@ export function SheetGrid(props: SheetGridProps) {
                         kind={kind}
                         params={params}
                         restDay={restDay}
+                        weekdayOf={weekdayOf}
                         outOfWeek={outOfWeek}
                       />
                     ))}
@@ -183,6 +187,7 @@ export function SheetGrid(props: SheetGridProps) {
                     key={day.date}
                     className={styles.dayTotal}
                     data-flagged={day.flagged || undefined}
+                    data-weekday={weekdayOf(day.date)}
                     data-out={outOfWeek(day.date)}
                   >
                     <Link
@@ -217,6 +222,7 @@ type BreakdownRowProps = {
   kind: BreakdownKind;
   params: SheetParams;
   restDay: (date: IsoDate) => true | undefined;
+  weekdayOf: (date: IsoDate) => number;
   outOfWeek: (date: IsoDate) => true | undefined;
 };
 
@@ -225,7 +231,7 @@ type BreakdownRowProps = {
  * position above it, where the scheme of that date is explained. A day lost to arriving late or
  * leaving early shows its zero, faint, because that is the day someone will ask about.
  */
-function BreakdownRow({ row, kind, params, restDay, outOfWeek }: BreakdownRowProps) {
+function BreakdownRow({ row, kind, params, restDay, weekdayOf, outOfWeek }: BreakdownRowProps) {
   const name = fullName(row.employee);
   return (
     <tr className={styles.breakdown}>
@@ -239,6 +245,7 @@ function BreakdownRow({ row, kind, params, restDay, outOfWeek }: BreakdownRowPro
             key={date}
             className={styles.breakdownCell}
             data-rest={restDay(date)}
+            data-weekday={weekdayOf(date)}
             data-out={outOfWeek(date)}
             data-equal={shown?.basis.scheme === "EQUAL_SHARE" || undefined}
             data-incomplete={shown?.incomplete || undefined}

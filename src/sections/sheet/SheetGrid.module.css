@@ -180,6 +180,29 @@
   color: var(--color-on-strong);
 }
 
+/* The weekend, told apart in the header and nowhere else: a cell's background belongs to its
+   position, and a filled Sunday would otherwise read like a Tuesday. Saturday soft, Sunday and
+   holidays stronger, and the weekday spelled out. */
+.grid .dayHeader[data-weekday="6"] {
+  background: var(--color-saturday-header);
+}
+
+.grid .dayHeader[data-rest] {
+  background: var(--color-rest-header);
+}
+
+.dayHeader[data-weekday="6"] .weekday,
+.dayHeader[data-weekday="0"] .weekday {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* A rule after every Sunday closes the week down the whole column, whatever colour the cells are,
+   so the weekend is always the last two columns of a block. */
+.grid [data-weekday="0"] {
+  border-right: 2px solid var(--color-week-rule);
+}
+
 /* The date whose summary is open. The open cell, its row and its date are marked by the cell
    panel host, which knows the selection the server never sees. */
 .grid .dayHeader[data-selected] {

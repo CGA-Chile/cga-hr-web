@@ -872,7 +872,8 @@ sea reconocible.
   lleva una marca. El supervisor no ve montos ni amonestaciones.
 - **Feriados.** Domingos y feriados van sombreados. El resumen del día deja a RRHH
   marcar el feriado y fijar el monto del día para esa fecha. Si la fecha ya está en un período
-  cerrado, el cambio queda como ítem de revisión.
+  cerrado, el cambio queda como ítem de revisión. Una fecha con monto del día fijado lleva una
+  marca en su encabezado, porque ese monto reemplaza al de las tarifas; el supervisor no la ve.
 - **Celular.** Muestra la misma planilla una semana a la vez, con flechas para pasar de semana, y el
   panel sube desde abajo. La lógica y la edición son idénticas; solo cambia la presentación.
 - **Días sin período.** Después de que termina el último período y antes de que se cierre, la

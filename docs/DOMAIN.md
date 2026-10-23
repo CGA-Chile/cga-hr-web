@@ -67,8 +67,11 @@ reales están en el documento interno y en el seed; acá se describen por rol.
 |---|---|---|
 | Encargado de la asignación | `editor` | Registra la asignación diaria. Uso principal. |
 | Supervisor de producción | `supervisor` | Ayuda a registrar la asignación y marca atrasos y salidas tempranas. **No ve montos.** |
-| RRHH | `editor` | Consulta, corrige y exporta el reporte del cierre. Ingresa la fecha de término del período abierto y registra las amonestaciones. |
-| Administrador | `admin` | Todo lo anterior + personas, puestos, tarifas y cierres. |
+| RRHH | `admin` | Consulta, corrige y exporta el reporte del cierre. Ingresa la fecha de término del período abierto y registra las amonestaciones. Da de alta y desactiva trabajadores. |
+| Administrador | `admin` | Todo lo anterior + puestos, tarifas y cierres. |
+
+RRHH tiene rol `admin` y por lo tanto puede todo lo que puede el administrador; la tabla describe
+para qué usa cada perfil la app, no un límite de permisos. Ver `docs/adr/0019`.
 
 El `supervisor` escribe asignaciones, atrasos y salidas tempranas igual que un editor, y ve la planilla, la vista del
 día y los días con avisos, pero sin una sola cifra: ni totales, ni bono por persona, ni tarifas.
@@ -818,7 +821,7 @@ términos están fijados en `CONTEXT.md`.
 
 Se agregan las columnas `acknowledged_at timestamptz null` y `acknowledged_by uuid null` en
 `assignment_history` para marcarlos como revisados y sacarlos de la bandeja. Pueden hacerlo
-`editor` y `admin`: la bandeja la trabaja RRHH, que tiene rol `editor`. No hay descuentos
+`editor` y `admin`: la bandeja la trabaja RRHH. No hay descuentos
 automáticos ni recálculo: la lista existe para que una persona decida qué hacer.
 
 ---
@@ -941,11 +944,11 @@ La compuerta de cierre (sección 7) es la red de seguridad de esta lista, no su 
 
 ### 8.4 Administración
 
-Solo `admin`: personas, catálogo de puestos (con las marcas de producción, cumplimiento e
+Solo `admin`, que incluye a RRHH (`docs/adr/0019`): personas, catálogo de puestos (con las marcas de producción, cumplimiento e
 incumplimiento), tarifas y montos de los bonos del período (nueva vigencia), períodos e historial
 completo.
 
-La **bandeja de revisión** no está acá: la trabaja RRHH, que tiene rol `editor`. Es visible para
+La **bandeja de revisión** no está acá: la trabaja RRHH. Es visible para
 todos, como todo lo demás, y `editor` y `admin` pueden acusar recibo de sus ítems.
 
 ---

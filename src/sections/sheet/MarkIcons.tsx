@@ -1,6 +1,6 @@
 /**
  * The marks as icons: the incomplete-day ones on a cell, the fixed day rate on a date header.
- * Decorative: the link's label and the panel say it in words.
+ * Decorative: the label of the cell or header that holds them says it in words.
  */
 
 type IconProps = { size?: number };
@@ -24,7 +24,8 @@ export function LateIcon({ size = 11 }: IconProps) {
   );
 }
 
-export function FixedDayRateIcon({ size = 11 }: IconProps) {
+/** A dollar sign in a ring. A thinner stroke than its siblings: at 3 the S closes into a blob. */
+export function FixedDayRateIcon({ size = 12 }: IconProps) {
   return (
     <svg
       width={size}
@@ -32,15 +33,14 @@ export function FixedDayRateIcon({ size = 11 }: IconProps) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="3"
+      strokeWidth="2.25"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <circle cx="12" cy="12" r="9" />
-      <path d="M15 9h-4a1.5 1.5 0 0 0 0 3h2a1.5 1.5 0 0 1 0 3H9" />
-      <path d="M12 6.5v2.5" />
-      <path d="M12 15v2.5" />
+      <circle cx="12" cy="12" r="10" />
+      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+      <path d="M12 18V6" />
     </svg>
   );
 }

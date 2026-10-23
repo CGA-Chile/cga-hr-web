@@ -57,9 +57,7 @@ export function SheetGrid(props: SheetGridProps) {
               {sheet.days.map((day, index) => {
                 const { weekday, dayOfMonth, month } = dateParts(day.date);
                 const fixedDayRate = fixedDayRates.get(day.date);
-                const fixedDayRateLabel =
-                  fixedDayRate === undefined ? null : sheetCopy.fixedDayRate(formatPesos(fixedDayRate));
-                const summaryLabel = sheetCopy.daySummaryFor(formatLongDate(day.date));
+                const longDate = formatLongDate(day.date);
                 return (
                   <th
                     key={day.date}
@@ -76,10 +74,17 @@ export function SheetGrid(props: SheetGridProps) {
                     <Link
                       href={sheetPath({ ...params, date: day.date, employeeId: null, endPanel: false })}
                       scroll={false}
-                      aria-label={fixedDayRateLabel ? `${summaryLabel}. ${fixedDayRateLabel}` : summaryLabel}
+                      title={
+                        fixedDayRate === undefined ? undefined : sheetCopy.fixedDayRate(formatPesos(fixedDayRate))
+                      }
+                      aria-label={
+                        fixedDayRate === undefined
+                          ? sheetCopy.daySummaryFor(longDate)
+                          : sheetCopy.daySummaryWithFixedRate(longDate, formatPesos(fixedDayRate))
+                      }
                     >
-                      {fixedDayRateLabel && (
-                        <span className={styles.fixedDayRate} title={fixedDayRateLabel}>
+                      {fixedDayRate !== undefined && (
+                        <span className={styles.fixedDayRate}>
                           <FixedDayRateIcon />
                         </span>
                       )}

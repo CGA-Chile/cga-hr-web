@@ -2,6 +2,7 @@ import { loadAnomalousDates } from "@/sections/bonus/anomalousDates";
 import { dayRateOn } from "@/domain/bonus/dayRate";
 import { findSettingsInForce } from "@/domain/bonus/settingsInForce";
 import { findDuplicatedPositions } from "@/domain/bonus/duplicates";
+import type { IsoDate } from "@/domain/bonus/types";
 import { DailySummary } from "@/sections/bonus/DailySummary";
 import { DuplicateSummary } from "@/sections/bonus/DuplicateSummary";
 import { loadCalendar, loadDailyBonuses, loadSettingsVersions } from "@/sections/bonus/dailyBonuses";
@@ -107,7 +108,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
   const holidays = new Set([...calendar].filter(([, entry]) => entry.holiday).map(([day]) => day));
   const fixedDayRates = new Map(
     showAmounts
-      ? [...calendar].flatMap<[string, number]>(([day, entry]) =>
+      ? [...calendar].flatMap<[IsoDate, number]>(([day, entry]) =>
           entry.dayRate === null ? [] : [[day, entry.dayRate]],
         )
       : [],

@@ -1,8 +1,7 @@
 import type { BonusScheme, IsoDate } from "@/domain/bonus/types";
 import type { PeriodBonusSettlement } from "@/domain/periodBonus/types";
 import type { SettlementEntry } from "@/domain/settlement/types";
-import { fullName } from "@/sections/day/queries";
-import { aggregateReport, type CloseReport, type Person } from "@/sections/report/closeReport";
+import { aggregateReport, personOf, type CloseReport, type Person } from "@/sections/report/closeReport";
 import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
 import type { LoadedClosePlan } from "./closePlan";
 import { loadPeriods, type Period } from "./queries";
@@ -24,6 +23,7 @@ export type PreviewNames = {
  * What closing `periodId` now would pay, in the shape of the report the close will leave behind,
  * so the preview and the report read the same. Carry-over is whatever the plan settles from
  * outside the period: earlier dates, and period bonuses whose origin is an earlier period.
+ * Someone the close settles only at zero, like a late day, has nothing to show and is left out.
  */
 export function closePreview(input: ClosePreviewInput, periodId: string, names: PreviewNames): CloseReport {
   const daily = input.toSettle.map((entry) => ({
@@ -47,7 +47,8 @@ export function closePreview(input: ClosePreviewInput, periodId: string, names: 
     reprimanded: settlement.reprimanded,
     amount: settlement.amount,
   }));
-  return aggregateReport(daily, periodBonus);
+  const report = aggregateReport(daily, periodBonus);
+  return { ...report, rows: report.rows.filter((row) => row.total > 0) };
 }
 
 /** The preview of an open period, with the names of the people and periods its plan names. */
@@ -66,13 +67,11 @@ export async function loadClosePreview(
       : Promise.resolve({ data: [], error: null }),
     loadPeriods(supabase),
   ]);
-  const people = new Map(
-    orThrow(employees).map((employee) => [employee.id, { name: fullName(employee), nationalId: employee.national_id }]),
-  );
+  const people = new Map(orThrow(employees).map((employee) => [employee.id, personOf(employee)]));
   const periodNames = new Map(periods.map((each) => [each.id, each.name]));
 
   return closePreview({ toSettle, periodBonusSettlements, schemes: loaded.schemes }, period.id, {
-    person: (employeeId) => people.get(employeeId) ?? { name: "", nationalId: null },
+    person: (employeeId) => people.get(employeeId) ?? personOf(null),
     position: positionName,
     period: (periodId) => periodNames.get(periodId) ?? "",
   });

@@ -1,6 +1,6 @@
 import type { BonusScheme, IsoDate } from "@/domain/bonus/types";
 import { planPeriodBonusClose } from "@/domain/periodBonus/planPeriodBonusClose";
-import type { PeriodBonusClosePlan, PeriodBonusKind } from "@/domain/periodBonus/types";
+import type { PeriodBonusClosePlan } from "@/domain/periodBonus/types";
 import { planClose } from "@/domain/settlement/planClose";
 import type { ClosePlan, SettlementDay } from "@/domain/settlement/types";
 import {
@@ -27,8 +27,6 @@ export type LoadedClosePlan = {
   periodBonuses: PeriodBonusClosePlan;
   /** The scheme each date with something to settle was calculated under. */
   schemes: ReadonlyMap<IsoDate, BonusScheme>;
-  /** Totals of `periodBonuses` per bonus: the period's own days, and carry-over. */
-  periodBonusTotals: Record<PeriodBonusKind, { period: number; carryOver: number }>;
   canClose: boolean;
 };
 
@@ -100,22 +98,8 @@ export async function loadClosePlan(supabase: ServerSupabase, period: Period): P
     settlements,
     periodBonuses,
     schemes: new Map(days.map((day) => [day.date, day.calculation.scheme])),
-    periodBonusTotals: totalsOf(periodBonuses, period.id),
     canClose: plan.canClose && unpricedDates.length === 0,
   };
-}
-
-/** The total a close pays, daily and period bonuses together. */
-export function grandTotal(loaded: LoadedClosePlan): number {
-  const { PRODUCTION, COMPLIANCE } = loaded.periodBonusTotals;
-  return (
-    loaded.plan.periodTotal +
-    loaded.plan.carryOverTotal +
-    PRODUCTION.period +
-    PRODUCTION.carryOver +
-    COMPLIANCE.period +
-    COMPLIANCE.carryOver
-  );
 }
 
 /** close_period's p_period_bonuses, in the database's column names. */
@@ -143,13 +127,4 @@ export function periodBonusArgument(plan: PeriodBonusClosePlan): Json {
       bonus: stamp.bonus,
     })),
   };
-}
-
-function totalsOf(plan: PeriodBonusClosePlan, periodId: string): LoadedClosePlan["periodBonusTotals"] {
-  const totals = { PRODUCTION: { period: 0, carryOver: 0 }, COMPLIANCE: { period: 0, carryOver: 0 } };
-  for (const row of plan.settlements) {
-    if (row.originPeriodId === periodId) totals[row.bonus].period += row.amount;
-    else totals[row.bonus].carryOver += row.amount;
-  }
-  return totals;
 }

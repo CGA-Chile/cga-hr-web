@@ -126,7 +126,7 @@ function zero(): BonusAmounts {
   return { carding: 0, dayRate: 0, production: 0, compliance: 0 };
 }
 
-function personOf(employee: { first_name: string; last_name: string; national_id: string | null } | null): Person {
+export function personOf(employee: { first_name: string; last_name: string; national_id: string | null } | null): Person {
   return { name: employee ? fullName(employee) : "", nationalId: employee?.national_id ?? null };
 }
 

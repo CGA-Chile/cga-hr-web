@@ -4,7 +4,7 @@ import { Drawer } from "@/components/Drawer";
 import { periodsCopy } from "@/copy/periods";
 import { loadPositions } from "@/sections/day/queries";
 import { CloseButton } from "@/sections/periods/CloseButton";
-import { grandTotal, loadClosePlan } from "@/sections/periods/closePlan";
+import { loadClosePlan } from "@/sections/periods/closePlan";
 import { loadClosePreview } from "@/sections/periods/closePreview";
 import { ClosePlanView } from "@/sections/periods/ClosePlanView";
 import { loadPeriod, loadUsername } from "@/sections/periods/queries";
@@ -72,7 +72,7 @@ export default async function PeriodPage({ params, searchParams }: PeriodPagePro
                 <p>{periodsCopy.ready}</p>
                 <CloseButton
                   periodId={period.id}
-                  total={formatPesos(grandTotal(loaded))}
+                  total={formatPesos(preview.total)}
                 />
               </>
             ) : null

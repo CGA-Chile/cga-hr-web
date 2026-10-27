@@ -46,6 +46,20 @@ describe("the close preview", () => {
     expect(report.total).toBe(62_500);
   });
 
+  it("leaves out whoever the close settles only at zero", () => {
+    const report = closePreview(
+      {
+        toSettle: [entry({}), entry({ employeeId: "bruno", amount: 0 })],
+        periodBonusSettlements: [periodBonus({ employeeId: "bruno", amount: 0 })],
+        schemes: new Map([["2026-10-05", "POSITION_RATE"]]),
+      },
+      OCTOBER,
+      names,
+    );
+
+    expect(report.rows.map((row) => row.name)).toEqual(["Ana Fuentes"]);
+  });
+
   it("marks carry-over within the column of the bonus it belongs to", () => {
     const report = closePreview(
       {

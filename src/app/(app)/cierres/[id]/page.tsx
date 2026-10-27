@@ -4,11 +4,13 @@ import { Drawer } from "@/components/Drawer";
 import { periodsCopy } from "@/copy/periods";
 import { loadPositions } from "@/sections/day/queries";
 import { CloseButton } from "@/sections/periods/CloseButton";
-import { grandTotal, loadClosePlan } from "@/sections/periods/closePlan";
+import { loadClosePlan } from "@/sections/periods/closePlan";
+import { loadClosePreview } from "@/sections/periods/closePreview";
 import { ClosePlanView } from "@/sections/periods/ClosePlanView";
 import { loadPeriod, loadUsername } from "@/sections/periods/queries";
 import styles from "@/sections/periods/Periods.module.css";
 import { ValidateExcessForm } from "@/sections/periods/ValidateExcessForm";
+import { sheetPath } from "@/sections/sheet/paths";
 import { formatDateTimeInChile, formatLongDate } from "@/utils/chileDate";
 import { formatPesos } from "@/utils/money";
 import { requireAmounts } from "@/utils/supabase/currentProfile";
@@ -32,7 +34,9 @@ export default async function PeriodPage({ params, searchParams }: PeriodPagePro
 
   const isAdmin = profile.role === "admin";
   const names = new Map(positions.map((position) => [position.id, position.name]));
+  const positionName = (positionId: string) => names.get(positionId) ?? "";
   const loaded = period.status === "OPEN" ? await loadClosePlan(supabase, period) : null;
+  const preview = loaded ? await loadClosePreview(supabase, period, loaded, positionName) : null;
   const closedBy = period.closed_by ? await loadUsername(supabase, period.closed_by) : null;
   const excessToValidate = isAdmin
     ? loaded?.plan.excessesRequiringValidation.find((excess) => excess.date === validar && !excess.validated)
@@ -45,10 +49,12 @@ export default async function PeriodPage({ params, searchParams }: PeriodPagePro
       <p className={styles.intro}>
         {periodsCopy.range(formatLongDate(period.start_date), formatLongDate(period.end_date))}
       </p>
-      {loaded ? (
+      {loaded && preview ? (
         <ClosePlanView
           loaded={loaded}
-          positionName={(positionId) => names.get(positionId) ?? ""}
+          preview={preview}
+          personHref={(employeeId) => sheetPath({ start: period.start_date, person: employeeId })}
+          positionName={positionName}
           excessControl={(date) =>
             isAdmin ? (
               <Link href={`${pagePath}?validar=${date}`} scroll={false}>
@@ -66,7 +72,7 @@ export default async function PeriodPage({ params, searchParams }: PeriodPagePro
                 <p>{periodsCopy.ready}</p>
                 <CloseButton
                   periodId={period.id}
-                  total={formatPesos(grandTotal(loaded))}
+                  total={formatPesos(preview.total)}
                 />
               </>
             ) : null

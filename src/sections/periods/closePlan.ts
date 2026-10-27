@@ -1,6 +1,6 @@
-import type { IsoDate } from "@/domain/bonus/types";
+import type { BonusScheme, IsoDate } from "@/domain/bonus/types";
 import { planPeriodBonusClose } from "@/domain/periodBonus/planPeriodBonusClose";
-import type { PeriodBonusClosePlan, PeriodBonusKind } from "@/domain/periodBonus/types";
+import type { PeriodBonusClosePlan } from "@/domain/periodBonus/types";
 import { planClose } from "@/domain/settlement/planClose";
 import type { ClosePlan, SettlementDay } from "@/domain/settlement/types";
 import {
@@ -25,8 +25,8 @@ export type LoadedClosePlan = {
   settlements: Settlement[];
   /** The production and compliance bonuses this close settles, its own and carried over. */
   periodBonuses: PeriodBonusClosePlan;
-  /** Totals of `periodBonuses` per bonus: the period's own days, and carry-over. */
-  periodBonusTotals: Record<PeriodBonusKind, { period: number; carryOver: number }>;
+  /** The scheme each date with something to settle was calculated under. */
+  schemes: ReadonlyMap<IsoDate, BonusScheme>;
   canClose: boolean;
 };
 
@@ -97,22 +97,9 @@ export async function loadClosePlan(supabase: ServerSupabase, period: Period): P
     unpricedDates,
     settlements,
     periodBonuses,
-    periodBonusTotals: totalsOf(periodBonuses, period.id),
+    schemes: new Map(days.map((day) => [day.date, day.calculation.scheme])),
     canClose: plan.canClose && unpricedDates.length === 0,
   };
-}
-
-/** The total a close pays, daily and period bonuses together. */
-export function grandTotal(loaded: LoadedClosePlan): number {
-  const { PRODUCTION, COMPLIANCE } = loaded.periodBonusTotals;
-  return (
-    loaded.plan.periodTotal +
-    loaded.plan.carryOverTotal +
-    PRODUCTION.period +
-    PRODUCTION.carryOver +
-    COMPLIANCE.period +
-    COMPLIANCE.carryOver
-  );
 }
 
 /** close_period's p_period_bonuses, in the database's column names. */
@@ -140,13 +127,4 @@ export function periodBonusArgument(plan: PeriodBonusClosePlan): Json {
       bonus: stamp.bonus,
     })),
   };
-}
-
-function totalsOf(plan: PeriodBonusClosePlan, periodId: string): LoadedClosePlan["periodBonusTotals"] {
-  const totals = { PRODUCTION: { period: 0, carryOver: 0 }, COMPLIANCE: { period: 0, carryOver: 0 } };
-  for (const row of plan.settlements) {
-    if (row.originPeriodId === periodId) totals[row.bonus].period += row.amount;
-    else totals[row.bonus].carryOver += row.amount;
-  }
-  return totals;
 }

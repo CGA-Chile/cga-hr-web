@@ -51,7 +51,7 @@ export type CloseReport = {
   total: number;
 };
 
-type Person = { name: string; nationalId: string | null };
+export type Person = { name: string; nationalId: string | null };
 export type DailyEntry = ReportLine & { employeeId: string; person: Person };
 export type PeriodBonusEntry = PeriodBonusLine & { employeeId: string; person: Person };
 

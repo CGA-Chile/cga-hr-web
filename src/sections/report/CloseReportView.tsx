@@ -1,17 +1,27 @@
+import Link from "next/link";
 import { reportCopy } from "@/copy/report";
 import { formatNumericDate } from "@/utils/chileDate";
 import { formatPesos } from "@/utils/money";
-import { REPORT_BONUSES, type CloseReport, type ReportRow } from "./closeReport";
+import { REPORT_BONUSES, type BonusAmounts, type CloseReport, type ReportRow } from "./closeReport";
 import styles from "./CloseReportView.module.css";
 
 export type ReportView = "summary" | "detail";
+
+type CloseReportViewProps = {
+  report: CloseReport;
+  view: ReportView;
+  /** Where each person's name leads, when it leads anywhere. */
+  personHref?: (employeeId: string) => string;
+  /** Shows, under each amount, the part of it that is carry-over. */
+  showCarryOver?: boolean;
+};
 
 /**
  * One row per person and one column per bonus. The summary is exactly what the download holds,
  * for accounting; the detail opens each person to the days and counts behind every amount, so HR
  * can explain any of them.
  */
-export function CloseReportView({ report, view }: { report: CloseReport; view: ReportView }) {
+export function CloseReportView({ report, view, personHref, showCarryOver = false }: CloseReportViewProps) {
   const { columns } = reportCopy;
   if (report.rows.length === 0) return <p className={styles.muted}>{reportCopy.empty}</p>;
 
@@ -32,13 +42,13 @@ export function CloseReportView({ report, view }: { report: CloseReport; view: R
         view === "detail" ? (
           <details key={row.employeeId} className={styles.person}>
             <summary className={styles.row} role="row">
-              <AmountCells row={row} expandable />
+              <AmountCells row={row} showCarryOver={showCarryOver} expandable />
             </summary>
             <PersonDetail row={row} />
           </details>
         ) : (
           <div key={row.employeeId} className={styles.row} role="row">
-            <AmountCells row={row} />
+            <AmountCells row={row} personHref={personHref} showCarryOver={showCarryOver} />
           </div>
         ),
       )}
@@ -49,6 +59,7 @@ export function CloseReportView({ report, view }: { report: CloseReport; view: R
         {REPORT_BONUSES.map((bonus) => (
           <span key={bonus} role="cell" className={styles.number}>
             {formatPesos(report.amounts[bonus])}
+            {showCarryOver && <CarryOver amount={carryOverOf(report.rows, bonus)} />}
           </span>
         ))}
         <span role="cell" className={styles.number}>{formatPesos(report.total)}</span>
@@ -57,19 +68,36 @@ export function CloseReportView({ report, view }: { report: CloseReport; view: R
   );
 }
 
-function AmountCells({ row, expandable = false }: { row: ReportRow; expandable?: boolean }) {
+type AmountCellsProps = Pick<CloseReportViewProps, "personHref" | "showCarryOver"> & {
+  row: ReportRow;
+  expandable?: boolean;
+};
+
+function AmountCells({ row, personHref, showCarryOver, expandable = false }: AmountCellsProps) {
   return (
     <>
-      <span role="cell" className={expandable ? styles.name : undefined}>{row.name}</span>
+      <span role="cell" className={expandable ? styles.name : undefined}>
+        {personHref ? <Link href={personHref(row.employeeId)}>{row.name}</Link> : row.name}
+      </span>
       <span role="cell">{row.nationalId ?? "—"}</span>
       {REPORT_BONUSES.map((bonus) => (
         <span key={bonus} role="cell" className={styles.number}>
           {formatPesos(row.amounts[bonus])}
+          {showCarryOver && <CarryOver amount={row.carryOver[bonus]} />}
         </span>
       ))}
       <span role="cell" className={`${styles.number} ${styles.strong}`}>{formatPesos(row.total)}</span>
     </>
   );
+}
+
+function CarryOver({ amount }: { amount: number }) {
+  if (amount === 0) return null;
+  return <span className={styles.carryOverHint}>{reportCopy.includesCarryOver(formatPesos(amount))}</span>;
+}
+
+function carryOverOf(rows: readonly ReportRow[], bonus: keyof BonusAmounts): number {
+  return rows.reduce((sum, row) => sum + row.carryOver[bonus], 0);
 }
 
 function PersonDetail({ row }: { row: ReportRow }) {

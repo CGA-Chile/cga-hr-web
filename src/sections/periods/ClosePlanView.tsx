@@ -5,11 +5,16 @@ import { describeAnomaly } from "@/sections/bonus/anomalyText";
 import { dayPath } from "@/sections/day/paths";
 import { formatLongDate } from "@/utils/chileDate";
 import { formatPesos } from "@/utils/money";
-import { grandTotal, type LoadedClosePlan } from "./closePlan";
+import { CloseReportView } from "@/sections/report/CloseReportView";
+import type { CloseReport } from "@/sections/report/closeReport";
+import type { LoadedClosePlan } from "./closePlan";
 import styles from "./ClosePlanView.module.css";
 
 type ClosePlanViewProps = {
   loaded: LoadedClosePlan;
+  /** What closing now would pay, per person and per bonus. */
+  preview: CloseReport;
+  personHref: (employeeId: string) => string;
   positionName: (id: string) => string;
   /** The close control, or the reason there is none. Only shown when the gate is clear. */
   closeControl: ReactNode;
@@ -18,38 +23,31 @@ type ClosePlanViewProps = {
 };
 
 /**
- * What closing would pay, split into period and carry-over, and what stands in the way. The gate
+ * What closing would pay, per person and per bonus, and what stands in the way. The amounts are
+ * shown even while the gate is shut: they are what closing would pay once the dates are fixed. The gate
  * names each blocking date and links to it; it never corrects anything itself.
  */
-export function ClosePlanView({ loaded, positionName, closeControl, excessControl }: ClosePlanViewProps) {
-  const { plan, unpricedDates, periodBonuses, periodBonusTotals } = loaded;
+export function ClosePlanView({
+  loaded,
+  preview,
+  personHref,
+  positionName,
+  closeControl,
+  excessControl,
+}: ClosePlanViewProps) {
+  const { plan, unpricedDates } = loaded;
   const blockingCount = plan.blockingDates.length + unpricedDates.length;
 
   return (
     <>
-      <dl className={styles.totals}>
-        <div>
-          <dt>{periodsCopy.periodDays}</dt>
-          <dd>{formatPesos(plan.periodTotal)}</dd>
-        </div>
-        <div>
-          <dt>{periodsCopy.carryOver}</dt>
-          <dd>{formatPesos(plan.carryOverTotal)}</dd>
-          <p className={styles.hint}>{periodsCopy.carryOverHint}</p>
-        </div>
-        {periodBonuses.settlements.length > 0 && (
-          <>
-            <PeriodBonusTotal label={periodsCopy.production} totals={periodBonusTotals.PRODUCTION} />
-            <PeriodBonusTotal label={periodsCopy.compliance} totals={periodBonusTotals.COMPLIANCE} />
-          </>
-        )}
-        <div className={styles.grandTotal}>
-          <dt>{periodsCopy.total}</dt>
-          <dd>{formatPesos(grandTotal(loaded))}</dd>
-        </div>
-      </dl>
-
-      {plan.toSettle.length === 0 && periodBonuses.settlements.length === 0 && <p className={styles.hint}>{periodsCopy.nothingToSettle}</p>}
+      {preview.rows.length === 0 ? (
+        <p className={styles.hint}>{periodsCopy.nothingToSettle}</p>
+      ) : (
+        <section className={styles.preview}>
+          {blockingCount > 0 && <p className={styles.hint}>{periodsCopy.amountsMayChange}</p>}
+          <CloseReportView report={preview} view="summary" personHref={personHref} showCarryOver />
+        </section>
+      )}
 
       {blockingCount > 0 && (
         <section className={styles.gate}>
@@ -102,16 +100,6 @@ export function ClosePlanView({ loaded, positionName, closeControl, excessContro
 
       {blockingCount === 0 && <div className={styles.close}>{closeControl}</div>}
     </>
-  );
-}
-
-function PeriodBonusTotal({ label, totals }: { label: string; totals: { period: number; carryOver: number } }) {
-  return (
-    <div>
-      <dt>{label}</dt>
-      <dd>{formatPesos(totals.period + totals.carryOver)}</dd>
-      {totals.carryOver > 0 && <p className={styles.hint}>{periodsCopy.includesCarryOver(formatPesos(totals.carryOver))}</p>}
-    </div>
   );
 }
 

@@ -1,4 +1,4 @@
-import type { IsoDate } from "@/domain/bonus/types";
+import type { BonusScheme, IsoDate } from "@/domain/bonus/types";
 import { planPeriodBonusClose } from "@/domain/periodBonus/planPeriodBonusClose";
 import type { PeriodBonusClosePlan, PeriodBonusKind } from "@/domain/periodBonus/types";
 import { planClose } from "@/domain/settlement/planClose";
@@ -25,6 +25,8 @@ export type LoadedClosePlan = {
   settlements: Settlement[];
   /** The production and compliance bonuses this close settles, its own and carried over. */
   periodBonuses: PeriodBonusClosePlan;
+  /** The scheme each date with something to settle was calculated under. */
+  schemes: ReadonlyMap<IsoDate, BonusScheme>;
   /** Totals of `periodBonuses` per bonus: the period's own days, and carry-over. */
   periodBonusTotals: Record<PeriodBonusKind, { period: number; carryOver: number }>;
   canClose: boolean;
@@ -97,6 +99,7 @@ export async function loadClosePlan(supabase: ServerSupabase, period: Period): P
     unpricedDates,
     settlements,
     periodBonuses,
+    schemes: new Map(days.map((day) => [day.date, day.calculation.scheme])),
     periodBonusTotals: totalsOf(periodBonuses, period.id),
     canClose: plan.canClose && unpricedDates.length === 0,
   };

@@ -7,6 +7,7 @@ const WITH_DAY_RATES: BonusSettings = {
   dailyCap: 15_000,
   maxAmountPerPerson: 4_000,
   positionRates: new Map(),
+  taskRates: new Map(),
   dayRates: { saturday: 10_000, sunday: 11_000, holiday: 12_000 },
 };
 const BEFORE_DAY_RATES: BonusSettings = { ...WITH_DAY_RATES, dayRates: null };

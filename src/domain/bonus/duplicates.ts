@@ -1,12 +1,12 @@
-import { workedFullDay } from "./fullDay";
+import { earnsDailyBonus } from "./fullDay";
 import type { BonusAssignment, BonusPosition } from "./types";
 
 export type DuplicatedPosition = { positionId: string; occupantCount: number };
 
 /**
  * Rate-bearing positions held by more than one person on a date. Scheme triggers and positions off
- * the line legitimately hold several people, and an incomplete day is not an occupant. Needs no
- * settings, so it serves the roles that never see an amount.
+ * the line legitimately hold several people, and neither an incomplete day nor a day on a bonus
+ * task is an occupant. Needs no settings, so it serves the roles that never see an amount.
  */
 export function findDuplicatedPositions(
   assignments: readonly BonusAssignment[],
@@ -16,7 +16,7 @@ export function findDuplicatedPositions(
   const occupantsByPosition = new Map<string, number>();
   for (const assignment of assignments) {
     const position = positionsById.get(assignment.positionId);
-    if (!position?.bonusEligible || position.triggersEqualShare || !workedFullDay(assignment)) continue;
+    if (!position?.bonusEligible || position.triggersEqualShare || !earnsDailyBonus(assignment)) continue;
     occupantsByPosition.set(assignment.positionId, (occupantsByPosition.get(assignment.positionId) ?? 0) + 1);
   }
   return [...occupantsByPosition]

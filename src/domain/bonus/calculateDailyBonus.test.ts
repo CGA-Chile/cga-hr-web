@@ -34,6 +34,7 @@ const SETTINGS: BonusSettings = {
   dailyCap: 15_000,
   maxAmountPerPerson: 2_500,
   dayRates: null,
+  taskRates: new Map([["unloading", 3_000]]),
   positionRates: new Map([
     [RIETER.id, 4_000],
     [ACM.id, 4_000],
@@ -45,7 +46,7 @@ const SETTINGS: BonusSettings = {
 let nextEmployee = 0;
 function assign(position: BonusPosition): BonusAssignment {
   nextEmployee += 1;
-  return { employeeId: `employee-${nextEmployee}`, positionId: position.id, late: false, leftEarly: false };
+  return { employeeId: `employee-${nextEmployee}`, positionId: position.id, late: false, leftEarly: false, bonusTaskId: null };
 }
 
 function calculate(assignments: BonusAssignment[], settings: BonusSettings = SETTINGS) {
@@ -329,7 +330,7 @@ describe("a late arrival is on the sheet but not on the line", () => {
     const person = late(RIETER);
 
     expect(calculate([person]).perEmployee).toEqual([
-      { employeeId: person.employeeId, positionId: RIETER.id, amount: 0, late: true, leftEarly: false },
+      { employeeId: person.employeeId, positionId: RIETER.id, amount: 0, late: true, leftEarly: false, bonusTaskId: null },
     ]);
   });
 
@@ -405,7 +406,96 @@ describe("leaving early is an incomplete day, paid like a late arrival", () => {
     const person = { ...leftEarly(RIETER), late: true };
 
     expect(calculate([person]).perEmployee).toEqual([
-      { employeeId: person.employeeId, positionId: RIETER.id, amount: 0, late: true, leftEarly: true },
+      { employeeId: person.employeeId, positionId: RIETER.id, amount: 0, late: true, leftEarly: true, bonusTaskId: null },
     ]);
+  });
+});
+
+describe("a bonus task is the person's only bonus that day", () => {
+  const UNLOADING = "unloading";
+  const onTask = (position: BonusPosition): BonusAssignment => ({ ...assign(position), bonusTaskId: UNLOADING });
+
+  it("case 26 — under POSITION_RATE the line pays them nothing, the rate is not passed on, and the task pays its amount", () => {
+    const person = onTask(RIETER);
+    const result = calculate([person, assign(ACM)]);
+
+    expect(amounts(result)).toEqual([0, 4_000]);
+    expect(result.total).toBe(4_000);
+    expect(result.taskBonuses).toEqual([
+      { employeeId: person.employeeId, positionId: RIETER.id, bonusTaskId: UNLOADING, amount: 3_000 },
+    ]);
+  });
+
+  it("case 27 — under EQUAL_SHARE they do not count toward n", () => {
+    const result = calculate([
+      onTask(RIETER),
+      assign(ACM),
+      assign(ENCAJADOR_ACM),
+      assign(ALIMENTADOR_RIETER),
+      assign(PACKING_ACM),
+      assign(PACKING_ACM),
+      assign(PACKING_ACM),
+    ]);
+
+    expect(amounts(result)).toEqual([0, 2_500, 2_500, 2_500, 2_500, 2_500, 2_500]);
+    expect(result.taskBonuses.map((task) => task.amount)).toEqual([3_000]);
+  });
+
+  it("case 28 — they are not an occupant: whoever covered the position is paid without a duplicate mark", () => {
+    const result = calculate([onTask(RIETER), assign(RIETER)]);
+
+    expect(amounts(result)).toEqual([0, 4_000]);
+    expect(result.anomalies).toEqual([]);
+  });
+
+  it("case 29 — on a day-rate date they earn the task, not the day rate", () => {
+    const result = calculateDailyBonus({
+      assignments: [onTask(BODEGA), assign(BODEGA)],
+      positions: POSITIONS,
+      settings: SETTINGS,
+      dayRate: 10_000,
+    });
+
+    expect(amounts(result)).toEqual([0, 10_000]);
+    expect(result.total).toBe(10_000);
+    expect(result.taskBonuses.map((task) => task.amount)).toEqual([3_000]);
+  });
+
+  it("case 30 — arriving late or leaving early does not take the task away", () => {
+    const person = { ...onTask(RIETER), late: true, leftEarly: true };
+
+    expect(calculate([person]).taskBonuses.map((task) => task.amount)).toEqual([3_000]);
+  });
+
+  it("case 31 — pays off the line too, outside the line's total and the daily cap", () => {
+    const result = calculate([
+      assign(RIETER),
+      assign(ACM),
+      assign(ENCAJADOR_ACM),
+      assign(ALIMENTADOR_RIETER),
+      onTask(BODEGA),
+    ]);
+
+    expect(result.total).toBe(15_000);
+    expect(result.anomalies).toEqual([]);
+    expect(result.taskBonuses.map((task) => task.amount)).toEqual([3_000]);
+  });
+
+  it("is listed on the line with its task, so the close settles the line at zero and the summary says why", () => {
+    const person = onTask(RIETER);
+
+    expect(calculate([person]).perEmployee).toEqual([
+      { employeeId: person.employeeId, positionId: RIETER.id, amount: 0, late: false, leftEarly: false, bonusTaskId: UNLOADING },
+    ]);
+  });
+
+  it("pays nothing on an absence", () => {
+    expect(calculate([onTask(LICENCIA)]).taskBonuses).toEqual([]);
+  });
+
+  it("refuses a task with no amount in force rather than paying it zero", () => {
+    const noTaskRates: BonusSettings = { ...SETTINGS, taskRates: new Map() };
+
+    expect(() => calculate([onTask(BODEGA)], noTaskRates)).toThrow(/No rate in force for bonus task/);
   });
 });

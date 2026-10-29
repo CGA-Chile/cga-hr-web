@@ -6,10 +6,10 @@ import { fetchAllRows, orThrow, type BrowserSupabase, type ServerSupabase } from
 type Tables = Database["public"]["Tables"];
 export type Employee = Pick<Tables["employees"]["Row"], "id" | "first_name" | "last_name" | "national_id" | "active">;
 export type Position = Pick<Tables["positions"]["Row"], "id" | "code" | "name" | "abbreviation" | "bonus_eligible" | "triggers_equal_share" | "type" | "display_order" | "active">;
-export type Assignment = Pick<Tables["assignments"]["Row"], "id" | "date" | "employee_id" | "position_id" | "note" | "settled_in_period_id" | "late" | "late_notified" | "left_early">;
+export type Assignment = Pick<Tables["assignments"]["Row"], "id" | "date" | "employee_id" | "position_id" | "note" | "settled_in_period_id" | "late" | "late_notified" | "left_early" | "bonus_task_id">;
 
 const EMPLOYEE_COLUMNS = "id, first_name, last_name, national_id, active";
-const ASSIGNMENT_COLUMNS = "id, date, employee_id, position_id, note, settled_in_period_id, late, late_notified, left_early";
+const ASSIGNMENT_COLUMNS = "id, date, employee_id, position_id, note, settled_in_period_id, late, late_notified, left_early, bonus_task_id";
 
 export type DayRow = { employee: Employee; assignment: Assignment | null };
 

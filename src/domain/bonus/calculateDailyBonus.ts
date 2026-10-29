@@ -7,9 +7,11 @@ import type {
   DailyBonusInput,
   DailyBonusResult,
   EmployeeBonus,
+  TaskBonus,
 } from "./types";
 import { findDuplicatedPositions } from "./duplicates";
-import { workedFullDay } from "./fullDay";
+import { earnsDailyBonus } from "./fullDay";
+import { taskRate } from "./taskRate";
 
 type ResolvedAssignment = BonusAssignment & { position: BonusPosition };
 
@@ -21,12 +23,16 @@ type ResolvedAssignment = BonusAssignment & { position: BonusPosition };
  * carding line is paid, and the daily cap appears only in the EQUAL_SHARE formula: a
  * POSITION_RATE total above it is returned as is and reported as an anomaly; enforcing the cap is
  * the close gate's job.
+ *
+ * A bonus task replaces both for that person: the line and the day rate treat them as an
+ * incomplete day, and the task pays its own amount, outside the line's total and the cap.
  */
 export function calculateDailyBonus(input: DailyBonusInput): DailyBonusResult {
   const resolved = resolvePositions(input);
   const eligible = resolved.filter((assignment) => assignment.position.bonusEligible);
-  const onLine = eligible.filter(workedFullDay);
-  if (input.dayRate !== null) return payDayRate(input, resolved, input.dayRate);
+  const onLine = eligible.filter(earnsDailyBonus);
+  const taskBonuses = payTasks(resolved, input.settings);
+  if (input.dayRate !== null) return { ...payDayRate(input, resolved, input.dayRate), taskBonuses };
 
   const scheme = deriveScheme(onLine);
   const equalShare = equalShareAmount(input.settings, onLine.length);
@@ -43,11 +49,16 @@ export function calculateDailyBonus(input: DailyBonusInput): DailyBonusResult {
       ...findDuplicateOccupancy(input, scheme),
       ...findAboveDailyCap(total, input.settings),
     ],
+    taskBonuses,
   };
 }
 
 /** The daily cap does not apply: the day rate is a fixed amount per person, not a shared pot. */
-function payDayRate(input: DailyBonusInput, resolved: readonly ResolvedAssignment[], dayRate: number): DailyBonusResult {
+function payDayRate(
+  input: DailyBonusInput,
+  resolved: readonly ResolvedAssignment[],
+  dayRate: number,
+): Omit<DailyBonusResult, "taskBonuses"> {
   const perEmployee = resolved
     .filter((assignment) => !assignment.position.absence)
     .map((assignment) => toBonus(assignment, dayRate));
@@ -59,14 +70,24 @@ function payDayRate(input: DailyBonusInput, resolved: readonly ResolvedAssignmen
   };
 }
 
-/** An incomplete day is listed at zero whatever the scheme would pay. */
+/** Late and early marks do not take a task away: the work was done. An absence cannot hold one. */
+function payTasks(resolved: readonly ResolvedAssignment[], settings: BonusSettings): TaskBonus[] {
+  return resolved.flatMap(({ employeeId, positionId, bonusTaskId, position }) =>
+    bonusTaskId !== null && !position.absence
+      ? [{ employeeId, positionId, bonusTaskId, amount: taskRate(settings, bonusTaskId) }]
+      : [],
+  );
+}
+
+/** An incomplete day, or a day on a bonus task, is listed at zero whatever the scheme would pay. */
 function toBonus(assignment: ResolvedAssignment, amount: number): EmployeeBonus {
   return {
     employeeId: assignment.employeeId,
     positionId: assignment.positionId,
-    amount: workedFullDay(assignment) ? amount : 0,
+    amount: earnsDailyBonus(assignment) ? amount : 0,
     late: assignment.late,
     leftEarly: assignment.leftEarly,
+    bonusTaskId: assignment.bonusTaskId,
   };
 }
 
@@ -93,7 +114,7 @@ function deriveScheme(eligible: readonly ResolvedAssignment[]): BonusScheme {
 
 /** A missing rate is a configuration gap; paying zero would hide it inside a plausible total. */
 function positionRate(assignment: ResolvedAssignment, settings: BonusSettings): number {
-  if (!workedFullDay(assignment)) return 0;
+  if (!earnsDailyBonus(assignment)) return 0;
   const rate = settings.positionRates.get(assignment.positionId);
   if (rate === undefined) {
     throw new Error(`No rate in force for rate-bearing position ${assignment.positionId}`);

@@ -12,6 +12,7 @@ const seat = (employeeId: string, position: BonusPosition, marks: { late?: boole
   positionId: position.id,
   late: marks.late ?? false,
   leftEarly: marks.leftEarly ?? false,
+  bonusTaskId: null,
 });
 
 describe("duplicated positions, found without any amount", () => {

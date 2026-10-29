@@ -62,3 +62,26 @@ export type ClosePlan = {
   excessesRequiringValidation: ExcessRequiringValidation[];
   canClose: boolean;
 };
+
+/**
+ * A bonus task no close has paid yet. `paidAmount` is what that person's date already settled on
+ * the line or the day rate, frozen before the task was marked.
+ */
+export type OwedTask = {
+  assignmentId: string;
+  date: IsoDate;
+  employeeId: string;
+  bonusTaskId: string;
+  paidAmount: number;
+};
+
+export type TaskSettlementEntry = Omit<OwedTask, "paidAmount"> & {
+  amount: number;
+  kind: SettlementKind;
+};
+
+export type TaskSettlementPlan = {
+  toSettle: TaskSettlementEntry[];
+  /** Dates with a task owed and no settings version to price it with. */
+  unpricedDates: IsoDate[];
+};

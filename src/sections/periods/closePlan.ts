@@ -2,7 +2,8 @@ import type { BonusScheme, IsoDate } from "@/domain/bonus/types";
 import { planPeriodBonusClose } from "@/domain/periodBonus/planPeriodBonusClose";
 import type { PeriodBonusClosePlan } from "@/domain/periodBonus/types";
 import { planClose } from "@/domain/settlement/planClose";
-import type { ClosePlan, SettlementDay } from "@/domain/settlement/types";
+import { planTaskSettlements } from "@/domain/settlement/planTaskSettlements";
+import type { ClosePlan, OwedTask, SettlementDay, TaskSettlementPlan } from "@/domain/settlement/types";
 import {
   calculateDates,
   loadBonusPositions,
@@ -13,7 +14,7 @@ import {
 } from "@/sections/bonus/dailyBonuses";
 import { loadPeriodBonusCloseInput } from "@/sections/bonus/periodBonuses";
 import type { Json } from "@/types/database";
-import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
+import { fetchAllRows, orThrow, type ServerSupabase } from "@/utils/supabase/query";
 import type { Period } from "./queries";
 
 export type Settlement = { assignment_id: string; position_id: string; amount: number };
@@ -26,6 +27,8 @@ export type LoadedClosePlan = {
   settlements: Settlement[];
   /** The production and compliance bonuses this close settles, its own and carried over. */
   periodBonuses: PeriodBonusClosePlan;
+  /** The bonus tasks this close settles, its own and carried over. */
+  taskSettlements: TaskSettlementPlan;
   /** The scheme each date with something to settle was calculated under. */
   schemes: ReadonlyMap<IsoDate, BonusScheme>;
   canClose: boolean;
@@ -38,12 +41,13 @@ export type LoadedClosePlan = {
  * pays: the line on an ordinary date, everyone who worked on a day-rate date.
  */
 export async function loadClosePlan(supabase: ServerSupabase, period: Period): Promise<LoadedClosePlan> {
-  const [dateSet, positions, versions, validations, periodBonusInput] = await Promise.all([
+  const [dateSet, positions, versions, validations, periodBonusInput, owedTasks] = await Promise.all([
     loadUnsettledDates(supabase, period.end_date),
     loadBonusPositions(supabase),
     loadSettingsVersions(supabase),
     supabase.from("cap_overrides").select("date, approved_amount").eq("period_id", period.id).is("deleted_at", null),
     loadPeriodBonusCloseInput(supabase, period),
+    loadOwedTasks(supabase, period.end_date),
   ]);
   const dates = [...dateSet].sort();
   const [inRange, calendar] = dates.length
@@ -69,7 +73,15 @@ export async function loadClosePlan(supabase: ServerSupabase, period: Period): P
         ]
       : [],
   );
-  const unpricedDates = calculated.filter((day) => !day.result).map((day) => day.date);
+  const taskSettlements = planTaskSettlements({
+    startDate: period.start_date,
+    endDate: period.end_date,
+    owed: owedTasks,
+    versions,
+  });
+  const unpricedDates = [
+    ...new Set([...calculated.filter((day) => !day.result).map((day) => day.date), ...taskSettlements.unpricedDates]),
+  ].sort();
 
   const plan = planClose({
     startDate: period.start_date,
@@ -92,9 +104,44 @@ export async function loadClosePlan(supabase: ServerSupabase, period: Period): P
     unpricedDates,
     settlements,
     periodBonuses,
+    taskSettlements,
     schemes: new Map(days.map((day) => [day.date, day.calculation.scheme])),
     canClose: plan.canClose && unpricedDates.length === 0,
   };
+}
+
+async function loadOwedTasks(supabase: ServerSupabase, endDate: IsoDate): Promise<OwedTask[]> {
+  const rows = await fetchAllRows((first, last) =>
+    supabase
+      .from("bonus_task_owed_days")
+      .select("assignment_id, date, employee_id, bonus_task_id, paid_amount")
+      .lte("date", endDate)
+      .order("assignment_id")
+      .order("bonus_task_id")
+      .range(first, last),
+  );
+  return rows.flatMap((row) =>
+    row.assignment_id && row.date && row.employee_id && row.bonus_task_id && row.paid_amount !== null
+      ? [
+          {
+            assignmentId: row.assignment_id,
+            date: row.date,
+            employeeId: row.employee_id,
+            bonusTaskId: row.bonus_task_id,
+            paidAmount: row.paid_amount,
+          },
+        ]
+      : [],
+  );
+}
+
+/** close_period's p_task_settlements, in the database's column names. */
+export function taskSettlementArgument(plan: TaskSettlementPlan): Json {
+  return plan.toSettle.map((entry) => ({
+    assignment_id: entry.assignmentId,
+    bonus_task_id: entry.bonusTaskId,
+    amount: entry.amount,
+  }));
 }
 
 /** close_period's p_period_bonuses, in the database's column names. */

@@ -49,8 +49,9 @@ a errores que hay que corregirle a los usuarios.
 Explícito para evitar deriva: el dominio invita a construir un módulo de RRHH completo, y no
 es lo que se está pidiendo.
 
-- Cualquier otro bono: camión, limpieza, turno noche. El monto del día de sábados, domingos y
-  feriados está dentro (sección 5), y los bonos de producción y cumplimiento también (sección 5b).
+- Cualquier otro bono: limpieza, turno noche. El monto del día de sábados, domingos y feriados
+  está dentro (sección 5), los bonos de producción y cumplimiento también (sección 5b), y la
+  descarga de camión entra como la primera tarea con bono (sección 5c).
 - Horas extras y control de horario. El atraso y la salida temprana sí están dentro, solo como
   marcas que quitan el bono del día (sección 5).
 - Integración con software de remuneraciones, ERP o cualquier sistema externo.
@@ -399,6 +400,58 @@ Valores de ejemplo: producción 21.000, cumplimiento 12.600, descuento 1.500, l�
 
 ---
 
+## 5c. Tareas con bono
+
+Una **tarea con bono** es una marca que se pone en la celda **encima del puesto**: la persona sigue
+en su puesto en la planilla, y además hizo la tarea. La primera es la descarga de camión de
+mercadería, que no ocurre todos los días y paga un monto fijo a cada persona que descargó. El
+catálogo es dato: el admin crea la tarea siguiente sin un deploy. Ver `docs/adr/0021`.
+
+### La tarea es el único bono del día
+
+- Quien tiene una tarea gana **solo** el monto de la tarea ese día, aunque sea menor que la tarifa
+  de su puesto. No gana tarifa de puesto, ni reparto igualitario, ni bono día no hábil.
+- Para la línea de cardas se trata igual que un día incompleto: no cobra, su tarifa no se reparte,
+  no cuenta para `n` y no cuenta como ocupante al buscar duplicados, así que quien lo cubrió cobra
+  sin marca.
+- El monto de la tarea no entra en el total de la línea ni en el tope diario.
+- El atraso y la salida temprana **no** quitan la tarea: el trabajo se hizo.
+- Una ausencia no puede tener tarea: al asignarla, la base de datos borra la tarea de la celda.
+- Como máximo **una tarea por celda**.
+- Los bonos del período no cambian: el día cuenta según el puesto de la celda.
+
+### Monto y vigencia
+
+Monto fijo por persona y por día, sin reparto. Vive en la vigencia de tarifas, en
+`bonus_task_rates`, y cada día usa el monto vigente en su fecha. Al crear una tarea, su monto se
+guarda en todas las vigencias: ninguna fecha la tiene todavía, así que no cambia nada ya pagado.
+Cambiar el monto después es crear una vigencia nueva.
+
+### Liquidación
+
+- El cierre liquida cada tarea una sola vez por persona y fecha, en `bonus_task_settlements`.
+- Una tarea marcada tarde en un período cerrado se arrastra al cierre siguiente.
+- Si el bono de cardas o el monto del día de esa fecha ya estaba congelado, se paga **el monto de la
+  tarea menos lo ya pagado ese día**, nunca menos de 0.
+- Cambiar la tarea de una fecha de un período cerrado aparece en la lista de revisión.
+
+### Casos de prueba obligatorios
+
+Con los valores de ejemplo de la sección 5 y una tarea de 3.000.
+
+| # | Escenario | Esperado |
+|---|---|---|
+| 26 | Tarea en RIETER bajo POSITION_RATE | 0 en la línea, la tarifa no se reparte, 3.000 por la tarea |
+| 27 | Tarea bajo EQUAL_SHARE | no cuenta para `n` |
+| 28 | Tarea en RIETER + otro en RIETER | el otro cobra, sin marca de duplicado |
+| 29 | Tarea en un día con monto del día | 3.000 por la tarea, no el monto del día |
+| 30 | Tarea con atraso y salida temprana | 3.000 por la tarea |
+| 31 | 4 puestos + tarea en BODEGA | total de la línea 15.000, sin marca de tope; 3.000 aparte |
+| 32 | Tarea marcada sobre un día que ya pagó 2.000 | arrastre de 1.000 |
+| 33 | Tarea marcada sobre un día que ya pagó 4.000 | arrastre de 0 |
+
+---
+
 ## 6. Modelo de datos
 
 PostgreSQL sobre Supabase. Nombres en inglés (ver `CLAUDE.md`). El proceso para introducir
@@ -500,6 +553,7 @@ late_notified          boolean null            -- con o sin aviso; nulo si no ha
 left_early             boolean not null default false
 production_settled_in_period_id  uuid fk periods null   -- el cierre que contó el día para producción
 compliance_settled_in_period_id  uuid fk periods null   -- ídem para cumplimiento
+bonus_task_id          uuid fk bonus_tasks null   -- tarea con bono (sección 5c); nula en una ausencia
 created_by             uuid fk auth.users
 updated_by             uuid fk auth.users
 
@@ -551,6 +605,27 @@ unique (bonus_settings_id, position_id)
 ```
 
 Un puesto bonificable puede no tener fila acá: ver `PACKING_ACM` en la sección 5.
+
+### bonus_tasks
+
+El catálogo de tareas con bono (sección 5c). Todos los miembros lo leen, porque el supervisor marca
+tareas; solo el admin lo escribe.
+
+```
+name     text not null        -- único entre las filas vivas; 'Descarga de camión'
+active   boolean not null default true
+```
+
+### bonus_task_rates
+
+```
+bonus_settings_id  uuid fk
+bonus_task_id      uuid fk
+amount             int not null
+unique (bonus_settings_id, bonus_task_id)
+```
+
+Como las tarifas de puesto, el supervisor no la lee.
 
 ### periods
 
@@ -617,6 +692,23 @@ days               int                  -- días que esta fila contó
 strikes            int                  -- incumplimientos congelados del período de origen
 reprimanded        boolean
 amount             int
+```
+
+### bonus_task_settlements
+
+Append-only, escrita solo por `close_period`. Una fila por persona y fecha, nunca dos: una tarea se
+paga una vez. `amount` es lo que pagó ese cierre, que en un arrastre sobre un día ya congelado es la
+diferencia con lo pagado y puede ser 0.
+
+```
+period_id       uuid fk periods      -- el cierre que la liquidó
+assignment_id   uuid fk assignments
+employee_id     uuid fk employees
+date            date
+bonus_task_id   uuid fk bonus_tasks
+amount          int
+
+unique (employee_id, date) where deleted_at is null
 ```
 
 ### cap_overrides
@@ -744,6 +836,14 @@ siguiente. Eso se modela con liquidación diferida:
   se paga aunque el período que cierra la tenga.
 - Editar una asignación contada solo para estos bonos sigue abierto para RRHH; solo la estampa del
   bono de cardas la restringe al admin. El cambio aparece en la lista de revisión.
+
+### Las tareas con bono al cerrar
+
+- Cerrar el período P escribe una fila en `bonus_task_settlements` por cada tarea no pagada con fecha
+  `<= P.end_date`, incluidas las de períodos anteriores.
+- La base de datos rechaza el cierre si el plan no trae exactamente las tareas que se deben.
+- El bono de cardas de quien tiene la tarea se liquida en 0, como el de un día incompleto, y eso
+  bloquea la fila para el admin igual que cualquier día liquidado.
 
 Editar una asignación ya liquidada queda restringido al rol `admin` vía RLS, y el cambio
 aparece en una lista de revisión para RRHH.

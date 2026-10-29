@@ -58,9 +58,9 @@ describe("assigning one position to a range of dates", () => {
 
     expect((await storedDays(employeeId)).map((day) => day.position_id)).toEqual([leave, leave, leave]);
     expect(previous).toEqual([
-      { changed_date: dates[0], previous_position_id: acm, previous_note: "Turno fijo", previous_late: false, previous_late_notified: null, previous_left_early: false },
-      { changed_date: dates[1], previous_position_id: acm, previous_note: null, previous_late: false, previous_late_notified: null, previous_left_early: false },
-      { changed_date: dates[2], previous_position_id: null, previous_note: null, previous_late: null, previous_late_notified: null, previous_left_early: null },
+      { changed_date: dates[0], previous_position_id: acm, previous_note: "Turno fijo", previous_late: false, previous_late_notified: null, previous_left_early: false, previous_bonus_task_id: null },
+      { changed_date: dates[1], previous_position_id: acm, previous_note: null, previous_late: false, previous_late_notified: null, previous_left_early: false, previous_bonus_task_id: null },
+      { changed_date: dates[2], previous_position_id: null, previous_note: null, previous_late: null, previous_late_notified: null, previous_left_early: null, previous_bonus_task_id: null },
     ]);
   });
 

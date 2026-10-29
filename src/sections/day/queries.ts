@@ -8,6 +8,8 @@ export type Employee = Pick<Tables["employees"]["Row"], "id" | "first_name" | "l
 export type Position = Pick<Tables["positions"]["Row"], "id" | "code" | "name" | "abbreviation" | "bonus_eligible" | "triggers_equal_share" | "type" | "display_order" | "active">;
 export type Assignment = Pick<Tables["assignments"]["Row"], "id" | "date" | "employee_id" | "position_id" | "note" | "settled_in_period_id" | "late" | "late_notified" | "left_early" | "bonus_task_id">;
 
+export type BonusTask = Pick<Tables["bonus_tasks"]["Row"], "id" | "name" | "active">;
+
 const EMPLOYEE_COLUMNS = "id, first_name, last_name, national_id, active";
 const ASSIGNMENT_COLUMNS = "id, date, employee_id, position_id, note, settled_in_period_id, late, late_notified, left_early, bonus_task_id";
 
@@ -21,6 +23,12 @@ export async function loadPositions(supabase: ServerSupabase): Promise<Position[
       .is("deleted_at", null)
       .order("display_order"),
   );
+}
+
+/** The task catalogue, retired ones too: a past cell still names its task. Sorted by name. */
+export async function loadBonusTasks(supabase: ServerSupabase): Promise<BonusTask[]> {
+  const rows = orThrow(await supabase.from("bonus_tasks").select("id, name, active").is("deleted_at", null));
+  return rows.sort((a, b) => a.name.localeCompare(b.name, "es"));
 }
 
 /**

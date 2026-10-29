@@ -3,6 +3,7 @@ import { adminCopy } from "@/copy/admin";
 import { formatLongDate } from "@/utils/chileDate";
 import { formatPesos } from "@/utils/money";
 import { EmployeeActiveToggle } from "./EmployeeActiveToggle";
+import type { BonusTask } from "../day/queries";
 import type { AdminEmployee, AdminPosition, RateVersion } from "./queries";
 import styles from "./Admin.module.css";
 
@@ -89,7 +90,53 @@ export function PositionsTable({ positions, editHref }: { positions: readonly Ad
   );
 }
 
-export function RateVersions({ versions, positionName }: { versions: readonly RateVersion[]; positionName: (id: string) => string }) {
+type BonusTasksTableProps = {
+  tasks: readonly BonusTask[];
+  /** The amount in the current rate version, or null when there is none. */
+  currentAmount: (id: string) => number | null;
+  editHref: (id: string) => string;
+};
+
+export function BonusTasksTable({ tasks, currentAmount, editHref }: BonusTasksTableProps) {
+  const copy = adminCopy.tasks;
+  return (
+    <table className={styles.table}>
+      <thead>
+        <tr>
+          <th scope="col">{copy.name}</th>
+          <th scope="col">{copy.currentAmount}</th>
+          <th scope="col">{copy.active}</th>
+          <th scope="col" />
+        </tr>
+      </thead>
+      <tbody>
+        {tasks.map((task) => {
+          const amount = currentAmount(task.id);
+          return (
+            <tr key={task.id} className={task.active ? undefined : styles.muted}>
+              <td>{task.name}</td>
+              <td>{amount === null ? "—" : formatPesos(amount)}</td>
+              <td>{task.active ? copy.yes : copy.no}</td>
+              <td className={styles.actions}>
+                <Link href={editHref(task.id)} scroll={false} className={styles.link}>
+                  {adminCopy.edit}
+                </Link>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+type RateVersionsProps = {
+  versions: readonly RateVersion[];
+  positionName: (id: string) => string;
+  taskName: (id: string) => string;
+};
+
+export function RateVersions({ versions, positionName, taskName }: RateVersionsProps) {
   const copy = adminCopy.rates;
   return (
     <>
@@ -109,6 +156,12 @@ export function RateVersions({ versions, positionName }: { versions: readonly Ra
               {version.rates.map((rate) => (
                 <tr key={rate.position_id}>
                   <td>{positionName(rate.position_id)}</td>
+                  <td>{formatPesos(rate.amount)}</td>
+                </tr>
+              ))}
+              {version.taskRates.map((rate) => (
+                <tr key={rate.bonus_task_id}>
+                  <td>{copy.taskRateFor(taskName(rate.bonus_task_id))}</td>
                   <td>{formatPesos(rate.amount)}</td>
                 </tr>
               ))}

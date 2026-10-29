@@ -55,6 +55,15 @@ export const rateVersionSchema = z.object({
   strikeDeduction: pesos,
   strikeLimit: z.coerce.number<string>().int(adminCopy.rates.invalidCount).positive(adminCopy.rates.invalidCount),
   rates: z.record(z.string(), pesos),
+  taskRates: z.record(z.string(), pesos),
 });
 export type RateVersionInput = z.input<typeof rateVersionSchema>;
 export type RateVersionValues = z.output<typeof rateVersionSchema>;
+
+/** The amount goes in with the task; afterwards it changes only through a new rate version. */
+export const newBonusTaskSchema = z.object({ name: required, amount: pesos });
+export type NewBonusTaskInput = z.input<typeof newBonusTaskSchema>;
+export type NewBonusTaskValues = z.output<typeof newBonusTaskSchema>;
+
+export const bonusTaskSchema = z.object({ name: required, active: z.boolean() });
+export type BonusTaskValues = z.output<typeof bonusTaskSchema>;

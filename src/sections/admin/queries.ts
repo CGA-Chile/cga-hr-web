@@ -32,7 +32,11 @@ export type RateVersion = Pick<
   | "compliance_amount"
   | "strike_deduction"
   | "strike_limit"
-> & { rates: { position_id: string; amount: number }[] };
+> & {
+  rates: { position_id: string; amount: number }[];
+  taskRates: { bonus_task_id: string; amount: number }[];
+};
+
 
 export async function loadAdminEmployees(supabase: ServerSupabase): Promise<AdminEmployee[]> {
   const rows = orThrow(
@@ -61,13 +65,14 @@ export async function loadRateVersions(supabase: ServerSupabase): Promise<RateVe
     await supabase
       .from("bonus_settings")
       .select(
-        "id, effective_from, effective_to, daily_cap, max_amount_per_person, saturday_day_rate, sunday_day_rate, holiday_day_rate, production_amount, compliance_amount, strike_deduction, strike_limit, bonus_position_rates(position_id, amount, deleted_at)",
+        "id, effective_from, effective_to, daily_cap, max_amount_per_person, saturday_day_rate, sunday_day_rate, holiday_day_rate, production_amount, compliance_amount, strike_deduction, strike_limit, bonus_position_rates(position_id, amount, deleted_at), bonus_task_rates(bonus_task_id, amount, deleted_at)",
       )
       .is("deleted_at", null)
       .order("effective_from", { ascending: false }),
   );
-  return rows.map(({ bonus_position_rates: rates, ...version }) => ({
+  return rows.map(({ bonus_position_rates: rates, bonus_task_rates: taskRates, ...version }) => ({
     ...version,
     rates: rates.filter((rate) => rate.deleted_at === null),
+    taskRates: taskRates.filter((rate) => rate.deleted_at === null),
   }));
 }

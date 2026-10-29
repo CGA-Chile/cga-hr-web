@@ -52,6 +52,12 @@ export function PersonPanel({ employeeId, name, params, period, bonuses, reprima
               <dt>{copy.dayRate}</dt>
               <dd>{formatPesos(bonuses.dayRate)}</dd>
             </div>
+            {bonuses.tasks > 0 && (
+              <div>
+                <dt>{copy.tasks}</dt>
+                <dd>{formatPesos(bonuses.tasks)}</dd>
+              </div>
+            )}
             {bonuses.period && (
               <>
                 <div>

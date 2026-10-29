@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { BonusSettingsVersion } from "@/domain/bonus/types";
+import type { BonusSettingsVersion, TaskBonus } from "@/domain/bonus/types";
 import type { PeriodBonusPosition } from "@/domain/periodBonus/types";
 import type { DailyBonus } from "@/sections/bonus/dailyBonuses";
 import { personBonuses } from "./personBonuses";
@@ -16,7 +16,7 @@ const SETTINGS: BonusSettingsVersion = {
 };
 const RIETER: PeriodBonusPosition = { id: "rieter", absence: false, production: true, compliance: true, strike: false };
 
-function day(date: string, scheme: "POSITION_RATE" | "DAY_RATE", amount: number): DailyBonus {
+function day(date: string, scheme: "POSITION_RATE" | "DAY_RATE", amount: number, taskBonuses: TaskBonus[] = []): DailyBonus {
   return {
     date,
     settings: SETTINGS,
@@ -29,7 +29,7 @@ function day(date: string, scheme: "POSITION_RATE" | "DAY_RATE", amount: number)
       ],
       total: amount + 999,
       anomalies: [],
-      taskBonuses: [],
+      taskBonuses,
     },
   };
 }
@@ -51,6 +51,7 @@ describe("personBonuses", () => {
     expect(personBonuses({ ...BASE, amounts })).toEqual({
       carding: 4_000,
       dayRate: 25_000,
+      tasks: 0,
       period: {
         employeeId: "ana",
         productionDays: 2,
@@ -66,5 +67,13 @@ describe("personBonuses", () => {
 
   it("leaves the period bonuses out when the version in force has no amounts for them", () => {
     expect(personBonuses({ ...BASE, amounts: null }).period).toBeNull();
+  });
+
+  it("adds a bonus task apart from the line", () => {
+    const withTask = day("2026-10-06", "POSITION_RATE", 0, [
+      { employeeId: "ana", positionId: "rieter", bonusTaskId: "truck", amount: 3_000 },
+    ]);
+
+    expect(personBonuses({ ...BASE, dailyBonuses: [withTask], amounts: null })).toMatchObject({ carding: 0, tasks: 3_000 });
   });
 });

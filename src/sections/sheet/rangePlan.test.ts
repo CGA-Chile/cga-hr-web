@@ -79,14 +79,14 @@ describe("summarizePlan", () => {
 });
 
 describe("undoCells", () => {
-  it("puts back what each changed date held, marks and note included, and empties the ones that were empty", () => {
+  it("puts back what each changed date held, marks, task and note included, and empties the ones that were empty", () => {
     expect(
       undoCells([
-        { changed_date: "2026-10-14", previous_position_id: "ACM", previous_note: "Llegó 9:15", previous_late: true, previous_late_notified: false, previous_left_early: false, previous_bonus_task_id: null },
+        { changed_date: "2026-10-14", previous_position_id: "ACM", previous_note: "Llegó 9:15", previous_late: true, previous_late_notified: false, previous_left_early: false, previous_bonus_task_id: "truck" },
         { changed_date: "2026-10-18", previous_position_id: null, previous_note: null, previous_late: null, previous_late_notified: null, previous_left_early: null, previous_bonus_task_id: null },
       ]),
     ).toEqual([
-      { date: "2026-10-14", positionId: "ACM", note: "Llegó 9:15", late: true, lateNotified: false, leftEarly: false },
+      { date: "2026-10-14", positionId: "ACM", note: "Llegó 9:15", late: true, lateNotified: false, leftEarly: false, bonusTaskId: "truck" },
       { date: "2026-10-18", positionId: null, note: null },
     ]);
   });

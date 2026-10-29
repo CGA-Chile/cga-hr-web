@@ -13,6 +13,7 @@ export const reportCopy = {
     dayRate: "Bono día no hábil",
     production: "Bono de producción",
     compliance: "Bono de cumplimiento",
+    tasks: "Tareas con bono",
     total: "Total",
   },
   totals: "Totales",
@@ -20,6 +21,8 @@ export const reportCopy = {
   detail: {
     dailyTitle: "Bono cardas y bono día no hábil",
     periodBonusTitle: "Bonos del período",
+    tasksTitle: "Tareas con bono",
+    task: "Tarea",
     date: "Fecha",
     position: "Puesto",
     scheme: "Esquema",

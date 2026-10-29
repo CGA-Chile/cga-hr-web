@@ -45,6 +45,27 @@ export function FixedDayRateIcon({ size = 12 }: IconProps) {
   );
 }
 
+/** A box: the generic sign of a bonus task, whichever the task is. */
+export function BonusTaskIcon({ size = 11 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 8l9-5 9 5v8l-9 5-9-5z" />
+      <path d="M3 8l9 5 9-5" />
+      <path d="M12 13v8" />
+    </svg>
+  );
+}
+
 export function LeftEarlyIcon({ size = 11 }: IconProps) {
   return (
     <svg

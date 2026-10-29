@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactNode } from "react";
 import { groupPositionsForPicker } from "../day/positionGroups";
-import type { Employee, Position } from "../day/queries";
+import type { BonusTask, Employee, Position } from "../day/queries";
 import { CellPanel } from "./CellPanel";
 import {
   opensInPlace,
@@ -24,6 +24,7 @@ type CellPanelHostProps = {
   employees: readonly Pick<Employee, "id" | "first_name" | "last_name">[];
   cells: PanelCells;
   positions: readonly Position[];
+  bonusTasks: readonly BonusTask[];
   /** The admin may change a paid date, as with a single cell; the range panel previews it so. */
   mayChangePaid: boolean;
   children: ReactNode;
@@ -36,7 +37,7 @@ type CellPanelHostProps = {
  * without JavaScript, follows the link as before.
  */
 export function CellPanelHost(props: CellPanelHostProps) {
-  const { range, employees, cells, positions, children } = props;
+  const { range, employees, cells, positions, bonusTasks, children } = props;
   const router = useRouter();
   const query = useSearchParams();
   // The range panel opens over the cell it came from.
@@ -49,6 +50,7 @@ export function CellPanelHost(props: CellPanelHostProps) {
 
   const positionsById = useMemo(() => new Map(positions.map((position) => [position.id, position])), [positions]);
   const positionGroups = useMemo(() => groupPositionsForPicker(positions), [positions]);
+  const bonusTasksById = useMemo(() => new Map(bonusTasks.map((task) => [task.id, task])), [bonusTasks]);
 
   const close = useCallback(() => {
     window.history.pushState(
@@ -101,6 +103,8 @@ export function CellPanelHost(props: CellPanelHostProps) {
             {...findPanelCell(cells, open)}
             positionsById={positionsById}
             positionGroups={positionGroups}
+            bonusTasks={bonusTasks}
+            bonusTasksById={bonusTasksById}
             previousHref={stepHref(-1)}
             nextHref={stepHref(1)}
             freshness={cells}

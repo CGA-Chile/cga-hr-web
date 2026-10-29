@@ -150,6 +150,33 @@ function PersonDetail({ row }: { row: ReportRow }) {
         </>
       )}
 
+      {row.taskLines.length > 0 && (
+        <>
+          <h3 className={styles.detailTitle}>{detail.tasksTitle}</h3>
+          <table className={styles.detail}>
+            <thead>
+              <tr>
+                <th scope="col">{detail.date}</th>
+                <th scope="col">{detail.task}</th>
+                <th scope="col" className={styles.number}>{detail.amount}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {row.taskLines.map((line) => (
+                <tr key={line.date}>
+                  <td>
+                    {formatNumericDate(line.date)}
+                    {line.carryOver && <span className={styles.tag}>{detail.carryOverTag}</span>}
+                  </td>
+                  <td>{line.taskName}</td>
+                  <td className={styles.number}>{formatPesos(line.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
       {row.lines.length > 0 && (
         <>
           <h3 className={styles.detailTitle}>{detail.dailyTitle}</h3>

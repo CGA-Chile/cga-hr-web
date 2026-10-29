@@ -14,6 +14,8 @@ export type PendingOperation = {
   late?: boolean;
   lateNotified?: boolean;
   leftEarly?: boolean;
+  /** Undefined leaves the stored task alone; null removes it. */
+  bonusTaskId?: string | null;
   queuedAt: number;
 };
 

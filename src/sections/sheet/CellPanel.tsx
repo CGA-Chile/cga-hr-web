@@ -9,7 +9,8 @@ import { formatPesos } from "@/utils/money";
 import { CellHistoryList } from "../day/CellHistoryList";
 import { CellNote } from "../day/CellNote";
 import type { PositionGroup } from "../day/positionGroups";
-import { fullName, type Employee, type Position } from "../day/queries";
+import { fullName, type BonusTask, type Employee, type Position } from "../day/queries";
+import { BonusTaskMark } from "./BonusTaskMark";
 import type { CellSelection } from "./cellSelection";
 import { describeMarks } from "./incompleteDay";
 import { IncompleteDayMarks } from "./IncompleteDayMarks";
@@ -25,6 +26,9 @@ type CellPanelProps = {
   bonus: CellBonus | null | undefined;
   positionsById: ReadonlyMap<string, Position>;
   positionGroups: readonly PositionGroup[];
+  /** Every task, retired ones too, so a past cell still names its task. */
+  bonusTasks: readonly BonusTask[];
+  bonusTasksById: ReadonlyMap<string, BonusTask>;
   /** The arrows' targets along the row, or null at the edge of the range. */
   previousHref: string | null;
   nextHref: string | null;
@@ -40,10 +44,12 @@ type CellPanelProps = {
  * history. Everything but the history comes with the sheet, so it opens without a server render.
  */
 export function CellPanel(props: CellPanelProps) {
-  const { selection, employee, assignment, bonus, positionsById, positionGroups } = props;
+  const { selection, employee, assignment, bonus, positionsById, positionGroups, bonusTasks, bonusTasksById } = props;
   const { date, employeeId } = selection;
-  const marks = assignment ? describeMarks(assignment) : null;
-  const incomplete = assignment !== null && (assignment.late || assignment.left_early);
+  const marks = assignment ? describeMarks(assignment, (id) => bonusTasksById.get(id)?.name ?? "") : null;
+  const offeredTasks = bonusTasks.filter((task) => task.active || task.id === assignment?.bonus_task_id);
+  const onTask = bonus?.basis.scheme === "TASK";
+  const incomplete = !onTask && assignment !== null && (assignment.late || assignment.left_early);
 
   return (
     <Drawer title={`${fullName(employee)} · ${formatLongDate(date)}`} onClose={props.onClose} closeLabel={dayCopy.close}>
@@ -67,7 +73,7 @@ export function CellPanel(props: CellPanelProps) {
         {bonus?.amount ? (
           <div className={styles.factWide}>
             <dt>{sheetCopy.basisTitle}</dt>
-            <dd>{describeBasis(bonus.basis)}</dd>
+            <dd>{describeBasis(bonus.basis, (id) => bonusTasksById.get(id)?.name ?? "")}</dd>
           </div>
         ) : null}
         {marks && (
@@ -94,6 +100,16 @@ export function CellPanel(props: CellPanelProps) {
           late={assignment.late}
           lateNotified={assignment.late_notified}
           leftEarly={assignment.left_early}
+        />
+      )}
+      {assignment && positionsById.get(assignment.position_id)?.type === "WORK" && offeredTasks.length > 0 && (
+        <BonusTaskMark
+          date={date}
+          employeeId={employeeId}
+          positionId={assignment.position_id}
+          note={assignment.note}
+          bonusTaskId={assignment.bonus_task_id}
+          tasks={offeredTasks}
         />
       )}
       <section className={styles.fromCell}>
@@ -125,22 +141,28 @@ export function CellPanel(props: CellPanelProps) {
       </section>
       <section className={styles.section}>
         <h3 className={styles.heading}>{dayCopy.history}</h3>
-        <History selection={selection} positionsById={positionsById} freshness={props.freshness} />
+        <History
+          selection={selection}
+          positionsById={positionsById}
+          bonusTasksById={bonusTasksById}
+          freshness={props.freshness}
+        />
       </section>
     </Drawer>
   );
 }
 
-function describeBasis(basis: BonusBasis): string {
+function describeBasis(basis: BonusBasis, taskName: (id: string) => string): string {
+  if (basis.scheme === "TASK") return sheetCopy.basisTask(taskName(basis.bonusTaskId));
   if (basis.scheme === "EQUAL_SHARE") return sheetCopy.basisEqualShare(basis.sharedBy);
   return basis.scheme === "DAY_RATE" ? sheetCopy.basisDayRate : sheetCopy.basisPositionRate;
 }
 
-type HistoryProps = Pick<CellPanelProps, "selection" | "positionsById" | "freshness">;
+type HistoryProps = Pick<CellPanelProps, "selection" | "positionsById" | "bonusTasksById" | "freshness">;
 
-function History({ selection, positionsById, freshness }: HistoryProps) {
+function History({ selection, positionsById, bonusTasksById, freshness }: HistoryProps) {
   const history = useCellHistory(selection, freshness);
   if (history.status === "LOADING") return <p className={styles.muted}>{sheetCopy.historyLoading}</p>;
   if (history.status === "FAILED") return <p className={styles.muted}>{sheetCopy.historyFailed}</p>;
-  return <CellHistoryList history={history.data} positionsById={positionsById} />;
+  return <CellHistoryList history={history.data} positionsById={positionsById} bonusTasksById={bonusTasksById} />;
 }

@@ -254,8 +254,9 @@ describe("panel cells", () => {
     {
       employee: ana,
       cells: [
-        { date: "2026-09-01", assignment: late, duplicated: false, bonus: lateBonus },
-        { date: "2026-09-02", assignment: null, duplicated: false, bonus: null },
+        { date: "2026-09-01", assignment: late, duplicated: false, bonus: lateBonus, mismatch: null },
+        { date: "2026-09-02", assignment: null, duplicated: false, bonus: null, mismatch: null },
+        { date: "2026-09-03", assignment: null, duplicated: false, bonus: null, mismatch: "CLOCKED_WITHOUT_POSITION" as const },
       ],
     },
   ];
@@ -275,7 +276,11 @@ describe("panel cells", () => {
   it("gives the bonus to a role that sees amounts, and null to an empty cell", () => {
     const cells = buildPanelCells(rows, true);
     expect(findPanelCell(cells, { date: "2026-09-01", employeeId: "ana" }).bonus).toEqual(lateBonus);
-    expect(findPanelCell(cells, { date: "2026-09-02", employeeId: "ana" })).toEqual({ assignment: null, bonus: null });
+    expect(findPanelCell(cells, { date: "2026-09-02", employeeId: "ana" })).toEqual({
+      assignment: null,
+      bonus: null,
+      mismatch: null,
+    });
   });
 
   it("leaves the bonus out entirely for a role that never sees one", () => {
@@ -283,5 +288,39 @@ describe("panel cells", () => {
     expect(findPanelCell(cells, { date: "2026-09-01", employeeId: "ana" }).bonus).toBeUndefined();
     expect(findPanelCell(cells, { date: "2026-09-02", employeeId: "ana" }).bonus).toBeUndefined();
     expect(JSON.stringify(cells)).not.toContain('"amount"');
+  });
+
+  it("hands the panel a mismatch on an empty cell too", () => {
+    const cells = buildPanelCells(rows, true);
+    expect(findPanelCell(cells, { date: "2026-09-03", employeeId: "ana" })).toEqual({
+      assignment: null,
+      bonus: null,
+      mismatch: "CLOCKED_WITHOUT_POSITION",
+    });
+  });
+});
+
+describe("buildSheet with Workera", () => {
+  it("puts each cell's mismatch on it, empty cells included", () => {
+    const sheet = buildSheet({
+      dates: ["2026-09-01", "2026-09-02"],
+      employees: [ana],
+      assignments: [assignment("2026-09-01", "ana", "RIE")],
+      dailyBonuses: [],
+      positions: POSITIONS,
+      mismatchOf: (date, _employee, held) =>
+        held ? "POSITION_WITHOUT_CLOCKING" : date === "2026-09-02" ? "CLOCKED_WITHOUT_POSITION" : null,
+    });
+
+    expect(sheet.rows[0].cells.map((cell) => cell.mismatch)).toEqual([
+      "POSITION_WITHOUT_CLOCKING",
+      "CLOCKED_WITHOUT_POSITION",
+    ]);
+  });
+
+  it("shows no mismatch where Workera is not read", () => {
+    const sheet = buildSheet({ dates: ["2026-09-01"], employees: [ana], assignments: [], dailyBonuses: [], positions: POSITIONS });
+
+    expect(sheet.rows[0].cells[0].mismatch).toBeNull();
   });
 });

@@ -1,3 +1,4 @@
+import { loadMismatchOf } from "@/sections/attendance/mismatches";
 import { loadAnomalousDates } from "@/sections/bonus/anomalousDates";
 import { dayRateOn } from "@/domain/bonus/dayRate";
 import { findSettingsInForce } from "@/domain/bonus/settingsInForce";
@@ -75,9 +76,9 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
   const period = ranges.current.period;
 
   // A role without amounts gets no calculation at all: the database would refuse it the rates.
-  const [positions, { employees, assignments }, dailyBonuses, anomalousDateCount, calendar, versions, reprimands, bonusTasks] =
+  const positions = await loadPositions(supabase);
+  const [{ employees, assignments }, dailyBonuses, anomalousDateCount, calendar, versions, reprimands, bonusTasks, mismatchOf] =
     await Promise.all([
-      loadPositions(supabase),
       loadRangeRows(supabase, addDays(start, -LOOK_BACK_DAYS), end),
       showAmounts ? loadDailyBonuses(supabase, start, end) : [],
       (showAmounts ? loadAnomalousDates(supabase) : loadDuplicateDates(supabase)).then((dates) => dates.length),
@@ -85,6 +86,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
       showAmounts ? loadSettingsVersions(supabase) : [],
       showAmounts && period ? loadReprimands(supabase, period.id) : new Map<string, string | null>(),
       loadBonusTasks(supabase),
+      loadMismatchOf(supabase, start, end, new Map(positions.map((position) => [position.id, position]))),
     ]);
   const inRange = assignments.filter((assignment) => assignment.date >= start);
   const reprimanded = new Set(reprimands.keys());
@@ -95,6 +97,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
     assignments: inRange,
     dailyBonuses,
     positions: bonusPositions,
+    mismatchOf,
   });
   const panelDuplicates = params.date
     ? findDuplicatedPositions(

@@ -29,6 +29,7 @@ export const sheetCopy = {
   legendRestDay: "Domingo o feriado",
   legendLate: "Atraso (sin bono)",
   legendLeftEarly: "Salida temprana (sin bono)",
+  legendMismatch: "Descuadre con Workera",
   hint: "Toca un día para ver su resumen; toca una celda para ver o cambiar el puesto.",
 
   /** Sunday first, as Date.getUTCDay counts. */
@@ -76,6 +77,7 @@ export const sheetCopy = {
         ? "Sin bono: llegó atrasado"
         : "Sin bono: se retiró temprano",
   attendance: "Asistencia",
+  workera: "Workera",
   incompleteTitle: "Día incompleto",
   incompleteHint:
     "Sigue en su puesto, pero ese día no recibe bono ni cuenta para el reparto. El bono es solo para quien trabaja el día completo.",

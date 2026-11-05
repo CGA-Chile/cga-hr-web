@@ -1,6 +1,7 @@
 "use client";
 
 import { Drawer } from "@/components/Drawer";
+import { mismatchCopy } from "@/copy/attendance";
 import { dayCopy } from "@/copy/day";
 import { sheetCopy } from "@/copy/sheet";
 import { useCellHistory } from "@/hooks/useCellHistory";
@@ -15,6 +16,7 @@ import type { CellSelection } from "./cellSelection";
 import { describeMarks } from "./incompleteDay";
 import { IncompleteDayMarks } from "./IncompleteDayMarks";
 import { PositionPicker } from "./PositionPicker";
+import type { MismatchReason } from "@/domain/attendance/mismatch";
 import type { BonusBasis, CellBonus, PanelAssignment } from "./sheetModel";
 import styles from "./SheetPanels.module.css";
 
@@ -24,6 +26,7 @@ type CellPanelProps = {
   assignment: PanelAssignment | null;
   /** Undefined for a role that never sees amounts: the bonus fact is left out. */
   bonus: CellBonus | null | undefined;
+  mismatch: MismatchReason | null;
   positionsById: ReadonlyMap<string, Position>;
   positionGroups: readonly PositionGroup[];
   /** Every task, retired ones too, so a past cell still names its task. */
@@ -80,6 +83,12 @@ export function CellPanel(props: CellPanelProps) {
           <div className={styles.factWide}>
             <dt>{sheetCopy.attendance}</dt>
             <dd className={styles.marked}>{marks}</dd>
+          </div>
+        )}
+        {props.mismatch && (
+          <div className={styles.factWide}>
+            <dt>{sheetCopy.workera}</dt>
+            <dd className={styles.mismatch}>{mismatchCopy[props.mismatch]}</dd>
           </div>
         )}
       </dl>

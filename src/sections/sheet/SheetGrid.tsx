@@ -7,7 +7,8 @@ import { formatAmount, formatPesos, formatThousands } from "@/utils/money";
 import { fullName, type Employee, type Position } from "../day/queries";
 import { sheetPath, type SheetParams } from "./paths";
 import { describeMarks } from "./incompleteDay";
-import { BonusTaskIcon, FixedDayRateIcon, LateIcon, LeftEarlyIcon } from "./MarkIcons";
+import { BonusTaskIcon, FixedDayRateIcon, LateIcon, LeftEarlyIcon, MismatchIcon } from "./MarkIcons";
+import { mismatchCopy } from "@/copy/attendance";
 import { SheetCellLabel } from "./SheetCellLabel";
 import { BreakdownAllToggle, BreakdownRows, BreakdownToggle, SheetBreakdown } from "./SheetBreakdown";
 import { cellKey, isCarding, toneOf, type BonusBasis, type Sheet, type SheetRow } from "./sheetModel";
@@ -132,7 +133,9 @@ export function SheetGrid(props: SheetGridProps) {
                   </th>
                   {row.cells.map((cell) => {
                     const position = cell.assignment ? positionsById.get(cell.assignment.position_id) : undefined;
-                    const marks = cell.assignment ? describeMarks(cell.assignment, taskName) : null;
+                    const assignmentMarks = cell.assignment ? describeMarks(cell.assignment, taskName) : null;
+                    const mismatch = cell.mismatch ? mismatchCopy[cell.mismatch] : null;
+                    const marks = [assignmentMarks, mismatch].filter((part) => part !== null).join(" · ") || null;
                     return (
                       <td
                         key={cell.date}
@@ -147,11 +150,11 @@ export function SheetGrid(props: SheetGridProps) {
                         <a
                           href={sheetPath({ ...params, date: cell.date, employeeId: row.employee.id, endPanel: false })}
                           data-cell-link
-                          title={marks ? `${position?.name ?? ""} · ${marks}` : position?.name}
+                          title={marks ? [position?.name, marks].filter(Boolean).join(" · ") : position?.name}
                           aria-label={sheetCopy.cellFor(
                             fullName(row.employee),
                             formatLongDate(cell.date),
-                            marks ? `${position?.name ?? ""}, ${marks}` : (position?.name ?? sheetCopy.noPosition),
+                            marks ? `${position?.name ?? sheetCopy.noPosition}, ${marks}` : (position?.name ?? sheetCopy.noPosition),
                           )}
                         >
                           <SheetCellLabel
@@ -159,7 +162,12 @@ export function SheetGrid(props: SheetGridProps) {
                             employeeId={row.employee.id}
                             stored={position?.abbreviation ?? ""}
                           />
-                          {marks && (
+                          {mismatch && (
+                            <span className={styles.mismatch}>
+                              <MismatchIcon />
+                            </span>
+                          )}
+                          {assignmentMarks && (
                             <span className={styles.marks}>
                               {cell.assignment?.late && <LateIcon />}
                               {cell.assignment?.left_early && <LeftEarlyIcon />}

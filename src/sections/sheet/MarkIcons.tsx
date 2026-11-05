@@ -85,3 +85,24 @@ export function LeftEarlyIcon({ size = 11 }: IconProps) {
     </svg>
   );
 }
+
+/** A ring with an exclamation: the sheet and Workera disagree, and someone has to correct one. */
+export function MismatchIcon({ size = 11 }: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v6" />
+      <path d="M12 17h.01" />
+    </svg>
+  );
+}

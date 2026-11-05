@@ -1,7 +1,7 @@
 import type { IsoDate } from "@/domain/bonus/types";
 import type { Database } from "@/types/database";
 import { monthRange } from "@/utils/chileDate";
-import { orThrow, type BrowserSupabase, type ServerSupabase } from "@/utils/supabase/query";
+import { fetchAllRows, orThrow, type BrowserSupabase, type ServerSupabase } from "@/utils/supabase/query";
 
 type Tables = Database["public"]["Tables"];
 export type Employee = Pick<Tables["employees"]["Row"], "id" | "first_name" | "last_name" | "national_id" | "active">;
@@ -81,14 +81,18 @@ export async function loadRangeRows(
 ): Promise<{ employees: Employee[]; assignments: Assignment[] }> {
   const [employees, assignments] = await Promise.all([
     supabase.from("employees").select(EMPLOYEE_COLUMNS).is("deleted_at", null),
-    supabase
-      .from("assignments")
-      .select(ASSIGNMENT_COLUMNS)
-      .gte("date", from)
-      .lte("date", to)
-      .is("deleted_at", null),
+    fetchAllRows((first, last) =>
+      supabase
+        .from("assignments")
+        .select(ASSIGNMENT_COLUMNS)
+        .gte("date", from)
+        .lte("date", to)
+        .is("deleted_at", null)
+        .order("id")
+        .range(first, last),
+    ),
   ]);
-  return { employees: orThrow(employees), assignments: orThrow(assignments) };
+  return { employees: orThrow(employees), assignments };
 }
 
 export function fullName(employee: Pick<Employee, "first_name" | "last_name">): string {

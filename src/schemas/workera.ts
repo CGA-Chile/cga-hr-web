@@ -44,3 +44,12 @@ export const pageSchema = z.object({
   totalPages: z.number().int(),
   data: z.array(z.unknown()),
 });
+
+export const workeraEmployeeSchema = z.object({
+  identification: z.string().min(1),
+  name: z.string().nullish(),
+  secondName: z.string().nullish(),
+  lastName: z.string().nullish(),
+  secondLastName: z.string().nullish(),
+  employeeStatus: z.string(),
+});

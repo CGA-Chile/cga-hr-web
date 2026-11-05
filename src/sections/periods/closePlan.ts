@@ -9,6 +9,7 @@ import {
   loadCalendar,
   loadLiveAssignments,
   loadSettingsVersions,
+  loadUnsettledDates,
 } from "@/sections/bonus/dailyBonuses";
 import { loadPeriodBonusCloseInput } from "@/sections/bonus/periodBonuses";
 import type { Json } from "@/types/database";
@@ -37,19 +38,13 @@ export type LoadedClosePlan = {
  * pays: the line on an ordinary date, everyone who worked on a day-rate date.
  */
 export async function loadClosePlan(supabase: ServerSupabase, period: Period): Promise<LoadedClosePlan> {
-  const [unsettled, positions, versions, validations, periodBonusInput] = await Promise.all([
-    supabase
-      .from("assignments")
-      .select("date")
-      .is("settled_in_period_id", null)
-      .is("deleted_at", null)
-      .lte("date", period.end_date),
+  const [dateSet, positions, versions, validations, periodBonusInput] = await Promise.all([
+    loadUnsettledDates(supabase, period.end_date),
     loadBonusPositions(supabase),
     loadSettingsVersions(supabase),
     supabase.from("cap_overrides").select("date, approved_amount").eq("period_id", period.id).is("deleted_at", null),
     loadPeriodBonusCloseInput(supabase, period),
   ]);
-  const dateSet = new Set(orThrow(unsettled).map((row) => row.date));
   const dates = [...dateSet].sort();
   const [inRange, calendar] = dates.length
     ? await Promise.all([

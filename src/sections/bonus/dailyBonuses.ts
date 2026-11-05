@@ -10,7 +10,7 @@ import type {
   DayRate,
   IsoDate,
 } from "@/domain/bonus/types";
-import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
+import { fetchAllRows, orThrow, type ServerSupabase } from "@/utils/supabase/query";
 import { toBonusAssignment, toBonusPosition } from "./toBonus";
 
 /** One date's calculation, or the fact that no settings version covers it. */
@@ -62,15 +62,29 @@ export async function loadSettingsVersions(supabase: ServerSupabase): Promise<Bo
 }
 
 export async function loadLiveAssignments(supabase: ServerSupabase, from: IsoDate, to: IsoDate): Promise<LiveAssignment[]> {
-  const rows = orThrow(
-    await supabase
+  const rows = await fetchAllRows((first, last) =>
+    supabase
       .from("assignments")
       .select("id, date, employee_id, position_id, settled_amount, late, left_early")
       .gte("date", from)
       .lte("date", to)
-      .is("deleted_at", null),
+      .is("deleted_at", null)
+      .order("id")
+      .range(first, last),
   );
   return rows.map((row) => ({ ...toBonusAssignment(row), id: row.id, date: row.date, settledAmount: row.settled_amount }));
+}
+
+/**
+ * Every date holding a live unsettled assignment, on or before `upTo` when given. Absences and
+ * unpaid positions are never settled, so this read grows for as long as the plant keeps working.
+ */
+export async function loadUnsettledDates(supabase: ServerSupabase, upTo?: IsoDate): Promise<Set<IsoDate>> {
+  const rows = await fetchAllRows((first, last) => {
+    const unsettled = supabase.from("assignments").select("date").is("settled_in_period_id", null).is("deleted_at", null);
+    return (upTo ? unsettled.lte("date", upTo) : unsettled).order("id").range(first, last);
+  });
+  return new Set(rows.map((row) => row.date));
 }
 
 export async function loadCalendar(supabase: ServerSupabase, from: IsoDate, to: IsoDate): Promise<Calendar> {

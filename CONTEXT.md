@@ -46,12 +46,12 @@ carries no marks.
 _Avoid_: partial day, half day
 
 **Late** _(atraso)_:
-A mark of an incomplete day: arrived after the start. Recorded with notice or without; the notice
+A mark of an incomplete day: arrived after the start, as Workera reads it. Recorded with notice or without; the notice
 is for HR and does not change the pay. Marks from before the notice existed have none.
 _Avoid_: tardiness, absence
 
 **Left early** _(salida temprana)_:
-A mark of an incomplete day: left before the end. No notice is recorded for it.
+A mark of an incomplete day: left before the end, as Workera reads it. No notice is recorded for it.
 _Avoid_: early exit, absence
 
 **Bonus task** _(tarea con bono)_:
@@ -145,6 +145,33 @@ and it stops existing. It is never acknowledged, because acknowledging a mistake
 present is a way of hiding it.
 _Avoid_: warning, alert, error, flag
 
+**Attendance mismatch** _(descuadre de asistencia)_:
+An anomaly: the sheet and Workera disagree about one person on one date. Someone clocked in with an
+empty cell or an absence, someone holds a work position without clocking in, or the day's clocking
+is incomplete. Same mark on the cell whatever the case; its note states the reason. It disappears
+only when the sheet or Workera is corrected. Workera is the source of truth for attendance.
+_Avoid_: alert, error
+
+**Clocking** _(marcación)_:
+A fingerprint record read from Workera: an entry or an exit, with its time. It lives in Workera, and
+the app only reads it. Not to be confused with a mark, which sits on a cell.
+_Avoid_: mark, punch, attendance record
+
+**Automatic absence** _(falta automática)_:
+A Falta sin aviso the app writes when a cell is empty and the person did not clock in. It deducts from
+the moment it is written and stops the close until someone confirms or changes it.
+_Avoid_: inferred absence, suggested absence
+
+**Pardon** _(perdón)_:
+An admin's recorded removal of a late or early mark that came from Workera, with a reason. It removes
+the mark's effect on pay, and reading Workera again does not bring the mark back.
+_Avoid_: override, exception, waiver
+
+**Validated mismatch** _(descuadre validado)_:
+An admin's recorded approval to close over one attendance mismatch that cannot be corrected, with a
+reason. Same idea as a validated excess.
+_Avoid_: acknowledged mismatch, override
+
 **Review item** _(ítem de revisión)_:
 A *recorded* event: someone changed a date that had already been settled, or entered a new one
 inside a closed period. It already happened and cannot be undone, so it is acknowledged rather
@@ -169,6 +196,7 @@ because nobody is denied a payment over a recording mistake made by the company.
 
 **Close gate** _(compuerta de cierre)_:
 The check that stops a period from closing while any date it would settle still has a
-correctable anomaly. The only place the app refuses to proceed — closing is a deliberate
+correctable anomaly, including an attendance mismatch, or an unconfirmed automatic absence, or no
+successful read of Workera. The only place the app refuses to proceed — closing is a deliberate
 administrative act, not the daily data entry that must never be blocked.
 _Avoid_: validation, blocker

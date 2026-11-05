@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { anomaliesCopy } from "@/copy/anomalies";
 import { sheetCopy } from "@/copy/sheet";
 import { addDays, formatDayMonth } from "@/utils/chileDate";
-import { LateIcon, LeftEarlyIcon } from "./MarkIcons";
+import { LateIcon, LeftEarlyIcon, MismatchIcon } from "./MarkIcons";
 import { RangeLink } from "./RangeLink";
 import { sheetPath, type SheetParams } from "./paths";
 import type { SheetRange, SheetRanges, SheetWeek } from "./sheetRange";
@@ -76,6 +76,10 @@ export function SheetView({ ranges, week, params, previousName, anomalousDateCou
         <li data-tone="MARK">
           <LeftEarlyIcon size={13} />
           {sheetCopy.legendLeftEarly}
+        </li>
+        <li data-tone="MISMATCH">
+          <MismatchIcon size={13} />
+          {sheetCopy.legendMismatch}
         </li>
       </ul>
 

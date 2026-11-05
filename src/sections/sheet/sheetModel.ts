@@ -1,6 +1,8 @@
 import { findDuplicatedPositions } from "@/domain/bonus/duplicates";
 import type { BonusPosition, BonusScheme, DailyBonusResult, EmployeeBonus, IsoDate } from "@/domain/bonus/types";
 import { earnsDailyBonus } from "@/domain/bonus/fullDay";
+import type { MismatchReason } from "@/domain/attendance/mismatch";
+import type { MismatchOf } from "../attendance/mismatches";
 import type { DailyBonus } from "../bonus/dailyBonuses";
 import { toBonusAssignment } from "../bonus/toBonus";
 import type { Assignment, Employee, Position } from "../day/queries";
@@ -29,6 +31,8 @@ export type SheetCell = {
   duplicated: boolean;
   /** Null when the date pays this person nothing, or for a role that never sees amounts. */
   bonus: CellBonus | null;
+  /** Where the sheet and Workera disagree, for everyone to see. */
+  mismatch: MismatchReason | null;
 };
 
 /** The total is the daily bonuses together; the breakdown under the row shows each apart. */
@@ -58,6 +62,8 @@ type SheetInput = {
   /** Empty for a role that never sees amounts: the totals stay empty, the duplicates still show. */
   dailyBonuses: readonly DailyBonus[];
   positions: readonly BonusPosition[];
+  /** Left out where Workera is not read: no cell then has a mismatch. */
+  mismatchOf?: MismatchOf;
 };
 
 export function toneOf(position: Pick<Position, "type" | "bonus_eligible" | "triggers_equal_share">): CellTone {
@@ -71,7 +77,7 @@ export function toneOf(position: Pick<Position, "type" | "bonus_eligible" | "tri
  * per date underneath and each person's bonus for the range at the end. Everyone active is
  * listed, plus anyone inactive who still has a day in the range.
  */
-export function buildSheet({ dates, employees, assignments, dailyBonuses, positions }: SheetInput): Sheet {
+export function buildSheet({ dates, employees, assignments, dailyBonuses, positions, mismatchOf }: SheetInput): Sheet {
   const assignmentByCell = new Map(assignments.map((assignment) => [cellKey(assignment.date, assignment.employee_id), assignment]));
   const bonusByDate = new Map(dailyBonuses.map((bonus) => [bonus.date, bonus]));
   const duplicatedByDate = duplicatedPositionsByDate(assignments, positions);
@@ -85,7 +91,13 @@ export function buildSheet({ dates, employees, assignments, dailyBonuses, positi
         const assignment = assignmentByCell.get(cellKey(date, employee.id)) ?? null;
         const duplicated = assignment !== null && earnsDailyBonus(toBonusAssignment(assignment)) && Boolean(duplicatedByDate.get(date)?.has(assignment.position_id));
         const dailyBonus = bonusByDate.get(date);
-        return { date, assignment, duplicated, bonus: dailyBonus ? cellBonus(dailyBonus, employee.id) : null };
+        return {
+          date,
+          assignment,
+          duplicated,
+          bonus: dailyBonus ? cellBonus(dailyBonus, employee.id) : null,
+          mismatch: mismatchOf?.(date, employee, assignment) ?? null,
+        };
       });
       const carding = sumBonuses(cells, isCarding);
       const dayRate = sumBonuses(cells, (basis) => basis.scheme === "DAY_RATE");
@@ -189,7 +201,7 @@ export function copyFromPreviousDate(
 }
 
 export type PanelAssignment = Pick<Assignment, "position_id" | "note" | "late" | "late_notified" | "left_early" | "bonus_task_id">;
-type PanelCell = { assignment: PanelAssignment; bonus?: CellBonus | null };
+type PanelCell = { assignment: PanelAssignment | null; bonus?: CellBonus | null; mismatch?: MismatchReason };
 export type PanelCells = { amounts: boolean; byCell: Record<string, PanelCell> };
 
 /**
@@ -200,12 +212,12 @@ export type PanelCells = { amounts: boolean; byCell: Record<string, PanelCell> }
 export function buildPanelCells(rows: readonly Pick<SheetRow, "employee" | "cells">[], amounts: boolean): PanelCells {
   const byCell: Record<string, PanelCell> = {};
   for (const { employee, cells } of rows) {
-    for (const { date, assignment, bonus } of cells) {
-      if (!assignment) continue;
-      const { position_id, note, late, late_notified, left_early, bonus_task_id } = assignment;
+    for (const { date, assignment, bonus, mismatch } of cells) {
+      if (!assignment && !mismatch) continue;
       byCell[cellKey(date, employee.id)] = {
-        assignment: { position_id, note, late, late_notified, left_early, bonus_task_id },
+        assignment: assignment && panelAssignment(assignment),
         ...(amounts && { bonus }),
+        ...(mismatch && { mismatch }),
       };
     }
   }
@@ -215,8 +227,17 @@ export function buildPanelCells(rows: readonly Pick<SheetRow, "employee" | "cell
 export function findPanelCell(
   cells: PanelCells,
   { date, employeeId }: { date: IsoDate; employeeId: string },
-): { assignment: PanelAssignment | null; bonus: CellBonus | null | undefined } {
+): { assignment: PanelAssignment | null; bonus: CellBonus | null | undefined; mismatch: MismatchReason | null } {
   const cell = cells.byCell[cellKey(date, employeeId)];
   const emptyBonus = cells.amounts ? null : undefined;
-  return { assignment: cell?.assignment ?? null, bonus: cell ? cell.bonus : emptyBonus };
+  return {
+    assignment: cell?.assignment ?? null,
+    bonus: cell?.assignment ? cell.bonus : emptyBonus,
+    mismatch: cell?.mismatch ?? null,
+  };
+}
+
+function panelAssignment(assignment: Assignment): PanelAssignment {
+  const { position_id, note, late, late_notified, left_early, bonus_task_id } = assignment;
+  return { position_id, note, late, late_notified, left_early, bonus_task_id };
 }

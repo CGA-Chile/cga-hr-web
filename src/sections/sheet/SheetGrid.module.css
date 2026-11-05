@@ -191,6 +191,19 @@
   color: var(--color-on-strong);
 }
 
+/* Red is "someone has to correct this"; amber is "this happened". */
+.mismatch {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  display: flex;
+  color: var(--color-danger);
+}
+
+.cell[data-duplicated] .mismatch {
+  color: var(--color-on-strong);
+}
+
 /* The weekend, told apart in the header and nowhere else: a cell's background belongs to its
    position, and a filled Sunday would otherwise read like a Tuesday. Saturday soft, Sunday and
    holidays stronger, and the weekday spelled out. */

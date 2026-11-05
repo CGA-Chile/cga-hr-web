@@ -52,9 +52,10 @@ es lo que se está pidiendo.
 - Cualquier otro bono: limpieza, turno noche. El monto del día de sábados, domingos y feriados
   está dentro (sección 5), los bonos de producción y cumplimiento también (sección 5b), y la
   descarga de camión entra como la primera tarea con bono (sección 5c).
-- Horas extras y control de horario. El atraso y la salida temprana sí están dentro, solo como
-  marcas que quitan el bono del día (sección 5).
-- Integración con software de remuneraciones, ERP o cualquier sistema externo.
+- Horas extras. El atraso y la salida temprana sí están dentro, como marcas que quitan el bono del
+  día (sección 5), y la asistencia se lee de Workera (sección 5d).
+- Integración con software de remuneraciones, ERP o cualquier otro sistema externo. Workera es la
+  única excepción, y es de solo lectura: la app nunca escribe en él.
 - Migración de datos históricos. **La app parte de cero.** Si se necesita un día anterior, se
   ingresa a mano por la app.
 - Funcionamiento offline con réplica local de la base.
@@ -279,8 +280,7 @@ validación del exceso son reglas de liquidación, no de cálculo: viven fuera d
   incompleto**: la asignación tiene la marca de **atraso**, la de **salida temprana**, o las dos.
   Esa persona sigue en su puesto en la planilla, pero para el bono no está: no cobra en ningún
   esquema, no cuenta para `n` y no cuenta como ocupante al buscar duplicados, así que quien la
-  cubrió cobra sin marca. Se liquida en 0. La app no lleva control de asistencia más allá de esas
-  marcas.
+  cubrió cobra sin marca. Se liquida en 0. La asistencia se compara con Workera (sección 5d).
 - El atraso se registra **con aviso** o **sin aviso**. Para el bono da lo mismo; el aviso queda como
   registro para RRHH. La salida temprana no lleva aviso. Los atrasos marcados antes de que existiera
   el aviso no lo tienen, y se muestran solo como "Atraso".
@@ -351,8 +351,8 @@ cumplimiento = incumplimientos >= límite ? 0 : max( 0, bruto − incumplimiento
 - **Puesto de cumplimiento** (`positions.compliance_bonus`): hoy todos los de trabajo menos
   Mantención y Supervisor. Bodega gana cumplimiento aunque no gane producción.
 - **Incumplimiento:** cada atraso, con o sin aviso, y cada Falta sin aviso
-  (`positions.compliance_strike`). Cuenta en cualquier día del período, sábado incluido: si RRHH no
-  quiere castigar un atraso, no lo marca. La salida temprana y la Falta con aviso no son
+  (`positions.compliance_strike`). Cuenta en cualquier día del período, sábado incluido. Si RRHH no
+  quiere castigar un atraso, lo perdona (sección 5d). La salida temprana y la Falta con aviso no son
   incumplimientos; la falta con aviso solo pierde su parte del día.
 - El descuento es sobre lo ganado, nunca deja el bono bajo cero, y al llegar al límite el bono es 0.
 
@@ -449,6 +449,84 @@ Con los valores de ejemplo de la sección 5 y una tarea de 3.000.
 | 31 | 4 puestos + tarea en BODEGA | total de la línea 15.000, sin marca de tope; 3.000 aparte |
 | 32 | Tarea marcada sobre un día que ya pagó 2.000 | arrastre de 1.000 |
 | 33 | Tarea marcada sobre un día que ya pagó 4.000 | arrastre de 0 |
+
+---
+
+## 5d. Asistencia desde Workera
+
+Workera, el reloj de huella, es la fuente de verdad de la asistencia y el registro legal. La app lo
+lee y nunca escribe en él: si una marcación está mal, se corrige en Workera. Las ausencias siguen en
+la app. Los permisos de Workera se ignoran, porque su clasificación no es confiable y la planilla
+suele estar más al día en licencias y vacaciones. Ver `docs/adr/0022`.
+
+### Lectura
+
+- Cada noche se releen los últimos 7 días, para que entren las correcciones hechas en Workera.
+- Un admin puede pedir una relectura eligiendo un rango de fechas.
+- La primera lectura parte desde el inicio del período abierto.
+- Se guarda solo persona, fecha y hora, tipo y estado de cada marcación. Las marcaciones inactivas no
+  cuentan.
+- Del día se usa la primera entrada y la última salida.
+- Las personas se cruzan por RUT. Un admin confirma el mapeo desde un botón; la app propone las
+  coincidencias, y nunca crea ni desactiva trabajadores por su cuenta.
+
+### Descuadre de asistencia
+
+Es una anomalía: se recalcula, no se reconoce, y desaparece al corregir la planilla o Workera.
+
+| Celda | Marcó | No marcó |
+|---|---|---|
+| Vacía | Descuadre | Falta automática |
+| Puesto de trabajo | Sin problema | Descuadre |
+| Licencia, Vacaciones, FCA o FSA | Descuadre | Sin problema |
+
+Si la marcación está incompleta, también es descuadre. Es la misma marca en todos los casos, y su nota
+dice el motivo:
+
+| Caso | Nota |
+|---|---|
+| Vacía, marcó | "Marcó en Workera y no tiene puesto" |
+| Puesto, no marcó | "Tiene puesto y no marcó en Workera" |
+| Ausencia, marcó | "Figura ausente y marcó en Workera" |
+| Marcación incompleta | "Olvidó marcar la entrada" o "Olvidó marcar la salida" |
+
+### Atraso y salida temprana
+
+- Se calculan comparando la marcación con el horario de Workera de ese día, más una **tolerancia** única
+  en minutos que define el admin. Parte en 0.
+- Cambiar la tolerancia recalcula los días de los períodos abiertos, salvo los ya liquidados.
+- Un día sin horario cuenta como asistencia y no tiene atraso ni salida temprana.
+- Una marcación incompleta no produce marcas: un olvido de huella no cuesta el bono por sí solo.
+- Los botones del panel se reemplazan por el dato de Workera. Si la marcación está a la hora, nadie
+  puede poner un atraso. El aviso del atraso se sigue agregando a mano.
+- Un admin puede **perdonar** una marca, de a una o en bloque por fecha, con motivo obligatorio. El perdón
+  quita la marca y su efecto en el bono, y la lectura no la vuelve a poner.
+
+### Falta automática
+
+Si la celda está vacía y la persona no marcó, la app registra Falta sin aviso con la nota "Registrada
+automáticamente por falta de marcación en Workera".
+
+- Solo si la persona está activa en ambos sistemas, tiene horario ese día, la fecha no es feriado y
+  la lectura de ese día fue exitosa.
+- Solo llena celdas vacías: nunca sobrescribe vacaciones, licencias ni otro valor ingresado.
+- Descuenta como una Falta sin aviso desde que se registra, esté confirmada o no.
+- El supervisor o el admin la confirman, una a una o en bloque por fecha. Cambiarla a mano también la
+  resuelve.
+- Si una relectura muestra que la persona marcó y la falta sigue sin confirmar ni cambiar, la app la
+  quita. Si ya fue confirmada o cambiada, no la toca y queda el descuadre.
+
+### Días liquidados
+
+La lectura no cambia marcas ni montos de un día liquidado. Solo se muestra el descuadre.
+
+### Etapas
+
+Cada etapa parte en una fecha que configura el admin.
+
+1. **Mostrar:** se ven los descuadres. No toca el pago ni bloquea el cierre.
+2. **Aplicar:** desde el inicio de un período futuro, se escriben marcas y faltas automáticas, y se
+   activa la compuerta de cierre (sección 7). Los días anteriores conservan sus marcas manuales.
 
 ---
 
@@ -857,6 +935,17 @@ persona sobrante o dejándola sin asignación, y recién ahí puede cerrar.
 Cubre **todos** los días que el cierre va a liquidar, incluidos los de arrastre de períodos
 anteriores. Son los que se están pagando ahora y es la última oportunidad de corregirlos.
 
+Desde la etapa 2 de Workera (sección 5d), también detienen el cierre, en los días que correspondan a
+esa etapa:
+
+- Un **descuadre de asistencia**. Si no se puede corregir, un admin lo valida con motivo obligatorio,
+  caso por caso.
+- Una **falta automática** sin confirmar.
+- Un día **sin lectura exitosa** de Workera.
+
+La pantalla de cierre muestra lo que bloquea, con persona, fecha y motivo, y cuántas faltas automáticas
+tiene cada persona.
+
 Es el único punto de la app que se niega a seguir, y es deliberado: cerrar es un acto
 administrativo que ocurre una docena de veces al año, no la carga diaria de datos. Cerrar ya
 estaba restringido a `admin`, así que la compuerta cae sobre el único rol que además puede
@@ -943,7 +1032,9 @@ sea reconocible.
   puesto repetido se pinta fuerte, y el día con aviso lleva una marca en el encabezado. Un día
   incompleto deja el puesto tal cual y agrega un ícono en la esquina de la celda: un reloj para el
   atraso y una flecha de salida para la salida temprana. Se marcan o se quitan desde la sección
-  "Día incompleto" del panel de la celda, que solo aparece en puestos de trabajo.
+  "Día incompleto" del panel de la celda, que solo aparece en puestos de trabajo. Desde la etapa 2 de
+  Workera, esa sección muestra el dato leído en vez de los botones (sección 5d). Un descuadre de
+  asistencia lleva un ícono rojo en la esquina: rojo es "hay que corregir", ámbar es "ocurrió algo".
 - **Panel lateral.** Tocar un día abre su resumen, el mismo de la sección 8.2. Tocar una celda abre
   el puesto, el bono de ese día, la nota y el historial. Los puestos se eligen ahí con botones
   agrupados, nunca escribiendo en la celda.
@@ -1048,6 +1139,9 @@ La compuerta de cierre (sección 7) es la red de seguridad de esta lista, no su 
 Solo `admin`, que incluye a RRHH (`docs/adr/0019`): personas, catálogo de puestos (con las marcas de producción, cumplimiento e
 incumplimiento), tarifas y montos de los bonos del período (nueva vigencia), períodos e historial
 completo.
+
+La sección **Sincronización** reúne lo de Workera: estado de la última lectura, relectura por rango de
+fechas, mapeo de trabajadores, tolerancia y fechas de inicio de cada etapa (sección 5d).
 
 La **bandeja de revisión** no está acá: la trabaja RRHH. Es visible para
 todos, como todo lo demás, y `editor` y `admin` pueden acusar recibo de sus ítems.

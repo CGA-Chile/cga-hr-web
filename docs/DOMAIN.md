@@ -1042,6 +1042,9 @@ La compuerta de cierre (sección 7) es la red de seguridad de esta lista, no su 
   esquema, monto, arrastre), y por bono del período los días, el divisor, los incumplimientos, la
   amonestación y la parte que es arrastre.
 - Exportación a XLSX y CSV con las columnas del Resumen y nada más: es lo que necesita contabilidad.
+- Los cuatro bonos fijos tienen siempre su columna. Cada tarea con bono tiene la suya, con el nombre de
+  la tarea, solo en los cierres en que pagó algo: una tarea creada que no se usó, o que pagó $0, no
+  aparece. La vista previa del cierre sigue la misma regla.
 
 ### 8.4 Administración
 

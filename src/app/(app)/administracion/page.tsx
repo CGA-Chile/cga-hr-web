@@ -13,7 +13,9 @@ import {
   type AdminEmployee,
   type AdminPosition,
 } from "@/sections/admin/queries";
+import { loadAttendanceStatus } from "@/sections/admin/attendanceQueries";
 import { RateVersionForm } from "@/sections/admin/RateVersionForm";
+import { SyncSection } from "@/sections/admin/SyncSection";
 import { loadBonusTasks, type BonusTask } from "@/sections/day/queries";
 import { addDays, todayInChile } from "@/utils/chileDate";
 import { loadCurrentProfile } from "@/utils/supabase/currentProfile";
@@ -25,7 +27,10 @@ type AdminPageProps = {
   searchParams: Promise<{ seccion?: SearchParam; editar?: SearchParam; nuevo?: SearchParam }>;
 };
 
-const SECTIONS: Section[] = ["trabajadores", "puestos", "tareas", "tarifas"];
+const SECTIONS: Section[] = ["trabajadores", "puestos", "tareas", "tarifas", "sincronizacion"];
+
+/** A reread of Workera runs as a Server Action of this page, and it is slow. */
+export const maxDuration = 300;
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const query = await searchParams;
@@ -45,6 +50,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     );
   }
 
+  const attendanceStatus = section === "sincronizacion" ? await loadAttendanceStatus(supabase) : null;
   const [employees, positions, versions, tasks] = await Promise.all([
     loadAdminEmployees(supabase),
     loadAdminPositions(supabase),
@@ -76,22 +82,26 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
       {section === "tareas" && <p className={styles.intro}>{adminCopy.tasks.intro}</p>}
       {section === "tarifas" && <p className={styles.intro}>{adminCopy.rates.intro}</p>}
-      <div className={styles.toolbar}>
-        <Link href={`${sectionPath}&nuevo=1`} scroll={false} className={styles.button}>
-          {section === "trabajadores"
-            ? adminCopy.employees.new
-            : section === "puestos"
-              ? adminCopy.positions.new
-              : section === "tareas"
-                ? adminCopy.tasks.new
-                : adminCopy.rates.new}
-        </Link>
-      </div>
+      {section === "sincronizacion" && <p className={styles.intro}>{adminCopy.sync.intro}</p>}
+      {section !== "sincronizacion" && (
+        <div className={styles.toolbar}>
+          <Link href={`${sectionPath}&nuevo=1`} scroll={false} className={styles.button}>
+            {section === "trabajadores"
+              ? adminCopy.employees.new
+              : section === "puestos"
+                ? adminCopy.positions.new
+                : section === "tareas"
+                  ? adminCopy.tasks.new
+                  : adminCopy.rates.new}
+          </Link>
+        </div>
+      )}
 
       {section === "trabajadores" && <EmployeesTable employees={employees} editHref={editHref} />}
       {section === "puestos" && <PositionsTable positions={positions} editHref={editHref} />}
       {section === "tareas" && <BonusTasksTable tasks={tasks} currentAmount={currentTaskAmount} editHref={editHref} />}
       {section === "tarifas" && <RateVersions versions={versions} positionName={positionName} taskName={taskName} />}
+      {attendanceStatus && <SyncSection status={attendanceStatus} />}
 
       {section === "trabajadores" && (creating || editing) && (
         <EmployeeDrawer employee={employees.find((e) => e.id === editing) ?? null} doneHref={sectionPath} />

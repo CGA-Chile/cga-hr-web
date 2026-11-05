@@ -7,15 +7,17 @@ import { formatAmount, formatPesos, formatThousands } from "@/utils/money";
 import { fullName, type Employee, type Position } from "../day/queries";
 import { sheetPath, type SheetParams } from "./paths";
 import { describeMarks } from "./incompleteDay";
-import { FixedDayRateIcon, LateIcon, LeftEarlyIcon } from "./MarkIcons";
+import { BonusTaskIcon, FixedDayRateIcon, LateIcon, LeftEarlyIcon } from "./MarkIcons";
 import { SheetCellLabel } from "./SheetCellLabel";
 import { BreakdownAllToggle, BreakdownRows, BreakdownToggle, SheetBreakdown } from "./SheetBreakdown";
-import { cellKey, toneOf, type BonusBasis, type Sheet, type SheetRow } from "./sheetModel";
+import { cellKey, isCarding, toneOf, type BonusBasis, type Sheet, type SheetRow } from "./sheetModel";
 import styles from "./SheetGrid.module.css";
 
 type SheetGridProps = {
   sheet: Sheet;
   positionsById: ReadonlyMap<string, Position>;
+  /** Task names by id, for the cell's title and label. */
+  taskNames: ReadonlyMap<string, string>;
   /** The page's own parameters, so every link keeps the range, the week and the mode. */
   params: SheetParams;
   /** The Monday of the week a phone shows; the other columns are hidden on narrow screens. */
@@ -38,7 +40,8 @@ type SheetGridProps = {
  * anchor: the cell panel host opens it in the browser, so the open cell is marked there too.
  */
 export function SheetGrid(props: SheetGridProps) {
-  const { sheet, positionsById, params, weekStart, today, holidays, fixedDayRates, showAmounts, reprimanded } = props;
+  const { sheet, positionsById, taskNames, params, weekStart, today, holidays, fixedDayRates, showAmounts, reprimanded } = props;
+  const taskName = (id: string) => taskNames.get(id) ?? "";
   const weekEnd = addDays(weekStart, 6);
   const outOfWeek = (date: IsoDate) => date < weekStart || date > weekEnd || undefined;
   const selected = (date: IsoDate) => params.date === date || undefined;
@@ -129,7 +132,7 @@ export function SheetGrid(props: SheetGridProps) {
                   </th>
                   {row.cells.map((cell) => {
                     const position = cell.assignment ? positionsById.get(cell.assignment.position_id) : undefined;
-                    const marks = cell.assignment ? describeMarks(cell.assignment) : null;
+                    const marks = cell.assignment ? describeMarks(cell.assignment, taskName) : null;
                     return (
                       <td
                         key={cell.date}
@@ -160,6 +163,7 @@ export function SheetGrid(props: SheetGridProps) {
                             <span className={styles.marks}>
                               {cell.assignment?.late && <LateIcon />}
                               {cell.assignment?.left_early && <LeftEarlyIcon />}
+                              {cell.assignment?.bonus_task_id && <BonusTaskIcon />}
                             </span>
                           )}
                         </a>
@@ -227,10 +231,11 @@ export function SheetGrid(props: SheetGridProps) {
 
 type BreakdownKind = { label: string; counts: (basis: BonusBasis) => boolean; total: (row: SheetRow) => number };
 
-/** The two daily bonuses, each on its own row under the person, in the same date columns. */
+/** The daily bonuses, each on its own row under the person, in the same date columns. */
 const BREAKDOWN_KINDS: readonly BreakdownKind[] = [
-  { label: sheetCopy.breakdownCarding, counts: (basis) => basis.scheme !== "DAY_RATE", total: (row) => row.carding },
+  { label: sheetCopy.breakdownCarding, counts: isCarding, total: (row) => row.carding },
   { label: sheetCopy.breakdownDayRate, counts: (basis) => basis.scheme === "DAY_RATE", total: (row) => row.dayRate },
+  { label: sheetCopy.breakdownTasks, counts: (basis) => basis.scheme === "TASK", total: (row) => row.tasks },
 ];
 
 type BreakdownRowProps = {

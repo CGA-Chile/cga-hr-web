@@ -190,6 +190,27 @@ describe("the breakdown under each row", () => {
       { amount: 150, incomplete: false, basis: { scheme: "POSITION_RATE" } },
     ]);
   });
+  it("shows a bonus task as the cell's only bonus, in its own breakdown, inside the person's total", () => {
+    const onTask = buildSheet({
+      dates: ["2026-09-07"],
+      employees: [ana],
+      assignments: [assignment("2026-09-07", "ana", "RIE")],
+      dailyBonuses: [
+        bonus("2026-09-07", {
+          scheme: "POSITION_RATE",
+          perEmployee: [{ employeeId: "ana", positionId: "RIE", amount: 0, late: false, leftEarly: false, bonusTaskId: "truck" }],
+          total: 0,
+          anomalies: [],
+          taskBonuses: [{ employeeId: "ana", positionId: "RIE", bonusTaskId: "truck", amount: 3_000 }],
+        }),
+      ],
+      positions: POSITIONS,
+    });
+
+    expect(onTask.rows[0].cells[0].bonus).toEqual({ amount: 3_000, incomplete: false, basis: { scheme: "TASK", bonusTaskId: "truck" } });
+    expect(onTask.rows[0]).toMatchObject({ carding: 0, tasks: 3_000, total: 3_000 });
+    expect(onTask.grandTotal).toBe(3_000);
+  });
 });
 
 it("colours a cell by what its position is, never by its code", () => {
@@ -239,7 +260,7 @@ describe("panel cells", () => {
     },
   ];
 
-  it("hands the panel what the cell holds: position, note and marks", () => {
+  it("hands the panel what the cell holds: position, note, marks and task", () => {
     const cells = buildPanelCells(rows, true);
     expect(findPanelCell(cells, { date: "2026-09-01", employeeId: "ana" }).assignment).toEqual({
       position_id: "RIE",
@@ -247,6 +268,7 @@ describe("panel cells", () => {
       late: true,
       late_notified: true,
       left_early: false,
+      bonus_task_id: null,
     });
   });
 

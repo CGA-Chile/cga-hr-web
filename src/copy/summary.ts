@@ -18,6 +18,10 @@ export const summaryCopy = {
   positionColumn: "Puesto",
   amountColumn: "Monto",
   total: "Total del día",
+  onTask: (task: string) => `${task}, $0`,
+  tasksTitle: "Tareas con bono",
+  tasksHint: "Ese día ganan solo el bono de la tarea. No entra en el total de la línea ni en el tope.",
+  taskLine: (task: string, count: number, total: string) => `${task}: ${people(count)} · ${total}`,
   incomplete: (late: boolean, leftEarly: boolean) =>
     `${late && leftEarly ? "Atraso y salida temprana" : late ? "Atraso" : "Salida temprana"}, $0`,
   aboveCap: (total: string, cap: string) => `Total del día: ${total} — sobre el tope de ${cap}.`,

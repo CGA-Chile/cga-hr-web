@@ -103,6 +103,7 @@ export function undoCells(previous: readonly PreviousDay[]): UndoCell[] {
       late: day.previous_late ?? false,
       ...(day.previous_late_notified !== null && { lateNotified: day.previous_late_notified }),
       leftEarly: day.previous_left_early ?? false,
+      bonusTaskId: day.previous_bonus_task_id,
     };
   });
 }

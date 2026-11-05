@@ -122,6 +122,8 @@ export type CellMovement = Pick<
   | "new_late_notified"
   | "previous_left_early"
   | "new_left_early"
+  | "previous_bonus_task_id"
+  | "new_bonus_task_id"
   | "changed_at"
 > & { changedBy: string | null };
 
@@ -147,7 +149,7 @@ export async function loadCellHistory(
     supabase
       .from("assignment_history")
       .select(
-        "id, previous_position_id, new_position_id, previous_late, new_late, previous_late_notified, new_late_notified, previous_left_early, new_left_early, changed_at, changed_by",
+        "id, previous_position_id, new_position_id, previous_late, new_late, previous_late_notified, new_late_notified, previous_left_early, new_left_early, previous_bonus_task_id, new_bonus_task_id, changed_at, changed_by",
       )
       .eq("date", date)
       .eq("employee_id", employeeId)

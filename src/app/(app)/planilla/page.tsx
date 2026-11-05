@@ -9,7 +9,7 @@ import { loadCalendar, loadDailyBonuses, loadSettingsVersions } from "@/sections
 import { loadPeriodBonusAmounts, loadPeriodBonusPositions, loadReprimands } from "@/sections/bonus/periodBonuses";
 import { toBonusAssignment, toBonusPosition } from "@/sections/bonus/toBonus";
 import { loadDuplicateDates } from "@/sections/bonus/duplicateDates";
-import { fullName, loadPositions, loadRangeRows } from "@/sections/day/queries";
+import { fullName, loadBonusTasks, loadPositions, loadRangeRows } from "@/sections/day/queries";
 import { loadPeriods } from "@/sections/periods/queries";
 import type { SheetParams } from "@/sections/sheet/paths";
 import { SheetAbbreviations } from "@/sections/sheet/SheetCellLabel";
@@ -75,7 +75,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
   const period = ranges.current.period;
 
   // A role without amounts gets no calculation at all: the database would refuse it the rates.
-  const [positions, { employees, assignments }, dailyBonuses, anomalousDateCount, calendar, versions, reprimands] =
+  const [positions, { employees, assignments }, dailyBonuses, anomalousDateCount, calendar, versions, reprimands, bonusTasks] =
     await Promise.all([
       loadPositions(supabase),
       loadRangeRows(supabase, addDays(start, -LOOK_BACK_DAYS), end),
@@ -84,6 +84,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
       loadCalendar(supabase, start, end),
       showAmounts ? loadSettingsVersions(supabase) : [],
       showAmounts && period ? loadReprimands(supabase, period.id) : new Map<string, string | null>(),
+      loadBonusTasks(supabase),
     ]);
   const inRange = assignments.filter((assignment) => assignment.date >= start);
   const reprimanded = new Set(reprimands.keys());
@@ -142,11 +143,13 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
             employees={sheet.rows.map(({ employee: { id, first_name, last_name } }) => ({ id, first_name, last_name }))}
             cells={buildPanelCells(sheet.rows, showAmounts)}
             positions={positions}
+            bonusTasks={bonusTasks}
             mayChangePaid={profile?.role === "admin"}
           >
             <SheetGrid
               sheet={sheet}
               positionsById={positionsById}
+              taskNames={new Map(bonusTasks.map((task) => [task.id, task.name]))}
               params={params}
               weekStart={week.start}
               today={today}
@@ -169,6 +172,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
                 dailyBonus={dayBonus ?? null}
                 positions={positions}
                 employeeName={(id) => namesById.get(id) ?? ""}
+                taskName={(id) => bonusTasks.find((task) => task.id === id)?.name ?? ""}
               />
             ) : (
               <DuplicateSummary duplicates={panelDuplicates} positionName={(id) => positionsById.get(id)?.name ?? ""} />

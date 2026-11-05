@@ -47,6 +47,7 @@ describe("the close report", () => {
         periodBonus("ana", ANA, { bonus: "COMPLIANCE", amount: 10_500 }),
         periodBonus("ana", ANA, { originName: "Septiembre 2026", carryOver: true, days: 1, amount: 3_500 }),
       ],
+      [],
     );
 
     expect(report.rows).toHaveLength(1);
@@ -58,10 +59,10 @@ describe("the close report", () => {
   });
 
   it("lists someone paid only a period bonus, sorted by name", () => {
-    const report = aggregateReport([daily("ana", ANA, {})], [periodBonus("bruno", BRUNO, { bonus: "COMPLIANCE", amount: 12_600 })]);
+    const report = aggregateReport([daily("ana", ANA, {})], [periodBonus("bruno", BRUNO, { bonus: "COMPLIANCE", amount: 12_600 })], []);
 
     expect(report.rows.map((row) => row.name)).toEqual(["Ana Fuentes", "Bruno Díaz"]);
-    expect(report.amounts).toEqual({ carding: 4_000, dayRate: 0, production: 0, compliance: 12_600 });
+    expect(report.amounts).toEqual({ carding: 4_000, dayRate: 0, production: 0, compliance: 12_600, tasks: 0 });
     expect(report.total).toBe(16_600);
   });
 
@@ -69,12 +70,13 @@ describe("the close report", () => {
     const report = aggregateReport(
       [daily("ana", ANA, { carryOver: true })],
       [periodBonus("ana", ANA, {})],
+      [{ employeeId: "ana", person: ANA, date: "2026-10-12", taskName: "Descarga de camión", amount: 3_000, carryOver: false }],
     );
 
     expect(exportTable(report)).toEqual([
-      ["Trabajador", "RUT", "Bono cardas", "Bono día no hábil", "Bono de producción", "Bono de cumplimiento", "Total"],
-      ["Ana Fuentes", "1-9", 4_000, 0, 20_000, 0, 24_000],
-      ["Totales", "", 4_000, 0, 20_000, 0, 24_000],
+      ["Trabajador", "RUT", "Bono cardas", "Bono día no hábil", "Bono de producción", "Bono de cumplimiento", "Tareas con bono", "Total"],
+      ["Ana Fuentes", "1-9", 4_000, 0, 20_000, 0, 3_000, 27_000],
+      ["Totales", "", 4_000, 0, 20_000, 0, 3_000, 27_000],
     ]);
   });
 });

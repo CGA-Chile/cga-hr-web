@@ -1,5 +1,5 @@
 import { summaryCopy } from "@/copy/summary";
-import type { DailyBonusResult, DayRate } from "@/domain/bonus/types";
+import type { DailyBonusResult, DayRate, TaskBonus } from "@/domain/bonus/types";
 import { formatPesos } from "@/utils/money";
 import { describeAnomaly } from "./anomalyText";
 import type { DailyBonus } from "./dailyBonuses";
@@ -12,13 +12,14 @@ type DailySummaryProps = {
   dailyBonus: DailyBonus | null;
   positions: readonly SummaryPosition[];
   employeeName: (employeeId: string) => string;
+  taskName: (bonusTaskId: string) => string;
 };
 
 /**
  * Which scheme applies and why, who earns what, the total, and the marks. It never blocks and
  * never scolds: a wrong total shows itself.
  */
-export function DailySummary({ dailyBonus, positions, employeeName }: DailySummaryProps) {
+export function DailySummary({ dailyBonus, positions, employeeName, taskName }: DailySummaryProps) {
   const positionName = (id: string) => positions.find((position) => position.id === id)?.name ?? "";
 
   return (
@@ -54,9 +55,11 @@ export function DailySummary({ dailyBonus, positions, employeeName }: DailySumma
                   <td>{employeeName(entry.employeeId)}</td>
                   <td>{positionName(entry.positionId)}</td>
                   <td className={styles.amount}>
-                    {entry.late || entry.leftEarly
-                      ? summaryCopy.incomplete(entry.late, entry.leftEarly)
-                      : formatPesos(entry.amount)}
+                    {entry.bonusTaskId
+                      ? summaryCopy.onTask(taskName(entry.bonusTaskId))
+                      : entry.late || entry.leftEarly
+                        ? summaryCopy.incomplete(entry.late, entry.leftEarly)
+                        : formatPesos(entry.amount)}
                   </td>
                 </tr>
               ))}
@@ -72,7 +75,31 @@ export function DailySummary({ dailyBonus, positions, employeeName }: DailySumma
           </table>
         </>
       )}
+      {dailyBonus?.result && <TaskSummary taskBonuses={dailyBonus.result.taskBonuses} taskName={taskName} />}
     </section>
+  );
+}
+
+/** Apart from the line: a task is a fixed amount per person, outside the line's total and the cap. */
+function TaskSummary({ taskBonuses, taskName }: { taskBonuses: readonly TaskBonus[]; taskName: (id: string) => string }) {
+  if (taskBonuses.length === 0) return null;
+  const byTask = Map.groupBy(taskBonuses, (task) => task.bonusTaskId);
+  return (
+    <>
+      <h3 className={styles.title}>{summaryCopy.tasksTitle}</h3>
+      <p className={styles.reason}>{summaryCopy.tasksHint}</p>
+      <ul className={styles.marks}>
+        {[...byTask].map(([bonusTaskId, entries]) => (
+          <li key={bonusTaskId}>
+            {summaryCopy.taskLine(
+              taskName(bonusTaskId),
+              entries.length,
+              formatPesos(entries.reduce((sum, entry) => sum + entry.amount, 0)),
+            )}
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 

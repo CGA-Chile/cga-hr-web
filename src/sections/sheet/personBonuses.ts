@@ -13,6 +13,7 @@ import type { DailyBonus } from "@/sections/bonus/dailyBonuses";
 export type PersonBonuses = {
   carding: number;
   dayRate: number;
+  tasks: number;
   period: (EmployeePeriodBonus & { workingDays: number }) | null;
 };
 
@@ -29,18 +30,22 @@ type PersonBonusesInput = {
   reprimanded: ReadonlySet<string>;
 };
 
-/** One person's four bonuses over the range: the daily ones as calculated, the period ones as of today. */
+/** One person's bonuses over the range: the daily ones as calculated, the period ones as of today. */
 export function personBonuses(input: PersonBonusesInput): PersonBonuses {
   let carding = 0;
   let dayRate = 0;
+  let tasks = 0;
   for (const day of input.dailyBonuses) {
     for (const entry of day.result?.perEmployee ?? []) {
       if (entry.employeeId !== input.employeeId) continue;
       if (day.result?.scheme === "DAY_RATE") dayRate += entry.amount;
       else carding += entry.amount;
     }
+    for (const task of day.result?.taskBonuses ?? []) {
+      if (task.employeeId === input.employeeId) tasks += task.amount;
+    }
   }
-  if (!input.amounts) return { carding, dayRate, period: null };
+  if (!input.amounts) return { carding, dayRate, tasks, period: null };
 
   const result = calculatePeriodBonuses({
     startDate: input.startDate,
@@ -57,5 +62,5 @@ export function personBonuses(input: PersonBonusesInput): PersonBonuses {
     production: 0,
     compliance: 0,
   };
-  return { carding, dayRate, period: { ...own, workingDays: result.workingDays } };
+  return { carding, dayRate, tasks, period: { ...own, workingDays: result.workingDays } };
 }

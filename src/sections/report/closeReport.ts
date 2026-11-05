@@ -8,10 +8,10 @@ import { fullName } from "@/sections/day/queries";
 import type { Period } from "@/sections/periods/queries";
 import { fetchAllRows, orThrow, type ServerSupabase } from "@/utils/supabase/query";
 
-/** The four bonuses a close reports, each kept apart. */
-export type BonusAmounts = { carding: number; dayRate: number; production: number; compliance: number };
+/** The bonuses a close reports, each kept apart. Every bonus task shares one column; each line names its task. */
+export type BonusAmounts = { carding: number; dayRate: number; production: number; compliance: number; tasks: number };
 
-export const REPORT_BONUSES = ["carding", "dayRate", "production", "compliance"] as const satisfies readonly (keyof BonusAmounts)[];
+export const REPORT_BONUSES = ["carding", "dayRate", "production", "compliance", "tasks"] as const satisfies readonly (keyof BonusAmounts)[];
 
 export type ReportLine = {
   date: IsoDate;
@@ -33,6 +33,14 @@ export type PeriodBonusLine = {
   amount: number;
 };
 
+/** One bonus task paid by this close. On a day whose line amount was already frozen, the top-up. */
+export type TaskLine = {
+  date: IsoDate;
+  taskName: string;
+  amount: number;
+  carryOver: boolean;
+};
+
 export type ReportRow = {
   employeeId: string;
   name: string;
@@ -43,6 +51,7 @@ export type ReportRow = {
   total: number;
   lines: ReportLine[];
   periodBonusLines: PeriodBonusLine[];
+  taskLines: TaskLine[];
 };
 
 export type CloseReport = {
@@ -54,6 +63,7 @@ export type CloseReport = {
 export type Person = { name: string; nationalId: string | null };
 export type DailyEntry = ReportLine & { employeeId: string; person: Person };
 export type PeriodBonusEntry = PeriodBonusLine & { employeeId: string; person: Person };
+export type TaskEntry = TaskLine & { employeeId: string; person: Person };
 
 /**
  * What a closed period paid, per person and per bonus. Amounts are the frozen values, never
@@ -66,12 +76,20 @@ export type PeriodBonusEntry = PeriodBonusLine & { employeeId: string; person: P
  * calendar as they stand.
  */
 export async function loadCloseReport(supabase: ServerSupabase, period: Period): Promise<CloseReport> {
-  const [daily, periodBonus] = await Promise.all([loadDailyEntries(supabase, period), loadPeriodBonusEntries(supabase, period)]);
-  return aggregateReport(daily, periodBonus);
+  const [daily, periodBonus, tasks] = await Promise.all([
+    loadDailyEntries(supabase, period),
+    loadPeriodBonusEntries(supabase, period),
+    loadTaskEntries(supabase, period),
+  ]);
+  return aggregateReport(daily, periodBonus, tasks);
 }
 
 /** Groups the entries per person, splitting each amount by bonus and carry-over. */
-export function aggregateReport(daily: readonly DailyEntry[], periodBonus: readonly PeriodBonusEntry[]): CloseReport {
+export function aggregateReport(
+  daily: readonly DailyEntry[],
+  periodBonus: readonly PeriodBonusEntry[],
+  tasks: readonly TaskEntry[],
+): CloseReport {
   const byEmployee = new Map<string, ReportRow>();
   const rowFor = (employeeId: string, person: Person): ReportRow => {
     const existing = byEmployee.get(employeeId);
@@ -84,6 +102,7 @@ export function aggregateReport(daily: readonly DailyEntry[], periodBonus: reado
       total: 0,
       lines: [],
       periodBonusLines: [],
+      taskLines: [],
     };
     byEmployee.set(employeeId, created);
     return created;
@@ -104,6 +123,11 @@ export function aggregateReport(daily: readonly DailyEntry[], periodBonus: reado
     add(row, line.bonus === "PRODUCTION" ? "production" : "compliance", line.amount, line.carryOver);
     row.periodBonusLines.push(line);
   }
+  for (const { employeeId, person, ...line } of tasks) {
+    const row = rowFor(employeeId, person);
+    add(row, "tasks", line.amount, line.carryOver);
+    row.taskLines.push(line);
+  }
 
   const rows = [...byEmployee.values()]
     .map((row) => ({
@@ -112,6 +136,7 @@ export function aggregateReport(daily: readonly DailyEntry[], periodBonus: reado
       periodBonusLines: row.periodBonusLines.sort(
         (a, b) => Number(a.carryOver) - Number(b.carryOver) || b.bonus.localeCompare(a.bonus),
       ),
+      taskLines: row.taskLines.sort((a, b) => a.date.localeCompare(b.date)),
     }))
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
   const amounts = zero();
@@ -123,7 +148,7 @@ export function aggregateReport(daily: readonly DailyEntry[], periodBonus: reado
 }
 
 function zero(): BonusAmounts {
-  return { carding: 0, dayRate: 0, production: 0, compliance: 0 };
+  return { carding: 0, dayRate: 0, production: 0, compliance: 0, tasks: 0 };
 }
 
 export function personOf(employee: { first_name: string; last_name: string; national_id: string | null } | null): Person {
@@ -185,6 +210,24 @@ async function loadDailyEntries(supabase: ServerSupabase, period: Period): Promi
     positionName: positionsById.get(row.position_id)?.name ?? "",
     scheme: schemeOn(row.date),
     amount: row.settled_amount ?? 0,
+    carryOver: row.date < period.start_date,
+  }));
+}
+
+async function loadTaskEntries(supabase: ServerSupabase, period: Period): Promise<TaskEntry[]> {
+  const rows = orThrow(
+    await supabase
+      .from("bonus_task_settlements")
+      .select("employee_id, date, amount, bonus_tasks(name), employees(first_name, last_name, national_id)")
+      .eq("period_id", period.id)
+      .is("deleted_at", null),
+  );
+  return rows.map((row) => ({
+    employeeId: row.employee_id,
+    person: personOf(row.employees),
+    date: row.date,
+    taskName: row.bonus_tasks?.name ?? "",
+    amount: row.amount,
     carryOver: row.date < period.start_date,
   }));
 }

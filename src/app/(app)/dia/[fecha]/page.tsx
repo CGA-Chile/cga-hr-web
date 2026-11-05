@@ -12,6 +12,7 @@ import { EmployeeDrawer } from "@/sections/day/EmployeeDrawer";
 import { groupPositionsForPicker } from "@/sections/day/positionGroups";
 import {
   fullName,
+  loadBonusTasks,
   loadCellHistory,
   loadDayRows,
   loadEmployeeMonth,
@@ -41,7 +42,7 @@ export default async function DayPage({ params, searchParams }: DayPageProps) {
 
   const supabase = await createSupabaseServerClient();
   const showAmounts = seesAmounts(await loadCurrentProfile(supabase));
-  const [positions, rows, modifiedEmployeeIds, dailyBonuses, anomalousDateCount, employeeMonth, cellHistory] =
+  const [positions, rows, modifiedEmployeeIds, dailyBonuses, anomalousDateCount, employeeMonth, cellHistory, tasks] =
     await Promise.all([
       loadPositions(supabase),
       loadDayRows(supabase, fecha),
@@ -50,6 +51,7 @@ export default async function DayPage({ params, searchParams }: DayPageProps) {
       (showAmounts ? loadAnomalousDates(supabase) : loadDuplicateDates(supabase)).then((dates) => dates.length),
       employeeId ? loadEmployeeMonth(supabase, employeeId, fecha) : null,
       cellEmployeeId ? loadCellHistory(supabase, fecha, cellEmployeeId) : null,
+      loadBonusTasks(supabase),
     ]);
   const positionsById = new Map(positions.map((position) => [position.id, position]));
   const cellRow = rows.find((row) => row.employee.id === cellEmployeeId);
@@ -70,6 +72,7 @@ export default async function DayPage({ params, searchParams }: DayPageProps) {
               dailyBonus={dailyBonuses[0] ?? null}
               positions={positions}
               employeeName={(id) => namesById.get(id) ?? ""}
+              taskName={(id) => tasks.find((task) => task.id === id)?.name ?? ""}
             />
           ) : (
             <DuplicateSummary
@@ -97,6 +100,7 @@ export default async function DayPage({ params, searchParams }: DayPageProps) {
           assignment={cellRow.assignment}
           history={cellHistory}
           positionsById={positionsById}
+          bonusTasksById={new Map(tasks.map((task) => [task.id, task]))}
         />
       )}
     </>

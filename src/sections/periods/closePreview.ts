@@ -1,7 +1,8 @@
 import type { BonusScheme, IsoDate } from "@/domain/bonus/types";
 import type { PeriodBonusSettlement } from "@/domain/periodBonus/types";
-import type { SettlementEntry } from "@/domain/settlement/types";
+import type { SettlementEntry, TaskSettlementEntry } from "@/domain/settlement/types";
 import { aggregateReport, personOf, type CloseReport, type Person } from "@/sections/report/closeReport";
+import { loadBonusTasks } from "@/sections/day/queries";
 import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
 import type { LoadedClosePlan } from "./closePlan";
 import { loadPeriods, type Period } from "./queries";
@@ -9,6 +10,7 @@ import { loadPeriods, type Period } from "./queries";
 export type ClosePreviewInput = {
   toSettle: readonly SettlementEntry[];
   periodBonusSettlements: readonly PeriodBonusSettlement[];
+  taskSettlements: readonly TaskSettlementEntry[];
   /** The scheme each date to settle was calculated under. */
   schemes: ReadonlyMap<IsoDate, BonusScheme>;
 };
@@ -16,6 +18,7 @@ export type ClosePreviewInput = {
 export type PreviewNames = {
   person: (employeeId: string) => Person;
   position: (positionId: string) => string;
+  task: (bonusTaskId: string) => string;
   period: (periodId: string) => string;
 };
 
@@ -47,7 +50,15 @@ export function closePreview(input: ClosePreviewInput, periodId: string, names: 
     reprimanded: settlement.reprimanded,
     amount: settlement.amount,
   }));
-  const report = aggregateReport(daily, periodBonus);
+  const tasks = input.taskSettlements.map((settlement) => ({
+    employeeId: settlement.employeeId,
+    person: names.person(settlement.employeeId),
+    date: settlement.date,
+    taskName: names.task(settlement.bonusTaskId),
+    amount: settlement.amount,
+    carryOver: settlement.kind === "CARRY_OVER",
+  }));
+  const report = aggregateReport(daily, periodBonus, tasks);
   return { ...report, rows: report.rows.filter((row) => row.total > 0) };
 }
 
@@ -60,19 +71,25 @@ export async function loadClosePreview(
 ): Promise<CloseReport> {
   const toSettle = loaded.plan.toSettle;
   const periodBonusSettlements = loaded.periodBonuses.settlements;
-  const employeeIds = [...new Set([...toSettle, ...periodBonusSettlements].map((row) => row.employeeId))];
-  const [employees, periods] = await Promise.all([
+  const taskSettlements = loaded.taskSettlements.toSettle;
+  const employeeIds = [
+    ...new Set([...toSettle, ...periodBonusSettlements, ...taskSettlements].map((row) => row.employeeId)),
+  ];
+  const [employees, periods, tasks] = await Promise.all([
     employeeIds.length
       ? supabase.from("employees").select("id, first_name, last_name, national_id").in("id", employeeIds)
       : Promise.resolve({ data: [], error: null }),
     loadPeriods(supabase),
+    loadBonusTasks(supabase),
   ]);
   const people = new Map(orThrow(employees).map((employee) => [employee.id, personOf(employee)]));
   const periodNames = new Map(periods.map((each) => [each.id, each.name]));
+  const taskNames = new Map(tasks.map((task) => [task.id, task.name]));
 
-  return closePreview({ toSettle, periodBonusSettlements, schemes: loaded.schemes }, period.id, {
+  return closePreview({ toSettle, periodBonusSettlements, taskSettlements, schemes: loaded.schemes }, period.id, {
     person: (employeeId) => people.get(employeeId) ?? personOf(null),
     position: positionName,
+    task: (bonusTaskId) => taskNames.get(bonusTaskId) ?? "",
     period: (periodId) => periodNames.get(periodId) ?? "",
   });
 }

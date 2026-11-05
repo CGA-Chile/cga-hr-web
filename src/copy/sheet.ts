@@ -59,9 +59,11 @@ export const sheetCopy = {
   basisEqualShare: (count: number) =>
     `Reparto igualitario: la línea se reparte en partes iguales entre ${count === 1 ? "1 persona" : `${count} personas`}.`,
   basisDayRate: "Bono día no hábil: todos los que trabajaron ganan lo mismo, sin importar el puesto.",
+  basisTask: (task: string) => `${task}: ese día gana solo el bono de la tarea, en vez del bono de su puesto.`,
 
   breakdownCarding: "Cardas",
   breakdownDayRate: "Día no hábil",
+  breakdownTasks: "Tareas",
   breakdownOpenAll: "Abrir todos",
   breakdownCloseAll: "Cerrar todos",
   breakdownShow: (name: string) => `Ver el detalle del bono de ${name}`,
@@ -82,6 +84,10 @@ export const sheetCopy = {
   withoutNotice: "Sin aviso",
   leftEarlyGroup: "Salida",
   leftEarly: "Se retiró temprano",
+  bonusTask: "Tarea con bono",
+  bonusTaskTitle: "Tarea con bono",
+  bonusTaskHint:
+    "Sigue en su puesto. Ese día gana solo el bono de la tarea, en vez del bono de su puesto. Un atraso no le quita la tarea.",
   historyLoading: "Cargando cambios…",
   historyFailed: "No se pudieron cargar los cambios. Revisa la señal y vuelve a abrir la celda.",
   clearPosition: "Vaciar",
@@ -180,6 +186,7 @@ export const sheetCopy = {
     bonusesTitle: "Bonos de este período",
     carding: "Bono cardas",
     dayRate: "Bono día no hábil",
+    tasks: "Tareas con bono",
     production: "Bono de producción",
     compliance: "Bono de cumplimiento",
     estimated: "estimado",

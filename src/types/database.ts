@@ -76,10 +76,12 @@ export type Database = {
           deleted_at: string | null
           employee_id: string
           id: string
+          new_bonus_task_id: string | null
           new_late: boolean | null
           new_late_notified: boolean | null
           new_left_early: boolean | null
           new_position_id: string | null
+          previous_bonus_task_id: string | null
           previous_late: boolean | null
           previous_late_notified: boolean | null
           previous_left_early: boolean | null
@@ -97,10 +99,12 @@ export type Database = {
           deleted_at?: string | null
           employee_id: string
           id?: string
+          new_bonus_task_id?: string | null
           new_late?: boolean | null
           new_late_notified?: boolean | null
           new_left_early?: boolean | null
           new_position_id?: string | null
+          previous_bonus_task_id?: string | null
           previous_late?: boolean | null
           previous_late_notified?: boolean | null
           previous_left_early?: boolean | null
@@ -118,10 +122,12 @@ export type Database = {
           deleted_at?: string | null
           employee_id?: string
           id?: string
+          new_bonus_task_id?: string | null
           new_late?: boolean | null
           new_late_notified?: boolean | null
           new_left_early?: boolean | null
           new_position_id?: string | null
+          previous_bonus_task_id?: string | null
           previous_late?: boolean | null
           previous_late_notified?: boolean | null
           previous_left_early?: boolean | null
@@ -140,6 +146,13 @@ export type Database = {
             foreignKeyName: "assignment_history_assignment_id_fkey"
             columns: ["assignment_id"]
             isOneToOne: false
+            referencedRelation: "bonus_task_owed_days"
+            referencedColumns: ["assignment_id"]
+          },
+          {
+            foreignKeyName: "assignment_history_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
             referencedRelation: "period_bonus_owed_days"
             referencedColumns: ["assignment_id"]
           },
@@ -151,10 +164,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "assignment_history_new_bonus_task_id_fkey"
+            columns: ["new_bonus_task_id"]
+            isOneToOne: false
+            referencedRelation: "bonus_tasks"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "assignment_history_new_position_id_fkey"
             columns: ["new_position_id"]
             isOneToOne: false
             referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_history_previous_bonus_task_id_fkey"
+            columns: ["previous_bonus_task_id"]
+            isOneToOne: false
+            referencedRelation: "bonus_tasks"
             referencedColumns: ["id"]
           },
           {
@@ -168,6 +195,7 @@ export type Database = {
       }
       assignments: {
         Row: {
+          bonus_task_id: string | null
           compliance_settled_in_period_id: string | null
           created_at: string
           created_by: string | null
@@ -187,6 +215,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          bonus_task_id?: string | null
           compliance_settled_in_period_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -206,6 +235,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          bonus_task_id?: string | null
           compliance_settled_in_period_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -225,6 +255,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "assignments_bonus_task_id_fkey"
+            columns: ["bonus_task_id"]
+            isOneToOne: false
+            referencedRelation: "bonus_tasks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "assignments_compliance_settled_in_period_id_fkey"
             columns: ["compliance_settled_in_period_id"]
@@ -378,6 +415,167 @@ export type Database = {
           strike_deduction?: number | null
           strike_limit?: number | null
           sunday_day_rate?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bonus_task_rates: {
+        Row: {
+          amount: number
+          bonus_settings_id: string
+          bonus_task_id: string
+          created_at: string
+          deleted_at: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          bonus_settings_id: string
+          bonus_task_id: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bonus_settings_id?: string
+          bonus_task_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_task_rates_bonus_settings_id_fkey"
+            columns: ["bonus_settings_id"]
+            isOneToOne: false
+            referencedRelation: "bonus_settings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bonus_task_rates_bonus_task_id_fkey"
+            columns: ["bonus_task_id"]
+            isOneToOne: false
+            referencedRelation: "bonus_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bonus_task_settlements: {
+        Row: {
+          amount: number
+          assignment_id: string
+          bonus_task_id: string
+          created_at: string
+          date: string
+          deleted_at: string | null
+          employee_id: string
+          id: string
+          period_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          assignment_id: string
+          bonus_task_id: string
+          created_at?: string
+          date: string
+          deleted_at?: string | null
+          employee_id: string
+          id?: string
+          period_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          assignment_id?: string
+          bonus_task_id?: string
+          created_at?: string
+          date?: string
+          deleted_at?: string | null
+          employee_id?: string
+          id?: string
+          period_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_task_settlements_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bonus_task_settlements_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "bonus_task_owed_days"
+            referencedColumns: ["assignment_id"]
+          },
+          {
+            foreignKeyName: "bonus_task_settlements_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["assignment_id"]
+          },
+          {
+            foreignKeyName: "bonus_task_settlements_bonus_task_id_fkey"
+            columns: ["bonus_task_id"]
+            isOneToOne: false
+            referencedRelation: "bonus_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bonus_task_settlements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bonus_task_settlements_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "period_bonus_owed_days"
+            referencedColumns: ["origin_period_id"]
+          },
+          {
+            foreignKeyName: "bonus_task_settlements_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bonus_tasks: {
+        Row: {
+          active: boolean
+          created_at: string
+          deleted_at: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          name?: string
           updated_at?: string
         }
         Relationships: []
@@ -837,6 +1035,45 @@ export type Database = {
       }
     }
     Views: {
+      bonus_task_owed_days: {
+        Row: {
+          assignment_id: string | null
+          bonus_task_id: string | null
+          date: string | null
+          employee_id: string | null
+          paid_amount: number | null
+        }
+        Insert: {
+          assignment_id?: string | null
+          bonus_task_id?: string | null
+          date?: string | null
+          employee_id?: string | null
+          paid_amount?: never
+        }
+        Update: {
+          assignment_id?: string | null
+          bonus_task_id?: string | null
+          date?: string | null
+          employee_id?: string | null
+          paid_amount?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignments_bonus_task_id_fkey"
+            columns: ["bonus_task_id"]
+            isOneToOne: false
+            referencedRelation: "bonus_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       period_bonus_owed_days: {
         Row: {
           assignment_id: string | null
@@ -875,6 +1112,7 @@ export type Database = {
           employee_id: string | null
           history_id: string | null
           kind: string | null
+          new_bonus_task_id: string | null
           new_day_rate: number | null
           new_holiday: boolean | null
           new_late: boolean | null
@@ -882,6 +1120,7 @@ export type Database = {
           new_left_early: boolean | null
           new_position_id: string | null
           period_id: string | null
+          previous_bonus_task_id: string | null
           previous_day_rate: number | null
           previous_holiday: boolean | null
           previous_late: boolean | null
@@ -910,6 +1149,8 @@ export type Database = {
     Functions: {
       apply_assignment_operation: {
         Args: {
+          p_bonus_task_id?: string
+          p_clear_bonus_task?: boolean
           p_date: string
           p_employee_id: string
           p_late?: boolean
@@ -930,6 +1171,7 @@ export type Database = {
         }
         Returns: {
           changed_date: string
+          previous_bonus_task_id: string
           previous_late: boolean
           previous_late_notified: boolean
           previous_left_early: boolean
@@ -944,6 +1186,7 @@ export type Database = {
           p_period_bonuses?: Json
           p_period_id: string
           p_settlements: Json
+          p_task_settlements?: Json
         }
         Returns: undefined
       }
@@ -960,7 +1203,12 @@ export type Database = {
           p_strike_deduction?: number
           p_strike_limit?: number
           p_sunday_day_rate: number
+          p_task_rates?: Json
         }
+        Returns: string
+      }
+      create_bonus_task: {
+        Args: { p_amount: number; p_name: string }
         Returns: string
       }
       set_calendar_date: {

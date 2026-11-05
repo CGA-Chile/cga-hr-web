@@ -54,6 +54,14 @@ _Avoid_: tardiness, absence
 A mark of an incomplete day: left before the end. No notice is recorded for it.
 _Avoid_: early exit, absence
 
+**Bonus task** _(tarea con bono)_:
+A mark on a cell, on top of the position, for a one-off job that pays a fixed amount per person —
+unloading the goods truck is the first. It is the person's only bonus that day: the line and the
+day rate treat them like an incomplete day, and the task pays its own amount, outside the line's
+total and the cap. Late and early marks do not take it away; an absence cannot hold one. At most one
+per cell. The catalogue is data. `docs/adr/0021`.
+_Avoid_: extra position, special shift, event
+
 **Scheme trigger** _(disparador de esquema)_:
 A position whose presence on a date forces `EQUAL_SHARE`. A property of the position, carried
 as data, so the calculation never recognises a position by its code. Packing ACM and Mantas

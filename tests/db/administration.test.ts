@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import { createEmployee, createPosition, service, signInAs, unwrap, type Client } from "./support";
 
@@ -84,6 +85,34 @@ describe("create_bonus_settings_version", () => {
       await service.from("bonus_position_rates").select("position_id, amount").eq("bonus_settings_id", current.id),
     );
     expect(rates).toEqual([{ position_id: rieter, amount: 6_000 }]);
+  });
+
+  it("keeps a task's amount when the new version leaves it out, and takes the one it is given", async () => {
+    const kept = unwrap(await admin.rpc("create_bonus_task", { p_name: `Tarea ${randomUUID()}`, p_amount: 3_000 }));
+    const changed = unwrap(await admin.rpc("create_bonus_task", { p_name: `Tarea ${randomUUID()}`, p_amount: 3_000 }));
+
+    const created = await admin.rpc("create_bonus_settings_version", {
+      p_effective_from: "2031-01-01",
+      p_daily_cap: 20_000,
+      p_max_amount_per_person: 3_000,
+      p_rates: [],
+      p_saturday_day_rate: 10_000,
+      p_sunday_day_rate: 10_000,
+      p_holiday_day_rate: 10_000,
+      p_task_rates: [{ bonus_task_id: changed, amount: 5_000 }],
+    });
+
+    expect(created.error).toBeNull();
+    const current = await currentVersion();
+    const rates = unwrap(
+      await service.from("bonus_task_rates").select("bonus_task_id, amount").eq("bonus_settings_id", current.id).in("bonus_task_id", [kept, changed]),
+    );
+    expect(new Map(rates.map((rate) => [rate.bonus_task_id, rate.amount]))).toEqual(
+      new Map([
+        [kept, 3_000],
+        [changed, 5_000],
+      ]),
+    );
   });
 
   it("refuses a version that does not start after the current one", async () => {

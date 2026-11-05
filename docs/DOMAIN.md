@@ -511,7 +511,7 @@ automáticamente por falta de marcación en Workera".
   la lectura de ese día fue exitosa.
 - Solo llena celdas vacías: nunca sobrescribe vacaciones, licencias ni otro valor ingresado.
 - Descuenta como una Falta sin aviso desde que se registra, esté confirmada o no.
-- El supervisor o el admin la confirman, una a una o en bloque por fecha. Cambiarla a mano también la
+- El supervisor, el editor o el admin la confirman, una a una o en bloque por fecha. Cambiarla a mano también la
   resuelve.
 - Si una relectura muestra que la persona marcó y la falta sigue sin confirmar ni cambiar, la app la
   quita. Si ya fue confirmada o cambiada, no la toca y queda el descuadre.

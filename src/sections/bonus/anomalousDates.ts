@@ -1,5 +1,12 @@
-import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
-import { calculateDates, loadBonusPositions, loadCalendar, loadLiveAssignments, loadSettingsVersions } from "./dailyBonuses";
+import type { ServerSupabase } from "@/utils/supabase/query";
+import {
+  calculateDates,
+  loadBonusPositions,
+  loadCalendar,
+  loadLiveAssignments,
+  loadSettingsVersions,
+  loadUnsettledDates,
+} from "./dailyBonuses";
 import type { DailyBonus } from "./dailyBonuses";
 
 export type AnomalousDate = Extract<DailyBonus, { settings: object }>;
@@ -11,10 +18,7 @@ export type AnomalousDate = Extract<DailyBonus, { settings: object }>;
  * because somebody marked it as seen.
  */
 export async function loadAnomalousDates(supabase: ServerSupabase): Promise<AnomalousDate[]> {
-  const unsettled = orThrow(
-    await supabase.from("assignments").select("date").is("settled_in_period_id", null).is("deleted_at", null),
-  );
-  const dates = new Set(unsettled.map((row) => row.date));
+  const dates = await loadUnsettledDates(supabase);
   if (dates.size === 0) return [];
 
   const sorted = [...dates].sort();

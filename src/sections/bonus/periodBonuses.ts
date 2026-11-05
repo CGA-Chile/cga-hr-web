@@ -11,7 +11,7 @@ import type {
 } from "@/domain/periodBonus/types";
 import type { Period } from "@/sections/periods/queries";
 import type { Database } from "@/types/database";
-import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
+import { fetchAllRows, orThrow, type ServerSupabase } from "@/utils/supabase/query";
 import { loadCalendar } from "./dailyBonuses";
 
 export async function loadPeriodBonusPositions(supabase: ServerSupabase): Promise<PeriodBonusPosition[]> {
@@ -86,23 +86,32 @@ export async function loadReprimanded(supabase: ServerSupabase, periodId: string
  */
 export async function loadPeriodBonusCloseInput(supabase: ServerSupabase, period: Period): Promise<PeriodBonusCloseInput> {
   const [own, owed, positions, amounts, reprimanded] = await Promise.all([
-    supabase
-      .from("assignments")
-      .select("id, date, employee_id, position_id, late, production_settled_in_period_id, compliance_settled_in_period_id")
-      .gte("date", period.start_date)
-      .lte("date", period.end_date)
-      .is("deleted_at", null),
-    supabase
-      .from("period_bonus_owed_days")
-      .select("assignment_id, date, employee_id, position_id, late, origin_period_id, bonus")
-      .lte("date", period.end_date),
+    fetchAllRows((first, last) =>
+      supabase
+        .from("assignments")
+        .select("id, date, employee_id, position_id, late, production_settled_in_period_id, compliance_settled_in_period_id")
+        .gte("date", period.start_date)
+        .lte("date", period.end_date)
+        .is("deleted_at", null)
+        .order("id")
+        .range(first, last),
+    ),
+    fetchAllRows((first, last) =>
+      supabase
+        .from("period_bonus_owed_days")
+        .select("assignment_id, date, employee_id, position_id, late, origin_period_id, bonus")
+        .lte("date", period.end_date)
+        .order("assignment_id")
+        .order("bonus")
+        .range(first, last),
+    ),
     loadPeriodBonusPositions(supabase),
     loadPeriodBonusAmounts(supabase, period.end_date),
     loadReprimanded(supabase, period.id),
   ]);
 
   // The view's columns are nullable to the type generator; every row it returns has them all.
-  const owedDays = orThrow(owed).flatMap(toOwedDay);
+  const owedDays = owed.flatMap(toOwedDay);
   const origins = [...new Set(owedDays.map((row) => row.originPeriodId))];
   const earliest = owedDays.reduce((min, row) => (row.assignment.date < min ? row.assignment.date : min), period.start_date);
 
@@ -112,7 +121,7 @@ export async function loadPeriodBonusCloseInput(supabase: ServerSupabase, period
     loadCalendar(supabase, earliest, period.end_date),
   ]);
 
-  const ownAssignments: CountableAssignment[] = orThrow(own).map((row) => ({
+  const ownAssignments: CountableAssignment[] = own.map((row) => ({
     id: row.id,
     employeeId: row.employee_id,
     date: row.date,

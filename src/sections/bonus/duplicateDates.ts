@@ -1,7 +1,7 @@
 import { findDuplicatedPositions, type DuplicatedPosition } from "@/domain/bonus/duplicates";
 import type { IsoDate } from "@/domain/bonus/types";
-import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
-import { loadBonusPositions, loadLiveAssignments } from "./dailyBonuses";
+import type { ServerSupabase } from "@/utils/supabase/query";
+import { loadBonusPositions, loadLiveAssignments, loadUnsettledDates } from "./dailyBonuses";
 
 export type DuplicateDate = { date: IsoDate; duplicates: DuplicatedPosition[] };
 
@@ -10,10 +10,7 @@ export type DuplicateDate = { date: IsoDate; duplicates: DuplicatedPosition[] };
  * next close will settle. The same dates as the notices list, found without reading a rate.
  */
 export async function loadDuplicateDates(supabase: ServerSupabase): Promise<DuplicateDate[]> {
-  const unsettled = orThrow(
-    await supabase.from("assignments").select("date").is("settled_in_period_id", null).is("deleted_at", null),
-  );
-  const dates = new Set(unsettled.map((row) => row.date));
+  const dates = await loadUnsettledDates(supabase);
   if (dates.size === 0) return [];
 
   const sorted = [...dates].sort();

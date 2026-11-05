@@ -180,3 +180,18 @@ describe("reading what was stored", () => {
     expect(error).not.toBeNull();
   });
 });
+
+describe("attendance_settings", () => {
+  it("lets an admin set the date, and refuses the other roles", async () => {
+    const update = (client: Client, date: string | null) =>
+      client.from("attendance_settings").update({ mismatches_from: date }).not("id", "is", null).select("id");
+
+    expect(unwrap(await update(admin, "2026-11-01"))).toHaveLength(1);
+    expect(unwrap(await update(editor, "2026-12-01"))).toHaveLength(0);
+    expect(unwrap(await update(supervisor, "2026-12-01"))).toHaveLength(0);
+
+    const row = unwrap(await supervisor.from("attendance_settings").select("mismatches_from").single());
+    expect(row.mismatches_from).toBe("2026-11-01");
+    unwrap(await update(admin, null));
+  });
+});

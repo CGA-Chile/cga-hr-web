@@ -422,6 +422,30 @@ export type Database = {
         }
         Relationships: []
       }
+      attendance_settings: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          id: string
+          mismatches_from: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          mismatches_from?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          mismatches_from?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bonus_position_rates: {
         Row: {
           amount: number

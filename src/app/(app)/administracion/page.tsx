@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Drawer } from "@/components/Drawer";
 import { adminCopy } from "@/copy/admin";
-import { EmployeesTable, PositionsTable, RateVersions } from "@/sections/admin/AdminTables";
+import { BonusTasksTable, EmployeesTable, PositionsTable, RateVersions } from "@/sections/admin/AdminTables";
 import styles from "@/sections/admin/Admin.module.css";
+import { BonusTaskForm, NewBonusTaskForm } from "@/sections/admin/BonusTaskForm";
 import { EmployeeForm } from "@/sections/admin/EmployeeForm";
 import { PositionForm } from "@/sections/admin/PositionForm";
 import {
@@ -13,6 +14,7 @@ import {
   type AdminPosition,
 } from "@/sections/admin/queries";
 import { RateVersionForm } from "@/sections/admin/RateVersionForm";
+import { loadBonusTasks, type BonusTask } from "@/sections/day/queries";
 import { addDays, todayInChile } from "@/utils/chileDate";
 import { loadCurrentProfile } from "@/utils/supabase/currentProfile";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
@@ -23,7 +25,7 @@ type AdminPageProps = {
   searchParams: Promise<{ seccion?: SearchParam; editar?: SearchParam; nuevo?: SearchParam }>;
 };
 
-const SECTIONS: Section[] = ["trabajadores", "puestos", "tarifas"];
+const SECTIONS: Section[] = ["trabajadores", "puestos", "tareas", "tarifas"];
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const query = await searchParams;
@@ -43,15 +45,19 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     );
   }
 
-  const [employees, positions, versions] = await Promise.all([
+  const [employees, positions, versions, tasks] = await Promise.all([
     loadAdminEmployees(supabase),
     loadAdminPositions(supabase),
     loadRateVersions(supabase),
+    loadBonusTasks(supabase),
   ]);
   const positionName = (id: string) => positions.find((position) => position.id === id)?.name ?? "";
+  const taskName = (id: string) => tasks.find((task) => task.id === id)?.name ?? "";
   const editHref = (id: string) => `${sectionPath}&editar=${id}`;
   const rateBearing = positions.filter((p) => p.bonus_eligible && !p.triggers_equal_share && p.active);
   const current = versions.find((version) => version.effective_to === null);
+  const currentTaskAmount = (id: string) => current?.taskRates.find((rate) => rate.bonus_task_id === id)?.amount ?? null;
+  const editingTask = tasks.find((task) => task.id === editing);
 
   return (
     <main className="page">
@@ -68,6 +74,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         ))}
       </nav>
 
+      {section === "tareas" && <p className={styles.intro}>{adminCopy.tasks.intro}</p>}
       {section === "tarifas" && <p className={styles.intro}>{adminCopy.rates.intro}</p>}
       <div className={styles.toolbar}>
         <Link href={`${sectionPath}&nuevo=1`} scroll={false} className={styles.button}>
@@ -75,13 +82,16 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             ? adminCopy.employees.new
             : section === "puestos"
               ? adminCopy.positions.new
-              : adminCopy.rates.new}
+              : section === "tareas"
+                ? adminCopy.tasks.new
+                : adminCopy.rates.new}
         </Link>
       </div>
 
       {section === "trabajadores" && <EmployeesTable employees={employees} editHref={editHref} />}
       {section === "puestos" && <PositionsTable positions={positions} editHref={editHref} />}
-      {section === "tarifas" && <RateVersions versions={versions} positionName={positionName} />}
+      {section === "tareas" && <BonusTasksTable tasks={tasks} currentAmount={currentTaskAmount} editHref={editHref} />}
+      {section === "tarifas" && <RateVersions versions={versions} positionName={positionName} taskName={taskName} />}
 
       {section === "trabajadores" && (creating || editing) && (
         <EmployeeDrawer employee={employees.find((e) => e.id === editing) ?? null} doneHref={sectionPath} />
@@ -89,11 +99,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       {section === "puestos" && (creating || editing) && (
         <PositionDrawer position={positions.find((p) => p.id === editing) ?? null} doneHref={sectionPath} />
       )}
+      {section === "tareas" && (creating || editingTask) && (
+        <BonusTaskDrawer task={editingTask ?? null} doneHref={sectionPath} />
+      )}
       {section === "tarifas" && creating && (
         <Drawer title={adminCopy.rates.newTitle} closeHref={sectionPath} closeLabel={adminCopy.cancel}>
           <RateVersionForm
             positions={rateBearing}
             triggerNames={positions.filter((p) => p.triggers_equal_share).map((p) => p.name).join(", ")}
+            tasks={tasks}
             doneHref={sectionPath}
             defaults={{
               effectiveFrom: addDays(todayInChile(), 1),
@@ -109,6 +123,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               rates: Object.fromEntries(
                 rateBearing.map((p) => [p.id, String(current?.rates.find((r) => r.position_id === p.id)?.amount ?? "")]),
               ),
+              taskRates: Object.fromEntries(tasks.map((task) => [task.id, String(currentTaskAmount(task.id) ?? "")])),
             }}
           />
         </Drawer>
@@ -133,6 +148,22 @@ function EmployeeDrawer({ employee, doneHref }: { employee: AdminEmployee | null
           nationalId: employee?.national_id ?? "",
         }}
       />
+    </Drawer>
+  );
+}
+
+function BonusTaskDrawer({ task, doneHref }: { task: BonusTask | null; doneHref: string }) {
+  return (
+    <Drawer
+      title={task ? adminCopy.tasks.editTitle : adminCopy.tasks.newTitle}
+      closeHref={doneHref}
+      closeLabel={adminCopy.cancel}
+    >
+      {task ? (
+        <BonusTaskForm id={task.id} doneHref={doneHref} defaults={{ name: task.name, active: task.active }} />
+      ) : (
+        <NewBonusTaskForm doneHref={doneHref} />
+      )}
     </Drawer>
   );
 }

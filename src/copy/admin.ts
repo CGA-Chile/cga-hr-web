@@ -1,7 +1,7 @@
 export const adminCopy = {
   title: "Administración",
   onlyAdmin: "Esta sección es solo para el administrador.",
-  sections: { trabajadores: "Trabajadores", puestos: "Puestos", tarifas: "Tarifas" },
+  sections: { trabajadores: "Trabajadores", puestos: "Puestos", tareas: "Tareas con bono", tarifas: "Tarifas" },
   save: "Guardar",
   saving: "Guardando…",
   cancel: "Cancelar",
@@ -65,6 +65,24 @@ export const adminCopy = {
     no: "No",
   },
 
+  tasks: {
+    intro:
+      "Una tarea con bono se marca en la celda, encima del puesto, por ejemplo la descarga de camión. Ese día la persona gana solo el monto de la tarea, en vez del bono de cardas o del bono día no hábil.",
+    new: "Agregar tarea",
+    newTitle: "Nueva tarea con bono",
+    editTitle: "Editar tarea con bono",
+    name: "Nombre en pantalla",
+    nameHint: "Es lo que se ve al marcar la celda, por ejemplo Descarga de camión.",
+    amount: "Monto por persona",
+    amountHint: "Cada persona que hizo la tarea gana este monto ese día. Para cambiarlo después, crea una vigencia nueva en Tarifas.",
+    currentAmount: "Monto vigente",
+    amountInRates: "El monto se cambia creando una vigencia nueva en Tarifas.",
+    duplicateName: "Ya hay una tarea con ese nombre.",
+    active: "Disponible para marcar",
+    yes: "Sí",
+    no: "No",
+  },
+
   rates: {
     intro:
       "Cambiar una tarifa crea una vigencia nueva desde la fecha que elijas. La vigencia actual no se edita: los días anteriores se siguen pagando con ella, y lo ya cerrado no cambia.",
@@ -88,6 +106,8 @@ export const adminCopy = {
     strikeLimitHint: "Por ejemplo 3: al tercer atraso o falta sin aviso no se paga el bono de cumplimiento.",
     invalidCount: "Escribe un número entero mayor que cero.",
     rateFor: (name: string) => `Tarifa ${name}`,
+    tasksHint: "Monto por persona de cada tarea con bono.",
+    taskRateFor: (name: string) => `Tarea ${name}`,
     noRateForTrigger: (names: string) => `${names} no lleva tarifa: su presencia cambia el día a reparto igualitario.`,
     invalidAmount: "Escribe un monto en pesos, sin puntos.",
     mustStartLater: "La nueva vigencia tiene que empezar después de la actual.",

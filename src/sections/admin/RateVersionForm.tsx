@@ -13,12 +13,14 @@ type RateVersionFormProps = {
   /** Rate-bearing positions: bonus-eligible, not the scheme trigger. */
   positions: readonly { id: string; name: string }[];
   triggerNames: string;
+  /** Every task, retired ones too: a cell marked before it was retired is still priced. */
+  tasks: readonly { id: string; name: string }[];
   defaults: RateVersionInput;
   doneHref: string;
 };
 
 /** Always a new version from a date; the current one is never edited. */
-export function RateVersionForm({ positions, triggerNames, defaults, doneHref }: RateVersionFormProps) {
+export function RateVersionForm({ positions, triggerNames, tasks, defaults, doneHref }: RateVersionFormProps) {
   const { register, handleSubmit, formState } = useForm<RateVersionInput, unknown, RateVersionValues>({
     resolver: zodResolver(rateVersionSchema),
     defaultValues: defaults,
@@ -41,6 +43,16 @@ export function RateVersionForm({ positions, triggerNames, defaults, doneHref }:
         </FormField>
       ))}
       {triggerNames && <p className={styles.muted}>{copy.noRateForTrigger(triggerNames)}</p>}
+      {tasks.length > 0 && <p className={styles.muted}>{copy.tasksHint}</p>}
+      {tasks.map((task) => (
+        <FormField
+          key={task.id}
+          label={copy.taskRateFor(task.name)}
+          error={formState.errors.taskRates?.[task.id]?.message}
+        >
+          <input type="number" inputMode="numeric" {...register(`taskRates.${task.id}`)} />
+        </FormField>
+      ))}
       <FormField label={copy.dailyCap} error={formState.errors.dailyCap?.message}>
         <input type="number" inputMode="numeric" {...register("dailyCap")} />
       </FormField>

@@ -3,10 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { adminCopy } from "@/copy/admin";
 import {
+  bonusTaskSchema,
   employeeSchema,
+  newBonusTaskSchema,
   positionSchema,
   rateVersionSchema,
+  type BonusTaskValues,
   type EmployeeInput,
+  type NewBonusTaskValues,
   type PositionValues,
   type RateVersionValues,
 } from "@/schemas/admin";
@@ -97,9 +101,38 @@ export async function createRateVersion(input: RateVersionValues): Promise<Admin
     p_compliance_amount: parsed.data.complianceAmount,
     p_strike_deduction: parsed.data.strikeDeduction,
     p_strike_limit: parsed.data.strikeLimit,
+    p_task_rates: Object.entries(parsed.data.taskRates).map(([bonus_task_id, amount]) => ({ bonus_task_id, amount })),
   });
   if (error?.code === "23514") return { message: adminCopy.rates.mustStartLater };
   if (error) return { message: messageFor(error.code, adminCopy.unavailable) };
+
+  revalidatePath(ADMIN_PATH);
+  return null;
+}
+
+/** The task and its amount in every rate version, in one call: create_bonus_task, docs/adr/0021. */
+export async function createBonusTask(input: NewBonusTaskValues): Promise<AdminResult> {
+  const parsed = newBonusTaskSchema.safeParse(input);
+  if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? adminCopy.unavailable };
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("create_bonus_task", { p_name: parsed.data.name, p_amount: parsed.data.amount });
+  if (error) return { message: messageFor(error.code, adminCopy.tasks.duplicateName) };
+
+  revalidatePath(ADMIN_PATH);
+  return null;
+}
+
+export async function saveBonusTask(id: string, input: BonusTaskValues): Promise<AdminResult> {
+  const parsed = bonusTaskSchema.safeParse(input);
+  if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? adminCopy.unavailable };
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("bonus_tasks")
+    .update({ name: parsed.data.name, active: parsed.data.active })
+    .eq("id", id);
+  if (error) return { message: messageFor(error.code, adminCopy.tasks.duplicateName) };
 
   revalidatePath(ADMIN_PATH);
   return null;

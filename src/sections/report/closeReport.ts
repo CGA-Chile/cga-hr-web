@@ -8,10 +8,10 @@ import { fullName } from "@/sections/day/queries";
 import type { Period } from "@/sections/periods/queries";
 import { fetchAllRows, orThrow, type ServerSupabase } from "@/utils/supabase/query";
 
-/** The bonuses a close reports, each kept apart. Every bonus task shares one column; each line names its task. */
-export type BonusAmounts = { carding: number; dayRate: number; production: number; compliance: number; tasks: number };
+/** The bonuses every close reports, each kept apart. Bonus tasks are data, so they come in `taskColumns`. */
+export type BonusAmounts = { carding: number; dayRate: number; production: number; compliance: number };
 
-export const REPORT_BONUSES = ["carding", "dayRate", "production", "compliance", "tasks"] as const satisfies readonly (keyof BonusAmounts)[];
+export const REPORT_BONUSES = ["carding", "dayRate", "production", "compliance"] as const satisfies readonly (keyof BonusAmounts)[];
 
 export type ReportLine = {
   date: IsoDate;
@@ -48,6 +48,10 @@ export type ReportRow = {
   amounts: BonusAmounts;
   /** The part of each amount that is carry-over from earlier periods. */
   carryOver: BonusAmounts;
+  /** What each bonus task paid this person, by the task's name. */
+  taskAmounts: Map<string, number>;
+  /** The part of each task's amount that is carry-over. */
+  taskCarryOver: Map<string, number>;
   total: number;
   lines: ReportLine[];
   periodBonusLines: PeriodBonusLine[];
@@ -57,6 +61,9 @@ export type ReportRow = {
 export type CloseReport = {
   rows: ReportRow[];
   amounts: BonusAmounts;
+  /** The tasks this close paid something for, one column each; a task it did not pay has none. */
+  taskColumns: string[];
+  taskAmounts: Map<string, number>;
   total: number;
 };
 
@@ -99,6 +106,8 @@ export function aggregateReport(
       ...person,
       amounts: zero(),
       carryOver: zero(),
+      taskAmounts: new Map(),
+      taskCarryOver: new Map(),
       total: 0,
       lines: [],
       periodBonusLines: [],
@@ -125,7 +134,9 @@ export function aggregateReport(
   }
   for (const { employeeId, person, ...line } of tasks) {
     const row = rowFor(employeeId, person);
-    add(row, "tasks", line.amount, line.carryOver);
+    addTo(row.taskAmounts, line.taskName, line.amount);
+    if (line.carryOver) addTo(row.taskCarryOver, line.taskName, line.amount);
+    row.total += line.amount;
     row.taskLines.push(line);
   }
 
@@ -143,12 +154,22 @@ export function aggregateReport(
   for (const row of rows) {
     for (const bonus of REPORT_BONUSES) amounts[bonus] += row.amounts[bonus];
   }
+  const taskAmounts = new Map<string, number>();
+  for (const { taskName, amount } of tasks) addTo(taskAmounts, taskName, amount);
+  const taskColumns = [...taskAmounts]
+    .filter(([, amount]) => amount > 0)
+    .map(([taskName]) => taskName)
+    .sort((a, b) => a.localeCompare(b, "es"));
 
-  return { rows, amounts, total: rows.reduce((sum, row) => sum + row.total, 0) };
+  return { rows, amounts, taskColumns, taskAmounts, total: rows.reduce((sum, row) => sum + row.total, 0) };
+}
+
+function addTo(amounts: Map<string, number>, taskName: string, amount: number): void {
+  amounts.set(taskName, (amounts.get(taskName) ?? 0) + amount);
 }
 
 function zero(): BonusAmounts {
-  return { carding: 0, dayRate: 0, production: 0, compliance: 0, tasks: 0 };
+  return { carding: 0, dayRate: 0, production: 0, compliance: 0 };
 }
 
 export function personOf(employee: { first_name: string; last_name: string; national_id: string | null } | null): Person {

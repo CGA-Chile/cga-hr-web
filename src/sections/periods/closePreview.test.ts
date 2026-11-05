@@ -22,6 +22,16 @@ function periodBonus(extra: Partial<PeriodBonusSettlement>): PeriodBonusSettleme
 }
 
 describe("the close preview", () => {
+  it("has no task column when no task is owed", () => {
+    const report = closePreview(
+      { toSettle: [entry({})], periodBonusSettlements: [], taskSettlements: [], schemes: new Map([["2026-10-05", "POSITION_RATE"]]) },
+      OCTOBER,
+      names,
+    );
+
+    expect(report.taskColumns).toEqual([]);
+  });
+
   it("puts each settlement in its bonus column and adds up to what the close pays", () => {
     const report = closePreview(
       {
@@ -42,8 +52,8 @@ describe("the close preview", () => {
     );
 
     expect(report.rows.map((row) => [row.name, row.nationalId, row.amounts, row.total])).toEqual([
-      ["Ana Fuentes", "1-9", { carding: 4_000, dayRate: 25_000, production: 20_000, compliance: 10_500, tasks: 0 }, 59_500],
-      ["Bruno Díaz", null, { carding: 3_000, dayRate: 0, production: 0, compliance: 0, tasks: 0 }, 3_000],
+      ["Ana Fuentes", "1-9", { carding: 4_000, dayRate: 25_000, production: 20_000, compliance: 10_500 }, 59_500],
+      ["Bruno Díaz", null, { carding: 3_000, dayRate: 0, production: 0, compliance: 0 }, 3_000],
     ]);
     expect(report.total).toBe(62_500);
   });
@@ -85,7 +95,7 @@ describe("the close preview", () => {
     expect(report.rows[0].periodBonusLines[0].originName).toBe("Septiembre 2026");
   });
 
-  it("puts each bonus task in the tasks column, carry-over included, and adds it to what the close pays", () => {
+  it("puts each bonus task in its own column, carry-over included, and adds it to what the close pays", () => {
     const report = closePreview(
       {
         toSettle: [entry({ amount: 0 })],
@@ -101,10 +111,12 @@ describe("the close preview", () => {
     );
 
     expect(report.rows[0]).toMatchObject({
-      amounts: { carding: 0, tasks: 4_000 },
-      carryOver: { tasks: 1_000 },
+      amounts: { carding: 0 },
+      taskAmounts: new Map([["Descarga de camión", 4_000]]),
+      taskCarryOver: new Map([["Descarga de camión", 1_000]]),
       total: 4_000,
     });
+    expect(report.taskColumns).toEqual(["Descarga de camión"]);
     expect(report.rows[0].taskLines.map((line) => line.taskName)).toEqual(["Descarga de camión", "Descarga de camión"]);
   });
 });

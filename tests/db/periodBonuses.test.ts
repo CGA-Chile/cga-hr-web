@@ -222,7 +222,7 @@ describe("close_period with the period bonuses", () => {
 
     const closed = await closeWithBonuses(period, settlements, stamps.slice(1));
 
-    expect(closed.error?.code).toBe("40001");
+    expect(closed.error?.code).toBe("CG001");
     expect(await stampsOf(day.id)).toEqual({ production_settled_in_period_id: null, compliance_settled_in_period_id: null });
     expect(unwrap(await service.from("period_bonus_settlements").select("id").eq("period_id", period.id))).toEqual([]);
     expect((await closeWithBonuses(period, settlements, stamps)).error).toBeNull();
@@ -234,7 +234,7 @@ describe("close_period with the period bonuses", () => {
 
     const closed = await closeWithBonuses(period, settlements, stamps, wrong);
 
-    expect(closed.error?.code).toBe("40001");
+    expect(closed.error?.code).toBe("CG001");
     expect((await closeWithBonuses(period, settlements, stamps)).error).toBeNull();
   });
 

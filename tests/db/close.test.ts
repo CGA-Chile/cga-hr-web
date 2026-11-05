@@ -89,7 +89,7 @@ describe("close_period", () => {
 
     const closed = await admin.rpc("close_period", { ...nextAfter(period), p_period_id: period.id, p_settlements: incomplete });
 
-    expect(closed.error?.code).toBe("40001");
+    expect(closed.error?.code).toBe("CG001");
     expect((await assignmentState(kept.id)).settled_in_period_id).toBeNull();
     expect((await periodStatus(period.id)).status).toBe("OPEN");
     await admin.rpc("close_period", { ...nextAfter(period), p_period_id: period.id, p_settlements: await everythingToSettle(period.endDate) });
@@ -105,7 +105,7 @@ describe("close_period", () => {
 
     const closed = await admin.rpc("close_period", { ...nextAfter(period), p_period_id: period.id, p_settlements: prepared });
 
-    expect(closed.error?.code).toBe("40001");
+    expect(closed.error?.code).toBe("CG001");
     await admin.rpc("close_period", { ...nextAfter(period), p_period_id: period.id, p_settlements: await everythingToSettle(period.endDate) });
   });
 

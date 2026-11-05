@@ -9,9 +9,12 @@ export default defineConfig({
   test: {
     include: ["tests/db/**/*.test.ts"],
     globalSetup: ["tests/db/globalSetup.ts"],
+    setupFiles: ["tests/db/isolateFiles.ts"],
     testTimeout: 30_000,
     hookTimeout: 120_000,
     // Periods form one chain across the whole database, so files cannot append to it at once.
     fileParallelism: false,
+    // Always a new order, so a file that starts depending on another fails instead of waiting.
+    sequence: { shuffle: { files: true, tests: false } },
   },
 });

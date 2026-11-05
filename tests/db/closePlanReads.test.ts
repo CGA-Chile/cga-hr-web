@@ -69,20 +69,11 @@ describe("loadClosePlan above the API's row cap", () => {
     loaded = await loadClosePlan(service, period);
   });
 
-  // Periods and owed assignments are shared by every test file, in whatever order they run.
+  // The period chain and the settings ranges are shared by every test file.
   afterAll(async () => {
-    const { startDate, endDate, id } = arranged.period;
     const deletedAt = new Date().toISOString();
-    unwrap(
-      await service
-        .from("assignments")
-        .update({ deleted_at: deletedAt })
-        .gte("date", startDate)
-        .lte("date", endDate)
-        .select("id"),
-    );
     unwrap(await service.from("bonus_settings").update({ deleted_at: deletedAt }).eq("id", arranged.settingsId).select("id"));
-    unwrap(await service.from("periods").update({ status: "CLOSED" }).eq("id", id).select("id"));
+    unwrap(await service.from("periods").update({ status: "CLOSED" }).eq("id", arranged.period.id).select("id"));
   });
 
   it("settles every paid assignment, however many unsettled rows precede it", () => {

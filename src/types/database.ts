@@ -320,6 +320,108 @@ export type Database = {
           },
         ]
       }
+      attendance_clockings: {
+        Row: {
+          clocked_at: string
+          clocking_date: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          national_id: string
+          status: string
+          updated_at: string
+          workera_type: number
+        }
+        Insert: {
+          clocked_at: string
+          clocking_date?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          national_id: string
+          status: string
+          updated_at?: string
+          workera_type: number
+        }
+        Update: {
+          clocked_at?: string
+          clocking_date?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          national_id?: string
+          status?: string
+          updated_at?: string
+          workera_type?: number
+        }
+        Relationships: []
+      }
+      attendance_reads: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          failure: string | null
+          id: string
+          read_at: string
+          read_date: string
+          succeeded: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          failure?: string | null
+          id?: string
+          read_at?: string
+          read_date: string
+          succeeded: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          failure?: string | null
+          id?: string
+          read_at?: string
+          read_date?: string
+          succeeded?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      attendance_schedules: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          ends_at: string
+          id: string
+          national_id: string
+          schedule_date: string
+          starts_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          ends_at: string
+          id?: string
+          national_id: string
+          schedule_date: string
+          starts_at: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          ends_at?: string
+          id?: string
+          national_id?: string
+          schedule_date?: string
+          starts_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bonus_position_rates: {
         Row: {
           amount: number
@@ -1210,6 +1312,19 @@ export type Database = {
       create_bonus_task: {
         Args: { p_amount: number; p_name: string }
         Returns: string
+      }
+      record_attendance_read: {
+        Args: {
+          p_clockings: Json
+          p_from: string
+          p_schedules: Json
+          p_to: string
+        }
+        Returns: undefined
+      }
+      record_attendance_read_failure: {
+        Args: { p_failure: string; p_from: string; p_to: string }
+        Returns: undefined
       }
       set_calendar_date: {
         Args: { p_date: string; p_day_rate?: number; p_holiday: boolean }

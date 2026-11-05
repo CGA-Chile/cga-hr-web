@@ -11,6 +11,7 @@ const SETTINGS: BonusSettingsVersion = {
   maxAmountPerPerson: 300,
   positionRates: new Map(),
   dayRates: null,
+  taskRates: new Map(),
 };
 
 function employee(id: string, firstName: string, active = true): Employee {
@@ -28,6 +29,7 @@ function assignment(date: string, employeeId: string, positionId: string): Assig
     late: false,
     late_notified: null,
     left_early: false,
+    bonus_task_id: null,
   };
 }
 
@@ -60,17 +62,19 @@ describe("buildSheet", () => {
       bonus("2026-09-01", {
         scheme: "POSITION_RATE",
         perEmployee: [
-          { employeeId: "ana", positionId: "RIE", amount: 400, late: false, leftEarly: false },
-          { employeeId: "bruno", positionId: "RIE", amount: 400, late: false, leftEarly: false },
+          { employeeId: "ana", positionId: "RIE", amount: 400, late: false, leftEarly: false, bonusTaskId: null },
+          { employeeId: "bruno", positionId: "RIE", amount: 400, late: false, leftEarly: false, bonusTaskId: null },
         ],
         total: 800,
         anomalies: [{ kind: "DUPLICATE_OCCUPANCY", positionId: "RIE", occupantCount: 2, affectsAmount: true }],
+        taskBonuses: [],
       }),
       bonus("2026-09-02", {
         scheme: "POSITION_RATE",
-        perEmployee: [{ employeeId: "ana", positionId: "ACM", amount: 400, late: false, leftEarly: false }],
+        perEmployee: [{ employeeId: "ana", positionId: "ACM", amount: 400, late: false, leftEarly: false, bonusTaskId: null }],
         total: 400,
         anomalies: [],
+        taskBonuses: [],
       }),
     ],
     positions: POSITIONS,
@@ -137,26 +141,29 @@ describe("the breakdown under each row", () => {
       bonus("2026-09-04", {
         scheme: "EQUAL_SHARE",
         perEmployee: [
-          { employeeId: "ana", positionId: "RIE", amount: 300, late: false, leftEarly: false },
-          { employeeId: "bruno", positionId: "ACM", amount: 0, late: true, leftEarly: false },
+          { employeeId: "ana", positionId: "RIE", amount: 300, late: false, leftEarly: false, bonusTaskId: null },
+          { employeeId: "bruno", positionId: "ACM", amount: 0, late: true, leftEarly: false, bonusTaskId: null },
         ],
         total: 300,
         anomalies: [],
+        taskBonuses: [],
       }),
       bonus("2026-09-05", {
         scheme: "DAY_RATE",
-        perEmployee: [{ employeeId: "ana", positionId: "BOD", amount: 900, late: false, leftEarly: false }],
+        perEmployee: [{ employeeId: "ana", positionId: "BOD", amount: 900, late: false, leftEarly: false, bonusTaskId: null }],
         total: 900,
         anomalies: [],
+        taskBonuses: [],
       }),
       bonus("2026-09-07", {
         scheme: "POSITION_RATE",
         perEmployee: [
-          { employeeId: "ana", positionId: "RIE", amount: 200, late: false, leftEarly: false },
-          { employeeId: "bruno", positionId: "ACM", amount: 150, late: false, leftEarly: false },
+          { employeeId: "ana", positionId: "RIE", amount: 200, late: false, leftEarly: false, bonusTaskId: null },
+          { employeeId: "bruno", positionId: "ACM", amount: 150, late: false, leftEarly: false, bonusTaskId: null },
         ],
         total: 350,
         anomalies: [],
+        taskBonuses: [],
       }),
     ],
     positions: POSITIONS,

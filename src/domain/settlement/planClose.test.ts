@@ -21,6 +21,7 @@ const SETTINGS: BonusSettings = {
   dailyCap: 15_000,
   maxAmountPerPerson: 2_500,
   dayRates: null,
+  taskRates: new Map(),
   positionRates: new Map([
     [RIETER.id, 4_000],
     [ACM.id, 4_000],
@@ -40,6 +41,7 @@ function day(date: string, seats: Seat[], settings: BonusSettings = SETTINGS, da
     positionId: seat.position.id,
     late: false,
     leftEarly: false,
+    bonusTaskId: null,
     settledAmount: seat.settledAmount ?? null,
   }));
   return {

@@ -8,3 +8,11 @@ import type { BonusAssignment } from "./types";
 export function workedFullDay(assignment: Pick<BonusAssignment, "late" | "leftEarly">): boolean {
   return !assignment.late && !assignment.leftEarly;
 }
+
+/**
+ * Whether the line or the day rate pays this assignment. A bonus task is the person's only bonus
+ * that day, so for the line they are treated exactly like an incomplete day.
+ */
+export function earnsDailyBonus(assignment: Pick<BonusAssignment, "late" | "leftEarly" | "bonusTaskId">): boolean {
+  return workedFullDay(assignment) && assignment.bonusTaskId === null;
+}

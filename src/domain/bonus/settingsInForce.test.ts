@@ -14,6 +14,7 @@ const BEFORE_CHANGE: BonusSettingsVersion = {
   dailyCap: 15_000,
   maxAmountPerPerson: 2_500,
   dayRates: null,
+  taskRates: new Map(),
   positionRates: new Map([
     [RIETER.id, 4_000],
     [ACM.id, 4_000],
@@ -25,6 +26,7 @@ const AFTER_CHANGE: BonusSettingsVersion = {
   dailyCap: 18_000,
   maxAmountPerPerson: 3_000,
   dayRates: null,
+  taskRates: new Map(),
   positionRates: new Map([
     [RIETER.id, 5_000],
     [ACM.id, 4_500],
@@ -36,8 +38,8 @@ function totalOn(date: string, versions: readonly BonusSettingsVersion[] = VERSI
   const settings = settingsInForceOn(date, versions);
   return calculateDailyBonus({
     assignments: [
-      { employeeId: "a", positionId: RIETER.id, late: false, leftEarly: false },
-      { employeeId: "b", positionId: ACM.id, late: false, leftEarly: false },
+      { employeeId: "a", positionId: RIETER.id, late: false, leftEarly: false, bonusTaskId: null },
+      { employeeId: "b", positionId: ACM.id, late: false, leftEarly: false, bonusTaskId: null },
     ],
     positions: POSITIONS,
     settings,

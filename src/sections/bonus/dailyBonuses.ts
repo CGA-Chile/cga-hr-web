@@ -40,7 +40,7 @@ export async function loadSettingsVersions(supabase: ServerSupabase): Promise<Bo
     await supabase
       .from("bonus_settings")
       .select(
-        "effective_from, effective_to, daily_cap, max_amount_per_person, saturday_day_rate, sunday_day_rate, holiday_day_rate, bonus_position_rates(position_id, amount, deleted_at)",
+        "effective_from, effective_to, daily_cap, max_amount_per_person, saturday_day_rate, sunday_day_rate, holiday_day_rate, bonus_position_rates(position_id, amount, deleted_at), bonus_task_rates(bonus_task_id, amount, deleted_at)",
       )
       .is("deleted_at", null),
   );
@@ -58,6 +58,11 @@ export async function loadSettingsVersions(supabase: ServerSupabase): Promise<Bo
         .filter((rate) => rate.deleted_at === null)
         .map((rate) => [rate.position_id, rate.amount]),
     ),
+    taskRates: new Map(
+      row.bonus_task_rates
+        .filter((rate) => rate.deleted_at === null)
+        .map((rate) => [rate.bonus_task_id, rate.amount]),
+    ),
   }));
 }
 
@@ -65,7 +70,7 @@ export async function loadLiveAssignments(supabase: ServerSupabase, from: IsoDat
   const rows = await fetchAllRows((first, last) =>
     supabase
       .from("assignments")
-      .select("id, date, employee_id, position_id, settled_amount, late, left_early")
+      .select("id, date, employee_id, position_id, settled_amount, late, left_early, bonus_task_id")
       .gte("date", from)
       .lte("date", to)
       .is("deleted_at", null)

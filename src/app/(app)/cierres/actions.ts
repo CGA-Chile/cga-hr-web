@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import * as z from "zod";
 import { periodsCopy } from "@/copy/periods";
-import { loadClosePlan, periodBonusArgument } from "@/sections/periods/closePlan";
+import { loadClosePlan, periodBonusArgument, taskSettlementArgument } from "@/sections/periods/closePlan";
 import { loadPeriod, loadPeriods, nextPeriodStart, periodNameFor, proposedEnd } from "@/sections/periods/queries";
 import { addDays } from "@/utils/chileDate";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
@@ -47,7 +47,7 @@ export async function closePeriod(periodId: string): Promise<ActionState> {
   const period = await loadPeriod(supabase, periodId);
   if (!period) return { message: periodsCopy.unavailable };
 
-  const { canClose, settlements, periodBonuses } = await loadClosePlan(supabase, period);
+  const { canClose, settlements, periodBonuses, taskSettlements } = await loadClosePlan(supabase, period);
   if (!canClose) return { message: periodsCopy.gateBlocks };
 
   const nextEnd = proposedEnd(addDays(period.end_date, 1));
@@ -57,6 +57,7 @@ export async function closePeriod(periodId: string): Promise<ActionState> {
     p_next_name: periodNameFor(nextEnd),
     p_next_end: nextEnd,
     p_period_bonuses: periodBonusArgument(periodBonuses),
+    p_task_settlements: taskSettlementArgument(taskSettlements),
   });
   if (error) return { message: messageFor(error.code) };
 

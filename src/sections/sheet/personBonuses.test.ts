@@ -12,6 +12,7 @@ const SETTINGS: BonusSettingsVersion = {
   maxAmountPerPerson: 2_500,
   positionRates: new Map(),
   dayRates: null,
+  taskRates: new Map(),
 };
 const RIETER: PeriodBonusPosition = { id: "rieter", absence: false, production: true, compliance: true, strike: false };
 
@@ -23,11 +24,12 @@ function day(date: string, scheme: "POSITION_RATE" | "DAY_RATE", amount: number)
     result: {
       scheme,
       perEmployee: [
-        { employeeId: "ana", positionId: "rieter", amount, late: false, leftEarly: false },
-        { employeeId: "bruno", positionId: "rieter", amount: 999, late: false, leftEarly: false },
+        { employeeId: "ana", positionId: "rieter", amount, late: false, leftEarly: false, bonusTaskId: null },
+        { employeeId: "bruno", positionId: "rieter", amount: 999, late: false, leftEarly: false, bonusTaskId: null },
       ],
       total: amount + 999,
       anomalies: [],
+      taskBonuses: [],
     },
   };
 }

@@ -21,6 +21,8 @@ export type BonusAssignment = {
   late: boolean;
   /** Left before the end of the day: treated exactly like a late arrival. */
   leftEarly: boolean;
+  /** A bonus task on top of the position. When set, its amount is the person's only bonus that day. */
+  bonusTaskId: string | null;
 };
 
 /** The day-rate defaults, one per kind of date. Amounts are integer Chilean pesos. */
@@ -38,6 +40,8 @@ export type BonusSettings = {
   positionRates: ReadonlyMap<string, number>;
   /** Null on a version that predates the day rate: no date it covers is paid under it. */
   dayRates: DayRates | null;
+  /** Keyed by bonus task id. */
+  taskRates: ReadonlyMap<string, number>;
 };
 
 /** A calendar date as `YYYY-MM-DD`. Compared as text, so no time zone is ever involved. */
@@ -78,9 +82,18 @@ export type EmployeeBonus = {
   employeeId: string;
   positionId: string;
   amount: number;
-  /** With leftEarly: listed at zero, so the close settles the assignment and the summary says why. */
+  /** With leftEarly and bonusTaskId: listed at zero, so the close settles the assignment and the summary says why. */
   late: boolean;
   leftEarly: boolean;
+  bonusTaskId: string | null;
+};
+
+/** What a bonus task pays one person on the date, outside the line's total and its cap. */
+export type TaskBonus = {
+  employeeId: string;
+  positionId: string;
+  bonusTaskId: string;
+  amount: number;
 };
 
 export type DailyBonusAnomaly =
@@ -96,6 +109,8 @@ export type DailyBonusAnomaly =
 export type DailyBonusResult = {
   scheme: BonusScheme;
   perEmployee: EmployeeBonus[];
+  /** The line's or the day rate's total. The task bonuses are not in it. */
   total: number;
   anomalies: DailyBonusAnomaly[];
+  taskBonuses: TaskBonus[];
 };

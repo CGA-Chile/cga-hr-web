@@ -1,0 +1,3 @@
+{
+  "crons": [{ "path": "/api/cron/workera", "schedule": "0 7 * * *" }]
+}

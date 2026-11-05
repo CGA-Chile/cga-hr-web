@@ -40,5 +40,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // The cron route has no session: it checks its own secret.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/cron).*)"],
 };

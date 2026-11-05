@@ -107,7 +107,7 @@ describe("close_period on a day-rate date", () => {
       p_settlements: [{ assignment_id: line.id, position_id: line.position_id, amount: 10_000 }],
       ...next,
     });
-    expect(onlyLine.error?.code).toBe("40001");
+    expect(onlyLine.error?.code).toBe("CG001");
 
     const everyone = await admin.rpc("close_period", {
       p_period_id: period.id,

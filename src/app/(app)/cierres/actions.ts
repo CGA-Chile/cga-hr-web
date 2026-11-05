@@ -93,7 +93,7 @@ export async function validateExcess(periodId: string, date: string, formData: F
 }
 
 function messageFor(code: string): string {
-  if (code === "40001") return periodsCopy.changedMeanwhile;
+  if (code === "CG001") return periodsCopy.changedMeanwhile;
   if (code === "42501") return periodsCopy.onlyAdminCloses;
   if (code === "23514" || code === "23P01") return periodsCopy.notContiguous;
   return periodsCopy.unavailable;

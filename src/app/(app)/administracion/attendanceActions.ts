@@ -9,6 +9,7 @@ import {
   type RereadValues,
 } from "@/schemas/attendance";
 import { todayInChile } from "@/utils/chileDate";
+import { normalizeRut } from "@/utils/rut";
 import { createSupabaseServerClient } from "@/utils/supabase/server";
 import { createWorkeraClient } from "@/utils/workera/client";
 import { workeraCredentials } from "@/utils/workera/env";
@@ -49,5 +50,20 @@ export async function saveMismatchesFrom(values: MismatchesFromValues): Promise<
 
   revalidatePath(ADMIN_PATH);
   revalidatePath("/planilla");
+  return null;
+}
+
+/** Only ever a RUT read from Workera, and only after an admin looked at the pair. */
+export async function confirmEmployeeRut(employeeId: string, nationalId: string): Promise<AdminResult> {
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("employees")
+    .update({ national_id: normalizeRut(nationalId) })
+    .eq("id", employeeId);
+  if (error) {
+    if (error.code === "23505") return { message: adminCopy.employees.duplicateNationalId };
+    return { message: error.code === "42501" ? adminCopy.onlyAdmin : adminCopy.unavailable };
+  }
+  revalidatePath(ADMIN_PATH);
   return null;
 }

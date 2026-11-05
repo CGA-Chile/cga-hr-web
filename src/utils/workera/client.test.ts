@@ -120,6 +120,28 @@ describe("createWorkeraClient", () => {
   });
 });
 
+describe("readPeople", () => {
+  it("makes one person of the same RUT returned for every department", async () => {
+    const row = {
+      identification: "12.345.678-5",
+      name: "ANA",
+      secondName: null,
+      lastName: "ROJAS",
+      secondLastName: "DIAZ",
+      employeeStatus: "ACTIVO",
+    };
+    const { fetchImpl } = respondingWith({
+      "/branchOffice": [{ totalPages: 1, data: [{ code: "B1" }] }],
+      "/department": [{ totalPages: 1, data: [{ code: "D1" }, { code: "D2" }] }],
+      "/employee": [{ totalPages: 1, data: [row] }],
+    });
+
+    const people = await createWorkeraClient(CREDENTIALS, fetchImpl).readPeople();
+
+    expect(people).toEqual([{ nationalId: "12345678-5", fullName: "ANA ROJAS DIAZ", active: true }]);
+  });
+});
+
 describe("splitIntoWindows", () => {
   it("leaves a short range whole", () => {
     expect(splitIntoWindows("2026-10-01", "2026-10-07", 60)).toEqual([{ from: "2026-10-01", to: "2026-10-07" }]);

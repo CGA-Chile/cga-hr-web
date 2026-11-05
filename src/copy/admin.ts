@@ -143,5 +143,21 @@ export const adminCopy = {
     stageOneTitle: "Mostrar descuadres",
     stageOneHint: "Desde esta fecha, la planilla marca los descuadres. No cambia ningún pago. Déjala vacía para no mostrarlos.",
     mismatchesFrom: "Mostrar desde",
+    openMapping: "Revisar trabajadores con Workera",
+    mapping: {
+      title: "Trabajadores y Workera",
+      unavailable: "No se pudo leer Workera. Intenta de nuevo en un rato.",
+      matched: (count: number) =>
+        count === 1 ? "1 trabajador ya coincide con Workera por RUT." : `${count} trabajadores ya coinciden con Workera por RUT.`,
+      proposalsTitle: "Coincidencias por nombre",
+      proposalsHint: "Confirma solo si es la misma persona. Al confirmar, el trabajador queda con el RUT de Workera.",
+      noProposals: "No hay coincidencias por nombre para revisar.",
+      proposal: (appName: string, workeraName: string, rut: string) => `${appName} → ${workeraName} (${rut})`,
+      confirm: "Confirmar",
+      unmatchedTitle: "Sin coincidencia en Workera",
+      unmatchedHint: "Revisa su RUT en Administración o en Workera.",
+      onlyInWorkeraTitle: "Activos en Workera y no en la app",
+      onlyInWorkeraHint: "Si alguien ya no trabaja, desactívalo en Workera. Si falta en la app, agrégalo en Trabajadores.",
+    },
   },
 } as const;

@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { rereadWorkera, saveMismatchesFrom } from "@/app/(app)/administracion/attendanceActions";
@@ -32,6 +33,9 @@ export function SyncSection({ status }: { status: AttendanceStatus }) {
           {copy.failedDates(status.failedDates.map(formatNumericDate).join(", "))}
         </p>
       )}
+      <Link href="/administracion?seccion=sincronizacion&mapeo=1" scroll={false} className={styles.button}>
+        {copy.openMapping}
+      </Link>
       <RereadForm />
       <MismatchesFromForm from={status.mismatchesFrom} />
     </div>

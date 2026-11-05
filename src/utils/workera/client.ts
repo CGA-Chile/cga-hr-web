@@ -5,8 +5,10 @@ import {
   employeeScheduleSchema,
   organizationUnitSchema,
   pageSchema,
+  workeraEmployeeSchema,
 } from "@/schemas/workera";
 import { addDays, daysInRange } from "@/utils/chileDate";
+import type { WorkeraPerson } from "@/domain/attendance/employeeMatch";
 import { normalizeRut } from "@/utils/rut";
 
 const BASE_URL = "https://workera.com/apiClient/v1";
@@ -64,29 +66,51 @@ export function createWorkeraClient(credentials: WorkeraCredentials, fetchImpl: 
     }));
   }
 
-  /** Schedules need a branch and a department, so every pair of them is asked for. */
-  async function readSchedules(from: IsoDate, to: IsoDate): Promise<WorkeraSchedule[]> {
+  /** Some reads need a branch and a department, so every pair of them is asked for. */
+  async function organizationPairs(): Promise<{ branch: string; department: string }[]> {
     const branches = await readAllPages("/branchOffice", organizationUnitSchema);
     const departments = await readAllPages("/department", organizationUnitSchema);
+    return branches.flatMap((branch) => departments.map((department) => ({ branch: branch.code, department: department.code })));
+  }
 
+  async function readSchedules(from: IsoDate, to: IsoDate): Promise<WorkeraSchedule[]> {
+    const pairs = await organizationPairs();
     const schedules: WorkeraSchedule[] = [];
     for (const window of splitIntoWindows(from, to, SCHEDULE_WINDOW_DAYS)) {
-      for (const branch of branches) {
-        for (const department of departments) {
-          const rows = await readAllPages("/workshift/schedules", employeeScheduleSchema, {
-            start: window.from,
-            end: window.to,
-            branchOffice: branch.code,
-            department: department.code,
-          });
-          schedules.push(...rows.flatMap(toSchedules));
-        }
+      for (const { branch, department } of pairs) {
+        const rows = await readAllPages("/workshift/schedules", employeeScheduleSchema, {
+          start: window.from,
+          end: window.to,
+          branchOffice: branch,
+          department,
+        });
+        schedules.push(...rows.flatMap(toSchedules));
       }
     }
     return schedules;
   }
 
-  return { readClockings, readSchedules };
+  /**
+   * Everyone in Workera, active or not. The department filter is required and yet ignored, so the
+   * same people come back for every pair; the RUT makes them one.
+   */
+  async function readPeople(): Promise<WorkeraPerson[]> {
+    const people = new Map<string, WorkeraPerson>();
+    for (const { branch, department } of await organizationPairs()) {
+      const rows = await readAllPages("/employee", workeraEmployeeSchema, { branchOffice: branch, department });
+      for (const row of rows) {
+        const nationalId = normalizeRut(row.identification);
+        people.set(nationalId, {
+          nationalId,
+          fullName: [row.name, row.secondName, row.lastName, row.secondLastName].filter(Boolean).join(" "),
+          active: row.employeeStatus.toUpperCase() === "ACTIVO",
+        });
+      }
+    }
+    return [...people.values()];
+  }
+
+  return { readClockings, readSchedules, readPeople };
 }
 
 export type WorkeraClient = ReturnType<typeof createWorkeraClient>;

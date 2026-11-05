@@ -16,6 +16,8 @@ import {
 import { loadAttendanceStatus } from "@/sections/admin/attendanceQueries";
 import { RateVersionForm } from "@/sections/admin/RateVersionForm";
 import { SyncSection } from "@/sections/admin/SyncSection";
+import { EmployeeMapping } from "@/sections/admin/EmployeeMapping";
+import { loadEmployeeMatching } from "@/sections/admin/employeeMatching";
 import { loadBonusTasks, type BonusTask } from "@/sections/day/queries";
 import { addDays, todayInChile } from "@/utils/chileDate";
 import { loadCurrentProfile } from "@/utils/supabase/currentProfile";
@@ -24,7 +26,7 @@ import { createSupabaseServerClient } from "@/utils/supabase/server";
 type Section = keyof typeof adminCopy.sections;
 type SearchParam = string | string[] | undefined;
 type AdminPageProps = {
-  searchParams: Promise<{ seccion?: SearchParam; editar?: SearchParam; nuevo?: SearchParam }>;
+  searchParams: Promise<{ seccion?: SearchParam; editar?: SearchParam; nuevo?: SearchParam; mapeo?: SearchParam }>;
 };
 
 const SECTIONS: Section[] = ["trabajadores", "puestos", "tareas", "tarifas", "sincronizacion"];
@@ -102,6 +104,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       {section === "tareas" && <BonusTasksTable tasks={tasks} currentAmount={currentTaskAmount} editHref={editHref} />}
       {section === "tarifas" && <RateVersions versions={versions} positionName={positionName} taskName={taskName} />}
       {attendanceStatus && <SyncSection status={attendanceStatus} />}
+      {section === "sincronizacion" && query.mapeo === "1" && (
+        <Drawer title={adminCopy.sync.mapping.title} closeHref={sectionPath} closeLabel={adminCopy.cancel}>
+          <MappingContent employees={employees} />
+        </Drawer>
+      )}
 
       {section === "trabajadores" && (creating || editing) && (
         <EmployeeDrawer employee={employees.find((e) => e.id === editing) ?? null} doneHref={sectionPath} />
@@ -204,4 +211,11 @@ function PositionDrawer({ position, doneHref }: { position: AdminPosition | null
       />
     </Drawer>
   );
+}
+
+/** Reads Workera while the page renders, so a failure there has to land as a message, not a crash. */
+async function MappingContent({ employees }: { employees: AdminEmployee[] }) {
+  const matching = await loadEmployeeMatching(employees);
+  if (!matching) return <p role="alert">{adminCopy.sync.mapping.unavailable}</p>;
+  return <EmployeeMapping matching={matching} />;
 }

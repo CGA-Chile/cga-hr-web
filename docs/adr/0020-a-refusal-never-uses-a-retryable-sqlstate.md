@@ -15,8 +15,8 @@ This refusal does not, because the same request meets the same mismatch every ti
 waited forever, and the loop kept running in the database after the client had gone, until its
 backend was terminated.
 
-Local stacks and CI ran PostgREST v16.2, which returns the error at once. Every test asserting
-40001 passed there.
+The stacks the tests ran on used PostgREST v16.2, which returns the error at once. Every test
+asserting 40001 passed there.
 
 ## Decision
 
@@ -26,10 +26,14 @@ with the code in the body. A code of our own means what we say it means, in any 
 Database functions must not raise SQLSTATE class 40 on purpose. That class is the server's way of
 saying "run this again", and an expected business refusal is the opposite.
 
+CI pins PostgREST to production's version and fails if the stack starts with another one. Local
+stacks follow `supabase/.temp/rest-version`, which `supabase link` writes, once their containers
+are recreated.
+
 ## Consequences
 
 - A stale plan reaches the user as a message, and refusing never holds a connection.
 - The app and the function agree on a code that only this project uses, so renaming it takes a
   migration and a code change together.
-- Local and production PostgREST versions can still differ, so a passing integration test does not
-  prove how production's version behaves. This decision removes this one failure, not that gap.
+- The pin is a value in `ci.yml` that nothing compares with production, because CI never talks to
+  the remote project. When production's PostgREST moves, someone has to update it.

@@ -62,12 +62,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Production's PostgREST version, which the CLI reads from this file. A version that behaves
+      # differently can pass here and hang there: docs/adr/0020. Update it when production moves.
+      - name: Pin PostgREST to production's version
+        run: |
+          mkdir -p supabase/.temp
+          echo "v14.5" > supabase/.temp/rest-version
+
       # A throwaway local stack inside the runner, built from the committed migrations.
       # It never talks to the remote project.
       - name: Start local Supabase
         run: >
           npx supabase start
           -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: PostgREST is the pinned version
+        run: docker ps --format '{{.Image}}' | grep -F "postgrest:$(cat supabase/.temp/rest-version)"
 
       - name: Generated types match the migrations
         run: |

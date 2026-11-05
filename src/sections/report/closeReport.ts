@@ -6,7 +6,7 @@ import type { PeriodBonusKind } from "@/domain/periodBonus/types";
 import { loadCalendar, loadSettingsVersions } from "@/sections/bonus/dailyBonuses";
 import { fullName } from "@/sections/day/queries";
 import type { Period } from "@/sections/periods/queries";
-import { orThrow, type ServerSupabase } from "@/utils/supabase/query";
+import { fetchAllRows, orThrow, type ServerSupabase } from "@/utils/supabase/query";
 
 /** The four bonuses a close reports, each kept apart. */
 export type BonusAmounts = { carding: number; dayRate: number; production: number; compliance: number };
@@ -131,11 +131,13 @@ export function personOf(employee: { first_name: string; last_name: string; nati
 }
 
 async function loadDailyEntries(supabase: ServerSupabase, period: Period): Promise<DailyEntry[]> {
-  const settled = orThrow(
-    await supabase
+  const settled = await fetchAllRows((first, last) =>
+    supabase
       .from("assignments")
       .select("date, employee_id, position_id, settled_amount, employees(first_name, last_name, national_id)")
-      .eq("settled_in_period_id", period.id),
+      .eq("settled_in_period_id", period.id)
+      .order("id")
+      .range(first, last),
   );
   const dates = [...new Set(settled.map((row) => row.date))].sort();
 
@@ -143,12 +145,16 @@ async function loadDailyEntries(supabase: ServerSupabase, period: Period): Promi
     supabase.from("positions").select("id, name, triggers_equal_share"),
     supabase.from("periods").select("id, closed_at").eq("status", "CLOSED"),
     dates.length
-      ? supabase
-          .from("assignments")
-          .select("date, position_id, settled_in_period_id")
-          .in("date", dates)
-          .not("settled_in_period_id", "is", null)
-      : Promise.resolve({ data: [], error: null }),
+      ? fetchAllRows((first, last) =>
+          supabase
+            .from("assignments")
+            .select("date, position_id, settled_in_period_id")
+            .in("date", dates)
+            .not("settled_in_period_id", "is", null)
+            .order("id")
+            .range(first, last),
+        )
+      : [],
     loadSettingsVersions(supabase),
     loadCalendar(supabase, dates[0] ?? period.start_date, dates.at(-1) ?? period.end_date),
   ]);
@@ -157,7 +163,7 @@ async function loadDailyEntries(supabase: ServerSupabase, period: Period): Promi
   const thisClose = period.closed_at ?? "";
 
   const equalShareDates = new Set(
-    orThrow(settledOnDates)
+    settledOnDates
       .filter(
         (row) =>
           positionsById.get(row.position_id)?.triggers_equal_share &&

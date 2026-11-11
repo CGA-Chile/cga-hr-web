@@ -7,20 +7,29 @@ export type ExportCell = string | number;
 export const LEADING_TEXT_COLUMNS = 2;
 
 /**
- * The summary as accounting receives it: who, and how much of each bonus, then the total. The
- * carry-over is already inside each bonus; the breakdown stays in the web view.
+ * The summary as accounting receives it: who, and how much of each bonus and of each task the close
+ * paid, then the total. The carry-over is already inside each bonus; the breakdown stays in the web
+ * view.
  */
 export function exportTable(report: CloseReport): ExportCell[][] {
   const { columns } = reportCopy;
+  const { taskColumns } = report;
   return [
-    [columns.person, columns.nationalId, ...REPORT_BONUSES.map((bonus) => columns[bonus]), columns.total],
+    [columns.person, columns.nationalId, ...REPORT_BONUSES.map((bonus) => columns[bonus]), ...taskColumns, columns.total],
     ...report.rows.map((row) => [
       row.name,
       row.nationalId ?? "",
       ...REPORT_BONUSES.map((bonus) => row.amounts[bonus]),
+      ...taskColumns.map((task) => row.taskAmounts.get(task) ?? 0),
       row.total,
     ]),
-    [reportCopy.totals, "", ...REPORT_BONUSES.map((bonus) => report.amounts[bonus]), report.total],
+    [
+      reportCopy.totals,
+      "",
+      ...REPORT_BONUSES.map((bonus) => report.amounts[bonus]),
+      ...taskColumns.map((task) => report.taskAmounts.get(task) ?? 0),
+      report.total,
+    ],
   ];
 }
 

@@ -86,6 +86,7 @@ export type Database = {
           previous_late_notified: boolean | null
           previous_left_early: boolean | null
           previous_position_id: string | null
+          source: string
           updated_at: string
         }
         Insert: {
@@ -109,6 +110,7 @@ export type Database = {
           previous_late_notified?: boolean | null
           previous_left_early?: boolean | null
           previous_position_id?: string | null
+          source?: string
           updated_at?: string
         }
         Update: {
@@ -132,6 +134,7 @@ export type Database = {
           previous_late_notified?: boolean | null
           previous_left_early?: boolean | null
           previous_position_id?: string | null
+          source?: string
           updated_at?: string
         }
         Relationships: [
@@ -424,24 +427,30 @@ export type Database = {
       }
       attendance_settings: {
         Row: {
+          applies_from: string | null
           created_at: string
           deleted_at: string | null
           id: string
           mismatches_from: string | null
+          tolerance_minutes: number
           updated_at: string
         }
         Insert: {
+          applies_from?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
           mismatches_from?: string | null
+          tolerance_minutes?: number
           updated_at?: string
         }
         Update: {
+          applies_from?: string | null
           created_at?: string
           deleted_at?: string | null
           id?: string
           mismatches_from?: string | null
+          tolerance_minutes?: number
           updated_at?: string
         }
         Relationships: []
@@ -1253,6 +1262,7 @@ export type Database = {
           previous_late_notified: boolean | null
           previous_left_early: boolean | null
           previous_position_id: string | null
+          source: string | null
         }
         Relationships: []
       }
@@ -1336,6 +1346,10 @@ export type Database = {
       create_bonus_task: {
         Args: { p_amount: number; p_name: string }
         Returns: string
+      }
+      recompute_attendance_marks: {
+        Args: { p_from: string; p_to: string }
+        Returns: undefined
       }
       record_attendance_read: {
         Args: {

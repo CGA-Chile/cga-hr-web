@@ -4,14 +4,24 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { rereadWorkera, saveMismatchesFrom } from "@/app/(app)/administracion/attendanceActions";
+import {
+  rereadWorkera,
+  saveAppliesFrom,
+  saveMismatchesFrom,
+  saveTolerance,
+} from "@/app/(app)/administracion/attendanceActions";
 import { FormField } from "@/components/FormField";
 import { adminCopy } from "@/copy/admin";
 import {
+  appliesFromSchema,
   mismatchesFromSchema,
   rereadSchema,
+  toleranceSchema,
+  type AppliesFromValues,
   type MismatchesFromValues,
   type RereadValues,
+  type ToleranceInput,
+  type ToleranceValues,
 } from "@/schemas/attendance";
 import { formatDateTimeInChile, formatNumericDate } from "@/utils/chileDate";
 import type { AttendanceStatus } from "./attendanceQueries";
@@ -38,6 +48,8 @@ export function SyncSection({ status }: { status: AttendanceStatus }) {
       </Link>
       <RereadForm />
       <MismatchesFromForm from={status.mismatchesFrom} />
+      <ToleranceForm minutes={status.toleranceMinutes} />
+      <AppliesFromForm from={status.appliesFrom} />
     </div>
   );
 }
@@ -101,6 +113,66 @@ function MismatchesFromForm({ from }: { from: string | null }) {
       )}
       <button type="submit" className={styles.button} disabled={formState.isSubmitting}>
         {formState.isSubmitting ? adminCopy.saving : adminCopy.save}
+      </button>
+    </form>
+  );
+}
+
+function ToleranceForm({ minutes }: { minutes: number }) {
+  const { register, handleSubmit, formState } = useForm<ToleranceInput, unknown, ToleranceValues>({
+    resolver: zodResolver(toleranceSchema),
+    defaultValues: { minutes: String(minutes) },
+  });
+  const [refusal, setRefusal] = useState<string | null>(null);
+
+  async function submit(values: ToleranceValues): Promise<void> {
+    setRefusal((await saveTolerance(values))?.message ?? null);
+  }
+
+  return (
+    <form onSubmit={handleSubmit(submit)} className={styles.form} noValidate>
+      <h2 className={styles.subtitle}>{copy.toleranceTitle}</h2>
+      <p className={styles.muted}>{copy.toleranceHint}</p>
+      <FormField label={copy.toleranceLabel} error={formState.errors.minutes?.message}>
+        <input type="number" min={0} step={1} {...register("minutes")} />
+      </FormField>
+      {refusal && (
+        <p role="alert" className={styles.alert}>
+          {refusal}
+        </p>
+      )}
+      <button type="submit" className={styles.button} disabled={formState.isSubmitting}>
+        {formState.isSubmitting ? copy.recalculating : adminCopy.save}
+      </button>
+    </form>
+  );
+}
+
+function AppliesFromForm({ from }: { from: string | null }) {
+  const { register, handleSubmit, formState } = useForm<AppliesFromValues>({
+    resolver: zodResolver(appliesFromSchema),
+    defaultValues: { from: from ?? "" },
+  });
+  const [refusal, setRefusal] = useState<string | null>(null);
+
+  async function submit(values: AppliesFromValues): Promise<void> {
+    setRefusal((await saveAppliesFrom(values))?.message ?? null);
+  }
+
+  return (
+    <form onSubmit={handleSubmit(submit)} className={styles.form} noValidate>
+      <h2 className={styles.subtitle}>{copy.stageTwoTitle}</h2>
+      <p className={styles.muted}>{copy.stageTwoHint}</p>
+      <FormField label={copy.appliesFrom} error={formState.errors.from?.message}>
+        <input type="date" {...register("from")} />
+      </FormField>
+      {refusal && (
+        <p role="alert" className={styles.alert}>
+          {refusal}
+        </p>
+      )}
+      <button type="submit" className={styles.button} disabled={formState.isSubmitting}>
+        {formState.isSubmitting ? copy.recalculating : adminCopy.save}
       </button>
     </form>
   );

@@ -77,17 +77,28 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
 
   // A role without amounts gets no calculation at all: the database would refuse it the rates.
   const positions = await loadPositions(supabase);
-  const [{ employees, assignments }, dailyBonuses, anomalousDateCount, calendar, versions, reprimands, bonusTasks, mismatchOf] =
-    await Promise.all([
-      loadRangeRows(supabase, addDays(start, -LOOK_BACK_DAYS), end),
-      showAmounts ? loadDailyBonuses(supabase, start, end) : [],
-      (showAmounts ? loadAnomalousDates(supabase) : loadDuplicateDates(supabase)).then((dates) => dates.length),
-      loadCalendar(supabase, start, end),
-      showAmounts ? loadSettingsVersions(supabase) : [],
-      showAmounts && period ? loadReprimands(supabase, period.id) : new Map<string, string | null>(),
-      loadBonusTasks(supabase),
-      loadMismatchOf(supabase, start, end, new Map(positions.map((position) => [position.id, position]))),
-    ]);
+  const [
+    { employees, assignments },
+    dailyBonuses,
+    anomalousDateCount,
+    calendar,
+    versions,
+    reprimands,
+    bonusTasks,
+    mismatchOf,
+    attendanceSettings,
+  ] = await Promise.all([
+    loadRangeRows(supabase, addDays(start, -LOOK_BACK_DAYS), end),
+    showAmounts ? loadDailyBonuses(supabase, start, end) : [],
+    (showAmounts ? loadAnomalousDates(supabase) : loadDuplicateDates(supabase)).then((dates) => dates.length),
+    loadCalendar(supabase, start, end),
+    showAmounts ? loadSettingsVersions(supabase) : [],
+    showAmounts && period ? loadReprimands(supabase, period.id) : new Map<string, string | null>(),
+    loadBonusTasks(supabase),
+    loadMismatchOf(supabase, start, end, new Map(positions.map((position) => [position.id, position]))),
+    supabase.from("attendance_settings").select("applies_from").is("deleted_at", null).maybeSingle(),
+  ]);
+  const appliesFrom = attendanceSettings.data?.applies_from ?? null;
   const inRange = assignments.filter((assignment) => assignment.date >= start);
   const reprimanded = new Set(reprimands.keys());
   const bonusPositions = positions.map(toBonusPosition);
@@ -148,6 +159,7 @@ export default async function SheetPage({ searchParams }: SheetPageProps) {
             positions={positions}
             bonusTasks={bonusTasks}
             mayChangePaid={profile?.role === "admin"}
+            appliesFrom={appliesFrom}
           >
             <SheetGrid
               sheet={sheet}

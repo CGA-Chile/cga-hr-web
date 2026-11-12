@@ -27,6 +27,8 @@ type CellPanelHostProps = {
   bonusTasks: readonly BonusTask[];
   /** The admin may change a paid date, as with a single cell; the range panel previews it so. */
   mayChangePaid: boolean;
+  /** Stage 2's start: from this date on, the incomplete-day marks come from Workera. */
+  appliesFrom: string | null;
   children: ReactNode;
 };
 
@@ -109,6 +111,7 @@ export function CellPanelHost(props: CellPanelHostProps) {
             nextHref={stepHref(1)}
             freshness={cells}
             rangeHref={sheetHrefFor(query, { range: true })}
+            appliesFrom={props.appliesFrom}
             onClose={close}
           />
         </>

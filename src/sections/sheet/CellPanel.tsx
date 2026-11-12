@@ -37,6 +37,8 @@ type CellPanelProps = {
   nextHref: string | null;
   /** Opens the range panel from this cell. */
   rangeHref: string;
+  /** Stage 2's start: from this date on, the incomplete-day marks come from Workera. */
+  appliesFrom: string | null;
   /** Changes with every server render, so the history is read again after an edit lands. */
   freshness: unknown;
   onClose: () => void;
@@ -106,6 +108,7 @@ export function CellPanel(props: CellPanelProps) {
           employeeId={employeeId}
           positionId={assignment.position_id}
           note={assignment.note}
+          appliesFrom={props.appliesFrom}
           late={assignment.late}
           lateNotified={assignment.late_notified}
           leftEarly={assignment.left_early}

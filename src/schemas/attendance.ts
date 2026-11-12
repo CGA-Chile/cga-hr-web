@@ -19,3 +19,16 @@ export type RereadValues = z.output<typeof rereadSchema>;
 export const mismatchesFromSchema = z.object({ from: z.union([z.literal(""), isoDate]) });
 
 export type MismatchesFromValues = z.output<typeof mismatchesFromSchema>;
+
+/** Empty turns stage 2 off: the marks stay manual. */
+export const appliesFromSchema = z.object({ from: z.union([z.literal(""), isoDate]) });
+
+export type AppliesFromValues = z.output<typeof appliesFromSchema>;
+
+/** Minutes of grace before a clocking counts as late or as leaving early. Zero is valid. */
+export const toleranceSchema = z.object({
+  minutes: z.coerce.number<string>().int(copy.invalidTolerance).min(0, copy.invalidTolerance),
+});
+
+export type ToleranceInput = z.input<typeof toleranceSchema>;
+export type ToleranceValues = z.output<typeof toleranceSchema>;

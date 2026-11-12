@@ -499,6 +499,12 @@ dice el motivo:
 - Una marcación incompleta no produce marcas: un olvido de huella no cuesta el bono por sí solo.
 - Los botones del panel se reemplazan por el dato de Workera. Si la marcación está a la hora, nadie
   puede poner un atraso. El aviso del atraso se sigue agregando a mano.
+- La fecha de inicio de la etapa (`attendance_settings.applies_from`) y la tolerancia
+  (`tolerance_minutes`) las fija el admin en Sincronización. La marca la **escribe el sistema**: al
+  asignar un puesto se deriva en la misma operación, y el recálculo (tras cada lectura y al cambiar la
+  tolerancia o la fecha) la corrige después. El historial distingue quién la escribió en la columna
+  `source` (`MANUAL` o `WORKERA`). La regla vive en `src/domain/attendance/marks.ts` y en
+  `private.derive_attendance_marks`, y cambian juntas. Ver `docs/adr/0023`.
 - Un admin puede **perdonar** una marca, de a una o en bloque por fecha, con motivo obligatorio. El perdón
   quita la marca y su efecto en el bono, y la lectura no la vuelve a poner.
 
@@ -821,6 +827,7 @@ previous_late, new_late                 -- null en filas anteriores al atraso
 previous_late_notified, new_late_notified
 previous_left_early, new_left_early     -- null en filas anteriores a estas marcas
 changed_by, changed_at
+source                                  -- 'MANUAL' una persona, 'WORKERA' el sistema (sección 5d)
 acknowledged_at, acknowledged_by        -- ver "La lista de revisión", sección 7
 ```
 

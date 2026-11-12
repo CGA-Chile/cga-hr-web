@@ -143,6 +143,16 @@ export const adminCopy = {
     stageOneTitle: "Mostrar descuadres",
     stageOneHint: "Desde esta fecha, la planilla marca los descuadres. No cambia ningún pago. Déjala vacía para no mostrarlos.",
     mismatchesFrom: "Mostrar desde",
+    toleranceTitle: "Tolerancia",
+    toleranceHint:
+      "Minutos de gracia antes de contar un atraso o una salida temprana. Cambiarla recalcula los días abiertos sin liquidar.",
+    toleranceLabel: "Minutos de tolerancia",
+    invalidTolerance: "Escribe un número entero de minutos, 0 o más.",
+    stageTwoTitle: "Aplicar al pago",
+    stageTwoHint:
+      "Desde esta fecha, el atraso y la salida temprana vienen de Workera y afectan el bono. Usa el inicio de un período futuro. Déjala vacía para no aplicarlos.",
+    appliesFrom: "Aplicar desde",
+    recalculating: "Recalculando los días abiertos…",
     openMapping: "Revisar trabajadores con Workera",
     mapping: {
       title: "Trabajadores y Workera",

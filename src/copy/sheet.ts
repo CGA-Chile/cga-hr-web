@@ -86,6 +86,10 @@ export const sheetCopy = {
   withoutNotice: "Sin aviso",
   leftEarlyGroup: "Salida",
   leftEarly: "Se retiró temprano",
+  workeraMarksHint: "El atraso y la salida temprana vienen de Workera. El aviso se agrega a mano.",
+  workeraLateLabel: "Atraso (Workera)",
+  workeraLeftEarlyLabel: "Salida temprana (Workera)",
+  workeraFullDay: "Día completo según Workera.",
   bonusTask: "Tarea con bono",
   bonusTaskTitle: "Tarea con bono",
   bonusTaskHint:

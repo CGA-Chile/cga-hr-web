@@ -39,6 +39,11 @@ export async function readWorkeraRange(
       p_schedules: schedules,
     });
     if (error) throw new Error(error.message);
+
+    // A fresh read moves the derived marks of the range it covers (docs/DOMAIN.md §5d). It is a
+    // no-op before stage 2, so the nightly read stays cheap until an admin turns it on.
+    const { error: recomputeError } = await supabase.rpc("recompute_attendance_marks", { p_from: from, p_to: to });
+    if (recomputeError) throw new Error(recomputeError.message);
   } catch (error) {
     const { error: recordError } = await supabase.rpc("record_attendance_read_failure", {
       p_from: from,
